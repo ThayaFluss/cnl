@@ -12,7 +12,7 @@ import logging
 import sys
 from tqdm import tqdm,trange
 from datetime import datetime
-from train_rrn import *
+from train_fde import *
 from vbmf.vbmf import VBMF2
 from vbmf.validate_vbmf_ipn import validate_vbmf_ipn
 
@@ -57,6 +57,18 @@ def options(logger=None):
                         required = False,
                         default  =  False,
                         help     = "empirical vbmf")
+    parser.add_argument('-nt', '--num_test',
+                        type     = int,
+                        dest     = 'num_test',
+                        required = False,
+                        default  =  10,
+                        help     = "Number of tests")
+    parser.add_argument('-me', '--max_epoch',
+                        type     = int,
+                        dest     = 'max_epoch',
+                        required = False,
+                        default  =  120,
+                        help     = "max_epoch")
 
     return parser.parse_args()
 
@@ -68,6 +80,7 @@ i_p_dim = max(opt.dim, opt.p_dim)
 i_minibatch_size = opt.minibatch
 jobname = opt.jobname
 i_vbmf = opt.vbmf
+
 
 if not jobname in ["min_singular" , "scale_balance"]:
     jobname = "min_singular"
@@ -107,9 +120,10 @@ def test_optimize(\
     mean_param =np.average(sq_sample)
 
 
+    sample = np.asarray(evs_list)
 
     r_diag_A, r_sigma, train_loss_array, val_loss_array,num_zero_array\
-    = train_rrn_sc(dim, p_dim,  evs_list,\
+    = train_fde_sc(dim, p_dim,  sample,\
         base_scale=base_scale ,\
         dim_cauchy_vec=dim_cauchy_vec,\
         base_lr =base_lr ,\
@@ -141,8 +155,8 @@ def test_optimize(\
 
 #@param jobname = "min_singular" or "scale_balance"
 def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
-    num_test = 10
-    max_epoch= int(120*i_p_dim/i_dim)
+    num_test = opt.num_test
+    max_epoch= int(opt.max_epoch*i_p_dim/i_dim)
     base_lr = 0.1
     ### for paper
     reg_coef = 2e-4

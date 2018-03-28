@@ -9,11 +9,68 @@ import os
 import time
 import logging
 
+from argparse import ArgumentParser
+from train_fde import *
 
-from cauchy import *
-from train_rrn import *
 
-i_dim = 50
+import env_logger
+
+def options(logger=None):
+    desc   = u'{0} [Args] [Options]\nDetailed options -h or --help'.format(__file__)
+    parser = ArgumentParser(description = desc)
+
+    # options
+    parser.add_argument('-d', '--dim',
+                        type     = int,
+                        dest     = 'dim',
+                        required = False,
+                        default  =  50,
+                        help     = "column")
+    parser.add_argument('-p', '--p_dim',
+                        type     = int,
+                        dest     = 'p_dim',
+                        required = False,
+                        default  =  50,
+                        help     = "row")
+    parser.add_argument('-m', '--minibatch',
+                        type     = int,
+                        dest     = 'minibatch',
+                        required = False,
+                        default  =  1,
+                        help     = "minibatch_size")
+    parser.add_argument('-j', '--jobname',
+                        type     = str,
+                        dest     = 'jobname',
+                        required = False,
+                        default  =  50,
+                        help     = "min_singular")
+    parser.add_argument('-nt', '--num_test',
+                        type     = int,
+                        dest     = 'num_test',
+                        required = False,
+                        default  =  10,
+                        help     = "Number of tests")
+    parser.add_argument('-me', '--max_epoch',
+                        type     = int,
+                        dest     = 'max_epoch',
+                        required = False,
+                        default  =  120,
+                        help     = "max_epoch")
+
+    return parser.parse_args()
+
+opt =options()
+
+
+i_dim = min(opt.dim, opt.p_dim)
+i_p_dim = max(opt.dim, opt.p_dim)
+jobname = opt.jobname
+
+
+
+
+
+
 
 def test_optimize(\
     base_scale ,dim_cauchy_vec, \
@@ -63,7 +120,7 @@ def test_optimize(\
 
 
 
-    b, train_loss_array, val_loss_array= train_rrn_cw(dim, p_dim,\
+    b, train_loss_array, val_loss_array= train_fde_cw(dim, p_dim,\
         sample=evs_list,\
         base_scale=base_scale ,\
         dim_cauchy_vec=dim_cauchy_vec,\
@@ -78,7 +135,12 @@ def test_optimize(\
     plt.plot(evs_list, label="Sample")
     plt.plot(b, label="Result")
     plt.legend()
-    plt.savefig("images/val_train_cw/{}.png".format(jobname))
+
+    dirname = "images/val_train_cw"
+    if not os.path.exists(dirname):
+            os.makedirs(dirname)
+
+    plt.savefig("{}/{}.png".format(dirname, jobname))
     plt.clf()
     logging.getLogger().removeHandler(file_log)
 
@@ -90,16 +152,16 @@ def test_optimize(\
 
 
 def test_scale_balance():
-    num_test = 10
+    num_test = opt.num_test
     ### MP-ratio
     min_singular = - 1./( 1  + np.sqrt(1))
     zero_dim = 0
-    max_epoch = 200
+    max_epoch = opt.max_epoch
     base_lr = 1e-2
-    minibatch_size = 1
+    minibatch_size = opt.minibatch
     ### TODO for paper
     list_base_scale =[ 1e-1/4, 1e-1/2, 1e-1, 2e-1, 4e-1]
-    list_dim_cauchy_vec =  [10]
+    list_dim_cauchy_vec =  [1]
     ### for test
     #list_base_scale =[ 1e-1]
     #list_dim_cauchy_vec =  [1024]

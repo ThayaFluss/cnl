@@ -15,7 +15,7 @@ from cauchy import *
 
 TEST_C2 = True###Use \C^2-valued subordination
 if TEST_C2:
-    import cauchy_c2
+    import fde_sc_c2
 
 dim = 50
 p_dim = 50
@@ -45,7 +45,7 @@ def test_grad_at_imaginary_axis(x ,scale,sigma):
     sc = SemiCircular(dim, p_dim,scale)
     sc.set_params(diag_A, sigma)
 
-    sc2 = cauchy_c2.SemiCircular(dim, p_dim,scale)
+    sc2 = fde_sc_c2.SemiCircular(dim, p_dim,scale)
     sc2.set_params(diag_A, sigma)
 
     z = x + 1j*scale

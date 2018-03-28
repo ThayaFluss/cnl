@@ -807,7 +807,7 @@ class SemiCircular(object):
                 tpPsigmaG_2 =  tpPsigmaOmega_2 @ tpTGA
                 assert (np.allclose(tpPsigmaG_2, tpPsigmaG))
 
-            assert (tpPAG.shape , [self.dim, 2])
+            #assert (tpPAG.shape , [self.dim, 2])
             tpPsigmaG = np.reshape(tpPsigmaG,  [1,2])
             grad = np.append(tpPAG, tpPsigmaG, axis=0)
 

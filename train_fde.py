@@ -1,6 +1,5 @@
 import numpy as np
 import scipy as sp
-#from numba import jit
 
 from matrix_util import *
 from random_matrices import *
@@ -11,18 +10,18 @@ import time
 import logging
 from tqdm import tqdm, trange
 
-#from cauchy_cw import *
+from fde_cw import *
 
 TEST_C2 = False ###Use \C^2-valued subordination
 BASE_C2 =   True ###Use \C^2-valued suborndaiton as BASE
 if TEST_C2:
-    import cauchy_c2
-    from cauchy import *
+    import fde_sc_c2
+    from fde_sc import *
 else:
     if BASE_C2:
-        from cauchy_c2 import *
+        from fde_sc_c2 import *
     else:
-        from cauchy import *
+        from fde_sc import *
 
 
 def KL_divergence(diag_A,sigma, sc_true, num_shot = 20, dim_cauchy_vec=100):
@@ -51,20 +50,23 @@ def KL_divergence(diag_A,sigma, sc_true, num_shot = 20, dim_cauchy_vec=100):
     return KL
 
 
-def train_rrn_sc(dim, p_dim, sample,\
- base_scale = 0.01, dim_cauchy_vec=4, base_lr = 0.1,minibatch_size=1,\
- max_epoch=20, normalize_sample = False,\
- reg_coef = 0,\
+def train_fde_sc(dim, p_dim, sample,\
+ base_scale = 2e-1, dim_cauchy_vec=2, base_lr = 0.1,minibatch_size=1,\
+ max_epoch=120, normalize_sample = False,\
+ reg_coef = 2e-4,\
  monitor_validation=True, monitor_KL=False, test_diag_A=-1, test_sigma=-1, \
- list_zero_thres=[1e-5,1e-4,1e-3,1e-2,1e-1], SUBO=False):
+ list_zero_thres=[1e-5,1e-4,1e-3,1e-2,1e-1], SUBO=True):
     update_sigma = True
+
+    if np.allclose(test_diag_A, -1) or np.allclose(test_sigma, -1):
+        monitor_validation = False
     ### param cauchy noise
     #base_scale = 0.01
     #dim_cauchy_vec = 4
 
     ###sample
     #minibatch_size = 1
-    sample_size = len(sample)
+    sample_size =sample.shape[0]
     ### SGD
     #base_lr = 0.1
     iter_per_epoch = int(sample_size/minibatch_size)
@@ -105,7 +107,6 @@ def train_rrn_sc(dim, p_dim, sample,\
 
 
     ### inputs to be denoised
-    sample = np.array(sample)
     if normalize_sample:
         max_row_sample = max(sample)
         normalize_ratio = sp.sqrt(max_row_sample)
@@ -173,7 +174,7 @@ def train_rrn_sc(dim, p_dim, sample,\
     sc = SemiCircular(dim=dim,p_dim=p_dim, scale=base_scale)
     sc.set_params(diag_A, sigma)
     if TEST_C2:
-        sc2 = cauchy_c2.SemiCircular(dim=dim,p_dim=p_dim, scale=base_scale)
+        sc2 = fde_sc_c2.SemiCircular(dim=dim,p_dim=p_dim, scale=base_scale)
         sc2.set_params(diag_A, sigma)
 
 
@@ -325,9 +326,9 @@ def train_rrn_sc(dim, p_dim, sample,\
             val_loss_list.append(val_loss)
             average_val_loss += val_loss
 
-            num_zero_list.append( \
-            [  np.where( np.abs(diag_A) < list_zero_thres[l])[0].size \
-            for l in range(len(list_zero_thres))])
+        num_zero_list.append( \
+        [  np.where( np.abs(diag_A) < list_zero_thres[l])[0].size \
+        for l in range(len(list_zero_thres))])
 
         average_loss += new_loss
         average_sigma += sigma
@@ -424,11 +425,12 @@ def train_rrn_sc(dim, p_dim, sample,\
 
     num_zero_array = np.asarray(num_zero_list)
     del sc
-    del sc_for_plot
+    if monitor_validation:
+        del sc_for_plot
     return average_diagA, average_sigma, train_loss_array, val_loss_array, num_zero_array
 
 
-def train_rrn_cw(dim, p_dim, sample,\
+def train_fde_cw(dim, p_dim, sample,\
  base_scale = 0.01, dim_cauchy_vec=4, base_lr = 0.1,minibatch_size=1,\
  max_epoch=20,  normalize_sample = False,\
  monitor_validation=True, test_b=-1):
