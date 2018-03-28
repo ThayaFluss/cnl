@@ -26,10 +26,31 @@ $ git clone https://github.com/ThayaFluss/cnl.git
 ```
 
 ## Usage
+
+To validate algorithms;
 ```bash
 $ python validate_train_sc.py
 $ python validate_train_cw.py
 ```
+
+For the rank estimation of p x d matrix X;
+```python
+ X #numpy.array of shape [p,d]
+ from rank_estimation import *
+ rank, a, sigma = rank_estimation(X) #estimated rank and parameters  a, sigma.
+```
+For example;
+'''python
+ min_singular = 0.3
+ true_rank = 30
+ import numpy as np
+ a_true = np.random.uniform(min_singular, 1, 50)
+ from matrix_util import *
+ A_true = rectangular_diag(a_true, p_dim=100, dim=50)
+ X = info_plus_noise(A_true, sigma=0.1)
+ rank, a, sigma = rank_estimation(X)
+'''
+
 
 ## License
 

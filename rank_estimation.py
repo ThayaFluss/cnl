@@ -5,7 +5,7 @@ def rank_estimation(sample_mat,\
  base_scale = 2e-1, dim_cauchy_vec=2, base_lr = 0.1,minibatch_size=1,\
  max_epoch=120, normalize_sample = False,\
  reg_coef = 2e-4,\
- list_zero_thres=[1e-5,1e-4,1e-3,1e-2,1e-1]):
+ list_zero_thres=[1e-3]):
 
  p_dim = sample_mat.shape[0]
  dim = sample_mat.shape[1]
@@ -19,5 +19,6 @@ def rank_estimation(sample_mat,\
   list_zero_thres=list_zero_thres )
 
  logging.info("list_zero_thres= {}".format( list_zero_thres))
+ estimaed_ranks = dim - num_zero_array[-1]
 
- return diag_A, sigma, num_zero_array[-1]
+ return estimaed_ranks,diag_A, sigma, 
