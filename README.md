@@ -40,7 +40,7 @@ For the rank estimation of p x d matrix X;
  rank, a, sigma = rank_estimation(X) #estimated rank and parameters  a, sigma.
 ```
 For example; (demo_rank_estimation.py)
-(https:github.com/ThayaFluss/cnl/master/demo_rank_estimation.py)
+(https://github.com/ThayaFluss/cnl/master/demo_rank_estimation.py)
 ```python
  p_dim = 100
  dim = 50
