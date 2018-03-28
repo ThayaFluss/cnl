@@ -1,0 +1,10 @@
+./tb_log*/
+*.squirrel
+*.png
+*.log
+*.txt
+*.txt#
+*.pdf
+*.pyc
+.log/
+.images/
