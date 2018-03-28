@@ -17,7 +17,7 @@ Our argorithm is based on the paper "On Cauchy noise loss in stohastic optimizat
 In preperation
 
 ## Requirement
-python 2 or 3, numpy, scipy, matplotlib. We recommend [Anaconda](https://www.continuum.io/downloads).
+python  3, numpy, scipy, matplotlib, tqdm.  We recommend to use a plotform [Anaconda](https://www.continuum.io/downloads).
 
 ## Installation
 
@@ -39,16 +39,27 @@ For the rank estimation of p x d matrix X;
  from rank_estimation import *
  rank, a, sigma = rank_estimation(X) #estimated rank and parameters  a, sigma.
 ```
-For example;
+For example; (demo_rank_estimation.py)
+(https:github.com/ThayaFluss/cnl/master/demo_rank_estimation.py)
 ```python
+ p_dim = 100
+ dim = 50
  min_singular = 0.3
  true_rank = 30
  import numpy as np
- a_true = np.random.uniform(min_singular, 1, 50)
+ a_true = np.random.uniform(min_singular, 1, dim)
+ for i in range(dim-true_rank):
+   a_true[i] = 0  
  from matrix_util import *
- A_true = rectangular_diag(a_true, p_dim=100, dim=50)
- X = info_plus_noise(A_true, sigma=0.1)
- rank, a, sigma = rank_estimation(X)
+ D = rectangular_diag(a_true, p_dim=p_dim, dim=dim)
+ from random_matrices import *
+ U = haar_unitary(p_dim)
+ V = haar_unitary(dim)
+ A_true = U @ D @ V ; #random rotation
+ X = info_plus_noise(A_true, sigma=0.1) ### sample matrix
+ from rank_estimation import *
+ rank, a, sigma = rank_estimation(X) ### estimated rank and parameters 
+ print(rank, true_rank) ### compare with the true_rank !
  ```
 
 
