@@ -156,7 +156,10 @@ def test_optimize(\
 #@param jobname = "min_singular" or "scale_balance"
 def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
     num_test = opt.num_test
-    max_epoch= int(opt.max_epoch*i_p_dim/i_dim)
+    max_epoch = opt.max_epoch
+    max_epoch= int(max_epoch*i_p_dim/i_dim)
+    base_scale = 0.2
+    base_scale *= i_p_dim/i_dim
     base_lr = 0.1
     ### for paper
     reg_coef = 2e-4
@@ -166,7 +169,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         ### TODO for paper
         #list_base_scale =[ 0.5*1e-1,1e-1, 2*1e-1 ]
         list_dim_cauchy_vec =  [1]
-        list_base_scale = [ 0.1, 0.2, 0.4]
+        list_base_scale = [ base_scale/2, base_scale, base_scale*2]
         ###fix
         list_min_singular = [0.5]
         list_zero_dim = [int(i_dim/2)]
@@ -176,7 +179,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         ### for paper
         list_zero_dim = [10,20,30,40]
         list_min_singular=[0.05,0.1, 0.2,0.3,0.4]
-        list_base_scale = [0.2*i_p_dim/i_dim]
+        list_base_scale = [base_scale]
         list_dim_cauchy_vec = [2] ### can be larger than dim.
         list_zero_thres = [1e-4,1e-2]
 

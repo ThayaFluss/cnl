@@ -1,7 +1,7 @@
 p_dim = 100
 dim = 50
 min_singular = 0.3
-true_rank = 20
+true_rank = 10
 import numpy as np
 a_true = np.random.uniform(min_singular, 1, dim)
 for i in range(dim-true_rank):
@@ -11,10 +11,9 @@ D = rectangular_diag(a_true, p_dim=p_dim, dim=dim)
 from random_matrices import *
 U = haar_unitary(p_dim)
 V = haar_unitary(dim)
-import pdb; pdb.set_trace()
 A_true = U @ D @ V ; #random rotation
 sigma_true = 0.1
 X = A_true + sigma_true*Ginibre(p_dim, dim) ### sample matrix
 from rank_estimation import *
 rank, a, sigma = rank_estimation(X) ### estimated rank and parameters
-print(rank, true_rank) ### compare with the true_rank !
+print("estimaed_rank =", rank[0], "true_rank=", true_rank) ### compare with the true_rank !

@@ -55,7 +55,7 @@ def train_fde_sc(dim, p_dim, sample,\
  max_epoch=120, normalize_sample = False,\
  reg_coef = 2e-4,\
  monitor_validation=True, monitor_KL=False, test_diag_A=-1, test_sigma=-1, \
- list_zero_thres=[1e-5,1e-4,1e-3,1e-2,1e-1], SUBO=True):
+ list_zero_thres=[1e-5,1e-4,1e-3,1e-2,1e-1], SUBO=True,  stop_for_rank=False):
     update_sigma = True
 
     if np.allclose(test_diag_A, -1) or np.allclose(test_sigma, -1):
@@ -95,6 +95,8 @@ def train_fde_sc(dim, p_dim, sample,\
     stdout_step = log_step*10
     KL_log_step = 10*dim
     plot_stepsize = -1
+    stop_count_thres = 100
+
     #plot_stepsize = log_step*10
 
     ### update sigma
@@ -148,7 +150,7 @@ def train_fde_sc(dim, p_dim, sample,\
     logging.info("base_lr = {}".format(base_lr) )
     logging.info("minibatch_size = {}".format(minibatch_size) )
 
-    logging.info("Initial diag_A=\n{}".format(diag_A))
+    logging.debug("Initial diag_A=\n{}".format(diag_A))
     logging.info("Initial sigma={}".format(sigma))
 
 
@@ -210,6 +212,7 @@ def train_fde_sc(dim, p_dim, sample,\
     num_zero = np.zeros(len(list_zero_thres))
     old_PA = np.zeros(dim)
     old_Psigma = 0
+    stop_count = 0
     ### SGD
     for n in trange(1,max_iter+1):
         ### learning rate
@@ -335,15 +338,25 @@ def train_fde_sc(dim, p_dim, sample,\
         average_diagA += np.sort(np.abs(diag_A))
 
         if n %  log_step == 0:
+            ### Count zeros under several thresholds
+            num_zero = num_zero_list[-1]
+
             if n > 0:
                 average_loss /= log_step
                 average_sigma /= log_step
                 average_diagA /= log_step
                 if monitor_validation:
                     average_val_loss /= log_step
-            ### Count zeros under several thresholds
-            #list_zero_thres[-1] = average_sigma
-            num_zero = num_zero_list[-1]
+                if stop_for_rank:
+                    num_zero_old = num_zero_list[-log_step]
+                    if np.allclose(num_zero,num_zero_old) and not np.allclose(num_zero, 0):
+                            stop_count += 1
+                    else:
+                        stop_count = 0
+                    if stop_count == stop_count_thres:
+                        import pdb; pdb.set_trace()
+                        break
+
             #average_sigma *= normalize_ratio
             #average_diagA *= normalize_ratio
             if n % stdout_step == 0:

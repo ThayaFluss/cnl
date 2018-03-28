@@ -10,9 +10,13 @@ def rank_estimation(sample_mat,\
 
  p_dim = sample_mat.shape[0]
  dim = sample_mat.shape[1]
+ max_epoch*=int(2*p_dim/dim)
+ base_scale*=2
 
- max_epoch = int(max_epoch*p_dim/dim)
- base_scale = base_scale*p_dim/dim
+ if dim < 40:
+     max_epoch*=2
+# max_epoch = int(max_epoch*p_dim/dim)
+# base_scale = base_scale*p_dim/dim
  _, D, _ = np.linalg.svd(sample_mat)
  sample = D**2 ### eigenvalues of sample_mat.H @ sample_mat
 
