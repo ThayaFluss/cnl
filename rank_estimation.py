@@ -7,9 +7,14 @@ def rank_estimation(sample_mat,\
  reg_coef = 2e-4,\
  list_zero_thres=[1e-3]):
 
+
  p_dim = sample_mat.shape[0]
  dim = sample_mat.shape[1]
- _, sample, _ = np.linalg.svd(sample_mat)
+
+ max_epoch = int(max_epoch*p_dim/dim)
+ base_scale = base_scale*p_dim/dim
+ _, D, _ = np.linalg.svd(sample_mat)
+ sample = D**2 ### eigenvalues of sample_mat.H @ sample_mat
 
  diag_A, sigma, _, _, num_zero_array = train_fde_sc(
  p_dim = p_dim, dim=dim, sample = sample,\
@@ -21,4 +26,4 @@ def rank_estimation(sample_mat,\
  logging.info("list_zero_thres= {}".format( list_zero_thres))
  estimaed_ranks = dim - num_zero_array[-1]
 
- return estimaed_ranks,diag_A, sigma, 
+ return estimaed_ranks,diag_A, sigma,
