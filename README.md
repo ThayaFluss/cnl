@@ -40,7 +40,7 @@ For the rank estimation of p x d matrix X;
  rank, a, sigma = rank_estimation(X) #estimated rank and parameters  a, sigma.
 ```
 For example;
-'''python
+```python
  min_singular = 0.3
  true_rank = 30
  import numpy as np
@@ -49,7 +49,7 @@ For example;
  A_true = rectangular_diag(a_true, p_dim=100, dim=50)
  X = info_plus_noise(A_true, sigma=0.1)
  rank, a, sigma = rank_estimation(X)
-'''
+ ```
 
 
 ## License
