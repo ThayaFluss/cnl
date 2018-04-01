@@ -60,7 +60,7 @@ def options(logger=None):
                         type     = int,
                         dest     = 'dpi',
                         required = False,
-                        default  =  60,
+                        default  =  600,
                         help     = "Resolution of figures (default:60)")
 
     return parser.parse_args()
@@ -169,7 +169,7 @@ def test_scale_balance():
     minibatch_size = opt.minibatch
     ### TODO for paper
     list_base_scale =[ 1e-1/4, 1e-1/2, 1e-1, 2e-1, 4e-1]
-    list_base_scale =[ 1e-1]
+    #list_base_scale =[ 1e-1]
     list_dim_cauchy_vec =  [1]
     ### for test
     #list_base_scale =[ 1e-1]
@@ -198,6 +198,12 @@ def test_scale_balance():
             list_train_loss_array.append(average_train_loss)
 
     plt.figure()
+    plt.rc('font', family='serif', serif='Times')
+    plt.rc('text', usetex=True)
+    plt.rcParams["font.size"] = 8*2
+
+    if len(list_dim_cauchy_vec) == 1:
+        plt.title("$Noise dimension = {}$".format(list_dim_cauchy_vec[0]))
     x_axis = np.arange(average_val_loss.shape[0])
 
     n = 0

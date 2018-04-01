@@ -23,7 +23,7 @@ else:
     else:
         from fde_sc import *
 
-i_dpi = 300  #Resolution of figures
+i_dpi = 600  #Resolution of figures
 
 
 def KL_divergence(diag_A,sigma, sc_true, num_shot = 20, dim_cauchy_vec=100):
@@ -97,9 +97,9 @@ def train_fde_sc(dim, p_dim, sample,\
     stdout_step = log_step*10
     KL_log_step = 10*dim
     plot_stepsize = stdout_step
+    plot_stepsize = -1
     stop_count_thres = 100
 
-    #plot_stepsize = log_step*10
 
     ### update sigma
     lr_mult_sigma = 0.
@@ -124,9 +124,7 @@ def train_fde_sc(dim, p_dim, sample,\
 
     ### Cutting off too large parameter
     #edge = max_sq_sample*1.1
-    edge = 1.1
-    #edge = 1.5
-    #edge = 2
+    edge = 1.2
     clip_grad = 100
 
     ### initialization of weights
@@ -496,7 +494,7 @@ def train_fde_cw(dim, p_dim, sample,\
     ### tf_summary, logging and  plot
     log_step = 20*iter_per_epoch
     plot_stepsize = log_step
-    #plot_stepsize = log_step*10
+    plot_stepsize = -1 #TODO Comment out this line for plotting density.
 
     ### inputs to be denoised
     sample = np.array(sample)
@@ -545,18 +543,21 @@ def train_fde_cw(dim, p_dim, sample,\
         y_axis_init = cw.density(x_axis)
         max_y = max(  max(y_axis_init), max(y_axis_truth))+0.1
         #plt.plot(x_axis,y_axis_init, label="Init")
-
+        plt.clf()
+        plt.close()
         plt.figure()
+        plt.rc('font', family='serif', serif='Times')
+        plt.rc('text', usetex=True)
+        plt.rcParams["font.size"] = 16
+        #plt.rc("text", fontsize=12)
+        plt.title("Perturbed ESD  and $\gamma$-slice")
         plt.ylim(0, max_y)
-        plt.rc("text", usetex=True)
 
-        plt.title("Comparison between perturbed ESD  and $\gamma$-slice")
-
-        plt.plot(x_axis,y_axis_truth, label="$\gamma$-slice of true DE", linestyle="--", color="red")
+        plt.plot(x_axis,y_axis_truth, label="$\gamma$-slice \n of true DE", linestyle="--", color="red")
 
         sample_for_plot = cw_for_plot.ESD(num_shot=1, dim_cauchy_vec=200, COMPLEX=False)
         plt.hist(sample_for_plot, range=(min(x_axis), max(x_axis)), bins=200, normed=True,\
-         label="true RM's single shot ESD \n perturbed by Cauchy($0,\gamma$)",color="pink")
+         label="perturbed \n single shot ESD",color="pink")
 
 
         plt.legend()
@@ -565,6 +566,7 @@ def train_fde_cw(dim, p_dim, sample,\
             os.makedirs(dirname)
         plt.savefig("{}/plot_density_init.png".format(dirname), dpi=i_dpi)
         plt.clf()
+        plt.close()
         logging.info("Plotting initial density...done.")
 
 
@@ -663,7 +665,7 @@ def train_fde_cw(dim, p_dim, sample,\
             logging.info("loss= {}  / average".format( average_loss))
             if monitor_validation:
                 logging.info("val_loss= {}  / average".format(average_val_loss))
-            logging.info("average-sorted(b) =\n{}  / average".format(average_b))
+            logging.debug("average-sorted(b) =\n{}  / average".format(average_b))
 
             average_loss = 0
             average_val_loss = 0
@@ -678,16 +680,24 @@ def train_fde_cw(dim, p_dim, sample,\
             plt.clf()
             plt.close()
             plt.figure()
-            plt.rc("text", usetex=True)
-            plt.title("Optimization result: {} iteration".format(n))
+            plt.rc('font', family='serif', serif='Times')
+            plt.rc('text', usetex=True)
+            plt.rcParams["font.size"] = 16
+
+
+            plt.title("Optimization: {} iteration".format(n))
             plt.ylim(0, max_y)
 
             if monitor_validation:
-                plt.plot(x_axis,y_axis_truth, label="$\gamma$-slice of true DE", color="red", linestyle="--")
+                #plt.plot(x_axis,y_axis_truth, label="$\gamma$-slice of true DE", color="red", linestyle="--")
+                plt.plot(x_axis,y_axis_truth, color="red", linestyle="--")
+
             #plt.plot(x_axis,y_axis_init, label="Init")
             y_axis = cw.density(x_axis)
-            plt.plot(x_axis,y_axis,label="{} iteration".format(n), color="blue")
-            plt.legend()
+            #plt.legend()
+            #plt.plot(x_axis,y_axis,label="{} iteration".format(n), color="blue")
+            plt.plot(x_axis,y_axis, color="blue")
+
             plt.savefig("{}/plot_density_{}-iter".format(dirname, n),dpi=i_dpi)
             plt.clf()
             plt.close()

@@ -162,11 +162,9 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
     base_scale *= i_p_dim/i_dim
     base_lr = 0.1
     ### for paper
-    reg_coef = 0#2e-4
+    reg_coef = 2e-4
     #reg_coef = 0
     if jobname == "scale_balance":
-        ### set zero_thres for max_epoch=120
-        ### TODO for paper
         #list_base_scale =[ 0.5*1e-1,1e-1, 2*1e-1 ]
         list_dim_cauchy_vec =  [1]
         list_base_scale = [ base_scale/2, base_scale, base_scale*2]
@@ -177,17 +175,17 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         list_zero_thres = [1e-4,1e-2]
     elif jobname == "min_singular":
         ### for paper
-        list_zero_dim = [40]#[10,20,30,40]
-        list_min_singular = [0.4]#=[0.05,0.1, 0.2,0.3,0.4]
+        list_zero_dim = [10,20,30,40]
+        list_min_singular =[0.05,0.1, 0.2,0.3,0.4]
         list_base_scale = [base_scale]
-        list_dim_cauchy_vec = [2] ### can be larger than dim.
+        list_dim_cauchy_vec = [2]
         list_zero_thres = [1e-4,1e-2]
 
         ### for debug
         ### scale * lr /dim_cauchy = 0.01/16
         #m = int(i_dim/8)
-        #list_zero_dim = [20, 40]
-        #list_min_singular=[ 0.2, 0.3]
+        #list_zero_dim = [40]
+        #list_min_singular=[ 0.3]
         #list_base_scale = [0.2*i_p_dim/i_dim]
         #list_dim_cauchy_vec = [2]
     else:
@@ -245,10 +243,14 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         x_axis = list_min_singular
         for i in range(num_zero_dim):
             plt.figure()
+            plt.rc('font', family='serif', serif='Times')
+            plt.rc('text', usetex=True)
+            plt.rcParams["font.size"] = 8*2
+
             zero_dim = list_zero_dim[i]
             true_rank = i_dim - zero_dim
             plt.plot(x_axis, vbmf_estimated_rank[i], label="true rank: {}".format(true_rank), marker="+")
-            plt.xlabel("min singular")
+            plt.xlabel("$\lambda_{min}$")
             plt.ylabel("Estimated rank")
             plt.legend()
             plt.savefig("{}/vbmf_true_ranks-{}.png".format(dirname,true_rank ),dpi=300)
@@ -478,15 +480,26 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         x_axis = list_min_singular
         for i in range(num_zero_dim):
             plt.figure()
+            plt.rc('font', family='serif', serif='Times')
+            plt.rc('text', usetex=True)
+            plt.rcParams["font.size"] = 8*2
+
             zero_dim = list_zero_dim[i]
             true_rank = i_dim - zero_dim
             ### plot true_rank
             plt.plot(x_axis, (true_rank)*np.ones(len(x_axis)), linestyle="--", color="black")
 
             for k in range(num_thres):
-                plt.plot(x_axis,fde_ipn_estimated_rank[i,:,k], label="FDE-IPN: thres= {}".format(list_zero_thres[k]), marker="+")
+                if list_zero_thres[k] == 0.0001:
+                    label = "FDEIPN: $\delta=10^{-4}$"
+                elif list_zero_thres[k] == 0.01:
+                    label = "FDEIPN: $\delta=10^{-2}$"
+                else:
+                    label = "FDEIPN: $\delta={}$".format(list_zero_thres[k])
+                plt.plot(x_axis,fde_ipn_estimated_rank[i,:,k], label=label, marker="+")
+
             if VS_VBMF:
-                plt.plot(x_axis, vbmf_estimated_rank[i], label="VBMF", marker="+")
+                plt.plot(x_axis, vbmf_estimated_rank[i], label="EVBMF", marker="+")
 
 
             plt.title("True rank = {}".format(true_rank))
