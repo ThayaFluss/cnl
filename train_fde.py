@@ -189,9 +189,9 @@ def train_fde_sc(dim, p_dim, sample,\
         if monitor_validation:
             y_axis_truth = sc_for_plot.density_subordinaiton(x_axis)
 
-            sample =  sc_for_plot.ESD(num_shot=1,dim_cauchy_vec=200)
+            sample_for_plot =  sc_for_plot.ESD(num_shot=1,dim_cauchy_vec=200)
 
-            plt.hist(sample, range=(min(x_axis), max(x_axis)), bins=100, normed=True, label="sampling from a true model \n perturbed by Cauchy($0,\gamma$)",color="pink")
+            plt.hist(sample_for_plot, range=(min(x_axis), max(x_axis)), bins=100, normed=True, label="sampling from a true model \n perturbed by Cauchy($0,\gamma$)",color="pink")
 
             plt.plot(x_axis,y_axis_truth, linestyle="--", label="$\gamma$-slice of DE true model", color="red")
 
@@ -534,18 +534,31 @@ def train_fde_cw(dim, p_dim, sample,\
 
     cw = CompoundWishart(dim=dim,p_dim=p_dim, minibatch=minibatch_size, scale=base_scale)
     cw.b = b
-    if plot_stepsize > 0:
-        x_axis = np.linspace(min(sample), max(sample)*4, 201) ## Modify
+    if plot_stepsize > 0 and monitor_validation:
+        x_axis = np.linspace(-max(sample)*4, max(sample)*4, 201) ## Modify
         logging.info("Plotting initial density...")
-        if monitor_validation:
-            ### Another cw for plotting.
-            cw_for_plot = CompoundWishart(dim=dim, p_dim=p_dim, scale=base_scale)
-            cw_for_plot.b = n_test_b
+        ### Another cw for plotting.
+        cw_for_plot = CompoundWishart(dim=dim, p_dim=p_dim, scale=base_scale)
+        cw_for_plot.b = n_test_b
         y_axis_truth = cw_for_plot.density(x_axis)
-        plt.plot(x_axis,y_axis_truth, label="Truth", linestyle="--", color="red")
 
         y_axis_init = cw.density(x_axis)
-        plt.plot(x_axis,y_axis_init, label="Init")
+        max_y = max(  max(y_axis_init), max(y_axis_truth))+0.1
+        #plt.plot(x_axis,y_axis_init, label="Init")
+
+        plt.figure()
+        plt.ylim(0, max_y)
+        plt.rc("text", usetex=True)
+
+        plt.title("Comparison between perturbed ESD  and $\gamma$-slice")
+
+        plt.plot(x_axis,y_axis_truth, label="$\gamma$-slice of true DE", linestyle="--", color="red")
+
+        sample_for_plot = cw_for_plot.ESD(num_shot=1, dim_cauchy_vec=200, COMPLEX=False)
+        plt.hist(sample_for_plot, range=(min(x_axis), max(x_axis)), bins=200, normed=True,\
+         label="true RM's single shot ESD \n perturbed by Cauchy($0,\gamma$)",color="pink")
+
+
         plt.legend()
         dirname = "images/train_rnn_cw"
         if not os.path.exists(dirname):
@@ -665,13 +678,15 @@ def train_fde_cw(dim, p_dim, sample,\
             plt.clf()
             plt.close()
             plt.figure()
+            plt.rc("text", usetex=True)
+            plt.title("Optimization result: {} iteration".format(n))
+            plt.ylim(0, max_y)
+
             if monitor_validation:
-                cw_for_plot.b = n_test_b
-                y_axis_truth = cw_for_plot.density(x_axis)
-                plt.plot(x_axis,y_axis_truth, label="Truth",color="red", linestyle="--")
+                plt.plot(x_axis,y_axis_truth, label="$\gamma$-slice of true DE", color="red", linestyle="--")
             #plt.plot(x_axis,y_axis_init, label="Init")
             y_axis = cw.density(x_axis)
-            plt.plot(x_axis,y_axis, label="{}-iter".format(n),color="blue")
+            plt.plot(x_axis,y_axis,label="{} iteration".format(n), color="blue")
             plt.legend()
             plt.savefig("{}/plot_density_{}-iter".format(dirname, n),dpi=i_dpi)
             plt.clf()

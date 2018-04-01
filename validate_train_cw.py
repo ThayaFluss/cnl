@@ -118,6 +118,8 @@ def test_optimize(\
     ### For generate sample, we do not need scale.
     cw_for_sample = CompoundWishart(dim = dim, p_dim=p_dim, scale = 1e-9)
     cw_for_sample.b = param
+    plt.rc("text", usetex=True)
+
     evs_list = cw_for_sample.ESD(num_shot = num_sample, COMPLEX=COMPLEX)
 
     if num_sample == 1:
