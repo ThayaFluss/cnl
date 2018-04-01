@@ -1,6 +1,5 @@
 import numpy as np
 import scipy as sp
-#from numba import jit, jitclass, int32, complex128, boolean, float64
 
 
 from scipy import stats
@@ -9,6 +8,7 @@ from random_matrices import *
 import matplotlib.pyplot as plt
 from timer import Timer
 
+from itertools import chain #for ESD
 
 import time
 import logging

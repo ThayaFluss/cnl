@@ -21,7 +21,6 @@ jobname="true_sample_and_model_FDE"):
     true_sc = SC(dim=dim, p_dim = p_dim, scale=scale)
     true_sc.set_params(np.random.uniform(low=0.5, high=1, size =dim), \
     np.random.uniform(low=0, high =max_sigma, size=1)[0])
-
     #true_sc.set_params(np.random.uniform(low=0.9, high=1, size =dim), \
     #0.2)
     #true_sc.set_params(np.zeros(dim), 0.2)
@@ -52,15 +51,18 @@ jobname="true_sample_and_model_FDE"):
     plt.figure()
     plt.rc("text", usetex=True)
     plt.hist(sample, range=(min_x, max_x), bins=100, normed=True, label="sampling from true model \n perturbed by cauchy($0,\gamma$)",color="pink")
-    plt.plot(x_array, model_density, label="$\gamma$-slice of current FDE model",)
+    plt.plot(x_array, model_density, label="$\gamma$-slice of init FDE model",)
     plt.plot(x_array, true_density, linestyle="--", label="$\gamma$-slice of FDE of true model", color="red")
     #plt.title("hahaha")
 
     plt.legend(loc="upper left")
+    dirname = "images/plot_density"
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
     filename = "images/plot_density/{}.png".format(jobname)
     print ("output: {}".format(filename))
-    plt.savefig(filename)
+    plt.savefig(filename,dpi=300)
 
     return sample, model_density
 
-plot_true_sample_and_model_FDE(-4,4, dim=40,p_dim=240,  scale=2e-1, dim_cauchy_vec=100, max_sigma=0.1, num_shot=120)
+plot_true_sample_and_model_FDE(-4,4, dim=40,p_dim=240,  scale=2e-1, dim_cauchy_vec=100, max_sigma=0.1, num_shot=1)

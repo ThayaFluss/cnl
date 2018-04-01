@@ -141,7 +141,7 @@ def test_optimize(\
     plt.plot(sq_sample, label="Sample")
     plt.plot(r_diag_A, label="Result")
     plt.legend()
-    plt.savefig("images/train_v2/{}.png".format(jobname))
+    plt.savefig("images/train_v2/{}.png".format(jobname),dpi=300)
     plt.clf()
     #logging.getLogger().removeHandler(file_log)
 
@@ -162,7 +162,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
     base_scale *= i_p_dim/i_dim
     base_lr = 0.1
     ### for paper
-    reg_coef = 2e-4
+    reg_coef = 0#2e-4
     #reg_coef = 0
     if jobname == "scale_balance":
         ### set zero_thres for max_epoch=120
@@ -177,8 +177,8 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         list_zero_thres = [1e-4,1e-2]
     elif jobname == "min_singular":
         ### for paper
-        list_zero_dim = [10,20,30,40]
-        list_min_singular=[0.05,0.1, 0.2,0.3,0.4]
+        list_zero_dim = [40]#[10,20,30,40]
+        list_min_singular = [0.4]#=[0.05,0.1, 0.2,0.3,0.4]
         list_base_scale = [base_scale]
         list_dim_cauchy_vec = [2] ### can be larger than dim.
         list_zero_thres = [1e-4,1e-2]
@@ -251,7 +251,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
             plt.xlabel("min singular")
             plt.ylabel("Estimated rank")
             plt.legend()
-            plt.savefig("{}/vbmf_true_ranks-{}.png".format(dirname,true_rank ))
+            plt.savefig("{}/vbmf_true_ranks-{}.png".format(dirname,true_rank ),dpi=300)
             plt.clf()
             plt.close()
 
@@ -317,7 +317,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         plt.xlabel("Epoch")
         plt.ylabel("Validation loss")
 
-        plt.savefig("{}/test_scale_val.png".format(dirname))
+        plt.savefig("{}/test_scale_val.png".format(dirname),dpi=300)
         plt.clf()
         plt.close()
 
@@ -336,7 +336,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         plt.title("Train loss")
         plt.xlabel("Epoch")
         plt.ylabel("Train loss")
-        plt.savefig("{}/test_scale_train.png".format(dirname))
+        plt.savefig("{}/test_scale_train.png".format(dirname),dpi=300)
 
         plt.clf()
         plt.close()
@@ -362,7 +362,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         plt.ylabel("Validation loss")
 
         plt.legend()
-        plt.savefig("{}/test_ms_low_val.png".format(dirname))
+        plt.savefig("{}/test_ms_low_val.png".format(dirname),dpi=300)
         plt.clf()
         plt.close()
 
@@ -377,7 +377,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         plt.ylabel("Validation loss")
 
         plt.legend()
-        plt.savefig("{}/test_ms_high_val.png".format(dirname))
+        plt.savefig("{}/test_ms_high_val.png".format(dirname),dpi=300)
         plt.clf()
         plt.close()
 
@@ -405,7 +405,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
             plt.legend()
             name = "{}/test_ms_low_zeros_thres-{}.png".format(dirname, list_zero_thres[k])
             logging.info(name)
-            plt.savefig(name)
+            plt.savefig(name,dpi=300)
             plt.clf()
             plt.close()
 
@@ -425,7 +425,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
             plt.legend()
             name = "{}/test_ms_high_zeros_thres-{}.png".format(dirname, list_zero_thres[k])
             logging.info(name)
-            plt.savefig(name)
+            plt.savefig(name,dpi=300)
             plt.clf()
             plt.close()
 
@@ -449,7 +449,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         plt.ylabel("train loss")
         plt.legend()
 
-        plt.savefig("{}/test_ms_low_train.png".format(dirname))
+        plt.savefig("{}/test_ms_low_train.png".format(dirname),dpi=300)
         plt.clf()
         plt.close()
 
@@ -464,7 +464,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         plt.ylabel("train loss")
 
         plt.legend()
-        plt.savefig("{}/test_ms_high_train.png".format(dirname))
+        plt.savefig("{}/test_ms_high_train.png".format(dirname),dpi=300)
         plt.clf()
         plt.close()
 
@@ -494,7 +494,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
             plt.ylim(0,i_dim)
             plt.ylabel("Estimated rank")
             plt.legend()
-            plt.savefig("{}/true_ranks-{}.png".format(dirname, true_rank ))
+            plt.savefig("{}/true_ranks-{}.png".format(dirname, true_rank ),dpi=300)
             plt.clf()
             plt.close()
 

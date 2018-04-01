@@ -94,7 +94,7 @@ def train_fde_sc(dim, p_dim, sample,\
     log_step = dim
     stdout_step = log_step*10
     KL_log_step = 10*dim
-    plot_stepsize = -1
+    plot_stepsize = stdout_step
     stop_count_thres = 100
 
     #plot_stepsize = log_step*10
@@ -160,6 +160,7 @@ def train_fde_sc(dim, p_dim, sample,\
         n_test_sigma = test_sigma/normalize_ratio
         sc_for_plot = SemiCircular(dim=dim,p_dim=p_dim, scale=base_scale)
         sc_for_plot.set_params(n_test_diag_A, n_test_sigma)
+
         if monitor_KL:
             num_shot_for_KL = 10
             dim_cauchy_vec_for_KL = 50
@@ -181,16 +182,31 @@ def train_fde_sc(dim, p_dim, sample,\
 
 
     if plot_stepsize > 0:
-        x_axis = np.linspace(0.01, max(sample)*1.1, 201) ## Modify
+        x_axis = np.linspace(-max(sample)*2.1, max(sample)*2.1, 201) ## Modify
         logging.info("Plotting initial density...")
         if monitor_validation:
-            y_axis_truth = sc_for_plot.square_density(x_axis,np.diag(n_test_diag_A), n_test_sigma)
-            plt.plot(x_axis,y_axis_truth, label="Truth")
+            y_axis_truth = sc_for_plot.density_subordinaiton(x_axis)
 
-        y_axis_init = sc.square_density(x_axis,np.diag(diag_A), sigma)
+            sample =  sc_for_plot.ESD(num_shot=1,dim_cauchy_vec=100)
+
+            plt.hist(sample, range=(min(x_axis), max(x_axis)), bins=100, normed=True, label="sampling from a true model \n perturbed by Cauchy($0,\gamma$)",color="pink")
+
+            plt.plot(x_axis,y_axis_truth, linestyle="--", label="$\gamma$-slice of DE true model", color="red")
+
+
+
+
+
+
+
+        sc.set_params(diag_A, sigma)
+        y_axis_init = sc.density_subordinaiton(x_axis)
         plt.plot(x_axis,y_axis_init, label="Init")
         plt.legend()
-        plt.savefig("images/train_v2/plot_density_init.png")
+        dirname = "images/train_rnn_sc"
+        if not os.path.exists(dirname):
+            os.makedirs(dirname)
+        plt.savefig("{}/plot_density_init.png".format(dirname),dpi=300)
         plt.clf()
         logging.info("Plotting initial density...done.")
 
@@ -414,13 +430,15 @@ def train_fde_sc(dim, p_dim, sample,\
             plt.close()
             plt.figure()
             if monitor_validation:
-                y_axis_truth = sc_for_plot.square_density(x_axis,np.diag(n_test_diag_A), n_test_sigma)
-                plt.plot(x_axis,y_axis_truth, label="Truth")
+
+                y_axis_truth = sc_for_plot.density_subordinaiton(x_axis)
+                plt.plot(x_axis,y_axis_truth, label="truth", linestyle="--", color="red")
             #plt.plot(x_axis,y_axis_init, label="Init")
-            y_axis = sc.square_density(x_axis,np.diag(diag_A), sigma)
-            plt.plot(x_axis,y_axis, label="{}-iter".format(n))
+            sc.set_params(diag_A, sigma)
+            y_axis = sc.density_subordinaiton(x_axis)
+            plt.plot(x_axis,y_axis, label="{}-iter".format(n), color="blue")
             plt.legend()
-            plt.savefig("images/train_v2/plot_density_{}-iter".format(n))
+            plt.savefig("{}/plot_density_{}-iter".format(dirname, n),dpi=300)
             plt.clf()
             plt.close()
             logging.info("Plotting density...done")
@@ -475,7 +493,7 @@ def train_fde_cw(dim, p_dim, sample,\
 
     ### tf_summary, logging and  plot
     log_step = 20*iter_per_epoch
-    plot_stepsize = -1
+    plot_stepsize = log_step
     #plot_stepsize = log_step*10
 
     ### inputs to be denoised
@@ -522,12 +540,15 @@ def train_fde_cw(dim, p_dim, sample,\
             cw_for_plot = CompoundWishart(dim=dim, p_dim=p_dim, scale=base_scale)
             cw_for_plot.b = n_test_b
         y_axis_truth = cw_for_plot.density(x_axis)
-        plt.plot(x_axis,y_axis_truth, label="Truth")
+        plt.plot(x_axis,y_axis_truth, label="Truth", linestyle="--", color="red")
 
         y_axis_init = cw.density(x_axis)
         plt.plot(x_axis,y_axis_init, label="Init")
         plt.legend()
-        plt.savefig("images/train_rnn_cw/plot_density_init.png")
+        dirname = "images/train_rnn_cw"
+        if not os.path.exists(dirname):
+            os.makedirs(dirname)
+        plt.savefig("{}/plot_density_init.png".format(dirname), dpi=300)
         plt.clf()
         logging.info("Plotting initial density...done.")
 
@@ -650,7 +671,7 @@ def train_fde_cw(dim, p_dim, sample,\
             y_axis = cw.density(x_axis)
             plt.plot(x_axis,y_axis, label="{}-iter".format(n))
             plt.legend()
-            plt.savefig("images/train_v2/plot_density_{}-iter".format(n))
+            plt.savefig("{}/plot_density_{}-iter".format(dirname, n),dpi=300)
             plt.clf()
             plt.close()
             logging.info("Plotting density...done")

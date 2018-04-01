@@ -140,7 +140,7 @@ def test_optimize(\
     if not os.path.exists(dirname):
             os.makedirs(dirname)
 
-    plt.savefig("{}/{}.png".format(dirname, jobname))
+    plt.savefig("{}/{}.png".format(dirname, jobname),dpi=300)
     plt.clf()
     logging.getLogger().removeHandler(file_log)
 
@@ -161,7 +161,8 @@ def test_scale_balance():
     minibatch_size = opt.minibatch
     ### TODO for paper
     list_base_scale =[ 1e-1/4, 1e-1/2, 1e-1, 2e-1, 4e-1]
-    list_dim_cauchy_vec =  [10]
+    list_base_scale =[ 1e-1]
+    list_dim_cauchy_vec =  [1]
     ### for test
     #list_base_scale =[ 1e-1]
     #list_dim_cauchy_vec =  [1024]
@@ -206,7 +207,7 @@ def test_scale_balance():
         os.makedirs(dirname)
     filename = "{}/test_val.png".format(dirname)
     logging.info(filename)
-    plt.savefig(filename)
+    plt.savefig(filename,dpi=300)
     plt.clf()
     plt.close()
 
@@ -220,7 +221,7 @@ def test_scale_balance():
     plt.ylabel("train loss")
     plt.legend()
     filename = "{}/test_train.png".format(dirname)
-    plt.savefig(filename)
+    plt.savefig(filename,dpi=300)
     plt.clf()
     plt.close()
 
