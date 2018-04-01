@@ -56,6 +56,12 @@ def options(logger=None):
                         required = False,
                         default  =  120,
                         help     = "max_epoch")
+    parser.add_argument('-dpi', '--dpi',
+                        type     = int,
+                        dest     = 'dpi',
+                        required = False,
+                        default  =  60,
+                        help     = "Resolution of figures (default:60)")
 
     return parser.parse_args()
 
@@ -65,7 +71,7 @@ opt =options()
 i_dim = min(opt.dim, opt.p_dim)
 i_p_dim = max(opt.dim, opt.p_dim)
 jobname = opt.jobname
-
+i_dpi = opt.dpi
 
 
 
@@ -131,16 +137,16 @@ def test_optimize(\
         test_b=param)
 
     plt.figure()
-    plt.plot(param, label="Truth")
-    plt.plot(evs_list, label="Sample")
-    plt.plot(b, label="Result")
+    plt.plot(np.sort(param), label="Truth")
+    plt.plot(np.sort(evs_list), label="Sample")
+    plt.plot(np.sort(b), label="Result")
     plt.legend()
 
     dirname = "images/val_train_cw"
     if not os.path.exists(dirname):
             os.makedirs(dirname)
 
-    plt.savefig("{}/{}.png".format(dirname, jobname),dpi=300)
+    plt.savefig("{}/{}.png".format(dirname, jobname),dpi=i_dpi)
     plt.clf()
     logging.getLogger().removeHandler(file_log)
 
@@ -207,7 +213,7 @@ def test_scale_balance():
         os.makedirs(dirname)
     filename = "{}/test_val.png".format(dirname)
     logging.info(filename)
-    plt.savefig(filename,dpi=300)
+    plt.savefig(filename,dpi=i_dpi)
     plt.clf()
     plt.close()
 
@@ -221,7 +227,7 @@ def test_scale_balance():
     plt.ylabel("train loss")
     plt.legend()
     filename = "{}/test_train.png".format(dirname)
-    plt.savefig(filename,dpi=300)
+    plt.savefig(filename,dpi=i_dpi)
     plt.clf()
     plt.close()
 

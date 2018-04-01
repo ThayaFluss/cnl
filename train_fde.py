@@ -23,6 +23,8 @@ else:
     else:
         from fde_sc import *
 
+i_dpi = 300  #Resolution of figures
+
 
 def KL_divergence(diag_A,sigma, sc_true, num_shot = 20, dim_cauchy_vec=100):
     sc = SemiCircular(dim = np.shape(diag_A)[0], scale = sc_true.scale)
@@ -182,12 +184,12 @@ def train_fde_sc(dim, p_dim, sample,\
 
 
     if plot_stepsize > 0:
-        x_axis = np.linspace(-max(sample)*2.1, max(sample)*2.1, 201) ## Modify
+        x_axis = np.linspace(-max(sample)*4, max(sample)*4, 201) ## Modify
         logging.info("Plotting initial density...")
         if monitor_validation:
             y_axis_truth = sc_for_plot.density_subordinaiton(x_axis)
 
-            sample =  sc_for_plot.ESD(num_shot=1,dim_cauchy_vec=100)
+            sample =  sc_for_plot.ESD(num_shot=1,dim_cauchy_vec=200)
 
             plt.hist(sample, range=(min(x_axis), max(x_axis)), bins=100, normed=True, label="sampling from a true model \n perturbed by Cauchy($0,\gamma$)",color="pink")
 
@@ -206,7 +208,7 @@ def train_fde_sc(dim, p_dim, sample,\
         dirname = "images/train_rnn_sc"
         if not os.path.exists(dirname):
             os.makedirs(dirname)
-        plt.savefig("{}/plot_density_init.png".format(dirname),dpi=300)
+        plt.savefig("{}/plot_density_init.png".format(dirname),dpi=i_dpi)
         plt.clf()
         logging.info("Plotting initial density...done.")
 
@@ -424,7 +426,7 @@ def train_fde_sc(dim, p_dim, sample,\
 
 
 
-        if plot_stepsize > 0 and n % plot_stepsize == 0 and n > 0:
+        if plot_stepsize > 0 and n % plot_stepsize == 0:
             logging.info("Plotting density...")
             plt.clf()
             plt.close()
@@ -438,7 +440,7 @@ def train_fde_sc(dim, p_dim, sample,\
             y_axis = sc.density_subordinaiton(x_axis)
             plt.plot(x_axis,y_axis, label="{}-iter".format(n), color="blue")
             plt.legend()
-            plt.savefig("{}/plot_density_{}-iter".format(dirname, n),dpi=300)
+            plt.savefig("{}/plot_density_{}-iter".format(dirname, n),dpi=i_dpi)
             plt.clf()
             plt.close()
             logging.info("Plotting density...done")
@@ -533,7 +535,7 @@ def train_fde_cw(dim, p_dim, sample,\
     cw = CompoundWishart(dim=dim,p_dim=p_dim, minibatch=minibatch_size, scale=base_scale)
     cw.b = b
     if plot_stepsize > 0:
-        x_axis = np.linspace(min(sample), max(sample)*1.1, 201) ## Modify
+        x_axis = np.linspace(min(sample), max(sample)*4, 201) ## Modify
         logging.info("Plotting initial density...")
         if monitor_validation:
             ### Another cw for plotting.
@@ -548,7 +550,7 @@ def train_fde_cw(dim, p_dim, sample,\
         dirname = "images/train_rnn_cw"
         if not os.path.exists(dirname):
             os.makedirs(dirname)
-        plt.savefig("{}/plot_density_init.png".format(dirname), dpi=300)
+        plt.savefig("{}/plot_density_init.png".format(dirname), dpi=i_dpi)
         plt.clf()
         logging.info("Plotting initial density...done.")
 
@@ -658,7 +660,7 @@ def train_fde_cw(dim, p_dim, sample,\
         logging.debug( "val_loss: {}".format(val_loss))
 
 
-        if plot_stepsize > 0 and n % plot_stepsize == 0 and n > 0:
+        if plot_stepsize > 0 and n % plot_stepsize == 0:
             logging.info("Plotting density...")
             plt.clf()
             plt.close()
@@ -666,12 +668,12 @@ def train_fde_cw(dim, p_dim, sample,\
             if monitor_validation:
                 cw_for_plot.b = n_test_b
                 y_axis_truth = cw_for_plot.density(x_axis)
-                plt.plot(x_axis,y_axis_truth, label="Truth")
+                plt.plot(x_axis,y_axis_truth, label="Truth",color="red", linestyle="--")
             #plt.plot(x_axis,y_axis_init, label="Init")
             y_axis = cw.density(x_axis)
-            plt.plot(x_axis,y_axis, label="{}-iter".format(n))
+            plt.plot(x_axis,y_axis, label="{}-iter".format(n),color="blue")
             plt.legend()
-            plt.savefig("{}/plot_density_{}-iter".format(dirname, n),dpi=300)
+            plt.savefig("{}/plot_density_{}-iter".format(dirname, n),dpi=i_dpi)
             plt.clf()
             plt.close()
             logging.info("Plotting density...done")
