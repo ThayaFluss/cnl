@@ -161,7 +161,7 @@ def test_scale_balance():
     minibatch_size = opt.minibatch
     ### TODO for paper
     list_base_scale =[ 1e-1/4, 1e-1/2, 1e-1, 2e-1, 4e-1]
-    list_dim_cauchy_vec =  [1]
+    list_dim_cauchy_vec =  [10]
     ### for test
     #list_base_scale =[ 1e-1]
     #list_dim_cauchy_vec =  [1024]

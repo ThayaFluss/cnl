@@ -72,7 +72,7 @@ def train_fde_sc(dim, p_dim, sample,\
     iter_per_epoch = int(sample_size/minibatch_size)
     max_iter = max_epoch*iter_per_epoch
     stepsize = -1 #iter_per_epoch
-    momentum = 0.9
+    momentum = 0#0.9
     REG_TYPE = "L1"
     lr_policy = "inv"
     if lr_policy == "inv":
@@ -455,7 +455,7 @@ def train_fde_cw(dim, p_dim, sample,\
     iter_per_epoch = int(sample_size/minibatch_size)
     max_iter = max_epoch*iter_per_epoch
     stepsize = -1 #iter_per_epoch
-    momentum = 0.9
+    momentum = 0#0.9
     clip_grad = 100
     lr_policy = "inv"
     if lr_policy == "inv":
