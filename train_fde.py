@@ -23,7 +23,7 @@ else:
     else:
         from fde_sc import *
 
-i_dpi = 600  #Resolution of figures
+i_dpi = 120  #Resolution of figures
 
 
 def KL_divergence(diag_A,sigma, sc_true, num_shot = 20, dim_cauchy_vec=100):
@@ -59,6 +59,7 @@ def train_fde_sc(dim, p_dim, sample,\
  monitor_validation=True, monitor_KL=False, test_diag_A=-1, test_sigma=-1, \
  list_zero_thres=[1e-5,1e-4,1e-3,1e-2,1e-1], SUBO=True,  stop_for_rank=False):
     update_sigma = True
+    add_noise_for_saddle = True
 
     if np.allclose(test_diag_A, -1) or np.allclose(test_sigma, -1):
         monitor_validation = False
@@ -191,7 +192,7 @@ def train_fde_sc(dim, p_dim, sample,\
 
             plt.hist(sample_for_plot, range=(min(x_axis), max(x_axis)), bins=100, normed=True, label="sampling from a true model \n perturbed by Cauchy($0,\gamma$)",color="pink")
 
-            plt.plot(x_axis,y_axis_truth, linestyle="--", label="$\gamma$-slice of DE true model", color="red")
+            plt.plot(x_axis,y_axis_truth, linestyle="--", label="true $\gamma$-slice", color="red")
 
 
 
@@ -208,6 +209,7 @@ def train_fde_sc(dim, p_dim, sample,\
             os.makedirs(dirname)
         plt.savefig("{}/plot_density_init.png".format(dirname),dpi=i_dpi)
         plt.clf()
+        plt.close()
         logging.info("Plotting initial density...done.")
 
 
@@ -290,9 +292,17 @@ def train_fde_sc(dim, p_dim, sample,\
         r_grads, r_loss =  sc.regularization_grad_loss(diag_A, sigma,reg_coef=reg_coef, TYPE=REG_TYPE)
         new_grads += r_grads
         new_loss += r_loss
+        train_loss_list.append(new_loss)
+
+        if add_noise_for_saddle:
+            import pdb; pdb.set_trace()
+            noise_for_saddle = np.random.randn(new_grads.shape[0])
+            noise_for_saddle /= np.norm(noise_for_saddle)
+            new_grads += noise_for_saddle
+
         new_PA = new_grads[:-1]
         new_Psigma = new_grads[-1]
-        train_loss_list.append(new_loss)
+
 
         #logging.info("new_Psigma:{}".format(new_Psigma))
         #logging.info("new_PA:\n{}".format(new_PA))
@@ -494,7 +504,7 @@ def train_fde_cw(dim, p_dim, sample,\
     ### tf_summary, logging and  plot
     log_step = 20*iter_per_epoch
     plot_stepsize = log_step
-    plot_stepsize = -1 #TODO Comment out this line for plotting density.
+    #plot_stepsize = -1 #TODO Comment out this line for plotting density.
 
     ### inputs to be denoised
     sample = np.array(sample)
@@ -550,15 +560,15 @@ def train_fde_cw(dim, p_dim, sample,\
         plt.rc('text', usetex=True)
         plt.rcParams["font.size"] = 16
         #plt.rc("text", fontsize=12)
-        plt.title("Perturbed ESD  and $\gamma$-slice")
+        plt.title("Perturbed single shot ESD  and $\gamma$-slice")
         plt.ylim(0, max_y)
-
-        plt.plot(x_axis,y_axis_truth, label="$\gamma$-slice \n of true DE", linestyle="--", color="red")
 
         sample_for_plot = cw_for_plot.ESD(num_shot=1, dim_cauchy_vec=200, COMPLEX=False)
         plt.hist(sample_for_plot, range=(min(x_axis), max(x_axis)), bins=200, normed=True,\
          label="perturbed \n single shot ESD",color="pink")
 
+
+        plt.plot(x_axis,y_axis_truth, label="true $\gamma$-slice", linestyle="--", color="red")
 
         plt.legend()
         dirname = "images/train_rnn_cw"

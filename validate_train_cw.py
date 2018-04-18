@@ -54,7 +54,7 @@ def options(logger=None):
                         type     = int,
                         dest     = 'max_epoch',
                         required = False,
-                        default  =  120,
+                        default  =  200,
                         help     = "max_epoch")
     parser.add_argument('-dpi', '--dpi',
                         type     = int,
@@ -150,6 +150,7 @@ def test_optimize(\
 
     plt.savefig("{}/{}.png".format(dirname, jobname),dpi=i_dpi)
     plt.clf()
+    plt.close()
     logging.getLogger().removeHandler(file_log)
 
     epoch = int(i_dim/minibatch_size)
@@ -169,11 +170,9 @@ def test_scale_balance():
     minibatch_size = opt.minibatch
     ### TODO for paper
     list_base_scale =[ 1e-1/4, 1e-1/2, 1e-1, 2e-1, 4e-1]
-    #list_base_scale =[ 1e-1]
     list_dim_cauchy_vec =  [1]
     ### for test
-    #list_base_scale =[ 1e-1]
-    #list_dim_cauchy_vec =  [1024]
+    list_base_scale =[ 1e-1]
 
     list_val_loss_array = []
     list_train_loss_array = []
@@ -203,7 +202,7 @@ def test_scale_balance():
     plt.rcParams["font.size"] = 8*2
 
     if len(list_dim_cauchy_vec) == 1:
-        plt.title("$Noise dimension = {}$".format(list_dim_cauchy_vec[0]))
+        plt.title("Noise dimension = {}".format(list_dim_cauchy_vec[0]))
     x_axis = np.arange(average_val_loss.shape[0])
 
     n = 0
@@ -212,8 +211,8 @@ def test_scale_balance():
             plt.plot(x_axis,list_val_loss_array[n], label="({}, {})".format(base_scale, dim_cauchy_vec))
             n+=1
     #plt.title("Validation loss")
-    plt.xlabel("epoch")
-    plt.ylabel("validation loss")
+    plt.xlabel("Epoch")
+    plt.ylabel("Validation loss")
     plt.ylim(0.2, 1.2)
     plt.legend()
     dirname = "./images/scale_balance_cw"

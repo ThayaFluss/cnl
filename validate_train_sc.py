@@ -143,6 +143,7 @@ def test_optimize(\
     plt.legend()
     plt.savefig("images/train_v2/{}.png".format(jobname),dpi=300)
     plt.clf()
+    plt.close()
     #logging.getLogger().removeHandler(file_log)
 
 
