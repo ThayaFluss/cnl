@@ -183,10 +183,8 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         list_zero_thres = [1e-4,1e-2]
 
         ### for debug
-        ### scale * lr /dim_cauchy = 0.01/16
-        #m = int(i_dim/8)
         #list_zero_dim = [40]
-        #list_min_singular=[ 0.3]
+        #list_min_singular=[ 0.2]
         #list_base_scale = [0.2*i_p_dim/i_dim]
         #list_dim_cauchy_vec = [2]
     else:

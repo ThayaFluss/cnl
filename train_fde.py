@@ -59,7 +59,6 @@ def train_fde_sc(dim, p_dim, sample,\
  monitor_validation=True, monitor_KL=False, test_diag_A=-1, test_sigma=-1, \
  list_zero_thres=[1e-5,1e-4,1e-3,1e-2,1e-1], SUBO=True,  stop_for_rank=False):
     update_sigma = True
-    add_noise_for_saddle = True
 
     if np.allclose(test_diag_A, -1) or np.allclose(test_sigma, -1):
         monitor_validation = False
@@ -75,7 +74,7 @@ def train_fde_sc(dim, p_dim, sample,\
     iter_per_epoch = int(sample_size/minibatch_size)
     max_iter = max_epoch*iter_per_epoch
     stepsize = -1 #iter_per_epoch
-    momentum = 0#0.9
+    momentum = 0
     REG_TYPE = "L1"
     lr_policy = "inv"
     if lr_policy == "inv":
@@ -294,11 +293,8 @@ def train_fde_sc(dim, p_dim, sample,\
         new_loss += r_loss
         train_loss_list.append(new_loss)
 
-        if add_noise_for_saddle:
-            import pdb; pdb.set_trace()
-            noise_for_saddle = np.random.randn(new_grads.shape[0])
-            noise_for_saddle /= np.norm(noise_for_saddle)
-            new_grads += noise_for_saddle
+        new_grads[-1] *= lr_mult_sigma ### for rescale new_Psigma
+
 
         new_PA = new_grads[:-1]
         new_Psigma = new_grads[-1]
@@ -307,7 +303,7 @@ def train_fde_sc(dim, p_dim, sample,\
         #logging.info("new_Psigma:{}".format(new_Psigma))
         #logging.info("new_PA:\n{}".format(new_PA))
         m_Psigma = lr*new_Psigma + momentum*old_Psigma
-        m_Psigma *= lr_mult_sigma
+        #m_Psigma *= lr_mult_sigma
         m_PA = lr*new_PA + momentum*old_PA
         logging.debug("m_Psigma=\n{}".format(m_Psigma))
         logging.debug("m_PA=\n{}".format(m_PA))
