@@ -246,102 +246,6 @@ class SemiCircular(object):
 
 
 
-
-
-    def plot_density_info_plus_noise(self, param_mat,sigma=1, min_x = 0.01, max_x = 500,\
-    resolution=0.2, num_sample = 100,bins=100, jobname="plot_density", Subordination=True):
-
-        size = param_mat.shape[1]
-        p_size = param_mat.shape[0]
-        param_mat = np.matrix(param_mat)
-
-        evs_list =[]
-        for i  in range(num_sample):
-            evs= np.linalg.eigh(info_plus_noise(param_mat,sigma, COMPLEX=True))[0]
-            evs_list += evs.tolist()
-        plt.figure()
-        plt.hist(evs_list, bins=bins, normed=True, label="empirical eigenvalues")
-
-        max_x = min(max_x, max(evs_list) )
-        min_x = max(min_x, min(evs_list))
-        resolution = min(resolution,(max_x - min_x) /100)
-        max_x += resolution*10
-        Timer0 = Timer()
-        Timer0.tic()
-
-        e_param_mat = np.zeros(4*size**2, dtype=np.complex128).reshape([2*size, 2*size])
-        for k in range(size):
-            for l in range(size):
-                e_param_mat[k][size+l] = param_mat.H[k,l]
-                e_param_mat[size+k][l] = param_mat[k,l]
-        e_param_mat = np.matrix(e_param_mat)
-
-        G = np.eye(2*size)*(1-1j)
-        G = np.matrix(G)
-        x = min_x
-        x_list = []
-        rho_list = []
-        rho_sub_list = []
-        count =0
-        timer = Timer()
-        timer_sub = Timer()
-
-        while(x < max_x):
-            logging.info( "(plot_density_info_plus_noise)x={}".format(x))
-            x_list.append(x)
-            z = sp.sqrt(x+1j*self.scale)
-
-            timer_sub.tic()
-            i_omega = 1*1j*np.eye(2,dtype=np.complex128)
-            i_G_sc = -1*1j*np.eye(2,dtype=np.complex128)
-
-            sub = self.cauchy_by_subordination(sigma, e_param_mat, z*np.eye(2,dtype=np.complex128),i_omega, i_G_sc)
-            timer_sub.toc()
-            #print(i_omega)
-
-            #print nsubtrace(G, 2, size) - sub
-            rho_sub= -ntrace(sub/z).imag/sp.pi
-            logging.info( "(plot_density_info_plus_noise)rho_sub={}".format(rho_sub))
-
-            #assert not rho_sub < 0
-            rho_sub_list.append(rho_sub)
-
-            """
-            timer.tic()
-            L = self.Lambda(z,  2*size, -1)
-            L = np.matrix(L)
-            var_mat = L - e_param_mat
-            G = self.cauchy(G, var_mat, sigma)
-            G_2 = G / z   ### zG_2(z^2) = G(z)
-            rho =  -ntrace(G_2).imag/sp.pi
-
-            rho_list.append(rho)
-            timer.toc()
-            logging.info( "(plot_density_info_plus_noise)rho_mai={}".format(rho))
-            """
-
-            if x < 0.2:
-                temp = 0.05
-            else:
-                temp = 1
-            x += temp*resolution
-            count += 1
-
-        #print "original=", timer.total_time
-        print( "sub=", timer_sub.total_time)
-        Timer0.toc()
-        time = Timer0.total_time
-        logging.info("(plot_density_info_plus_noise)Total {} points, Took {} sec, {} sec/point".format(count, time, time/count ) )
-        #plt.plot(x_list,rho_list, label="theoretical value",color="red", lw = 2)
-        plt.plot(x_list,rho_sub_list, label="theoretical value (sub)",color="green", lw = 2)
-
-        plt.legend(loc="upper right")
-        plt.savefig("images/plot_density/{}.png".format(jobname))
-        plt.show()
-
-        return x_list#, rho_list
-
-
     ### G^{-1} = b - v^2 \eta(G)
     ### - G^{-1} dG G^{-1} = db -v^2\eta(dG) -dv^2 \eta(G)
     ### dG = G(-db +   v^2\eta(dG)  + dv^2 \eta(G))G
@@ -892,6 +796,140 @@ class SemiCircular(object):
 
 
             return loss
+
+class CompoundWishart(object):
+    """docstring for CompoundWishart."""
+    """W = Z^*BZ : d x d """
+    """Z: p x d """
+    """B: p x p """
+    """p >= d """
+    def __init__(self,dim=1,p_dim=1, scale=1e-1, minibatch=1):
+        super(CompoundWishart, self).__init__()
+        self.minibatch = minibatch
+        self.jobname = "default"
+        self.scale= scale
+        assert dim < p_dim or dim == p_dim
+        self.dim = dim
+        self.p_dim = p_dim
+        self.b = np.zeros(p_dim)
+        self.G= 1-1j
+
+    def R_transform(self, w):
+        r = 0
+        b = self.b
+        for i in range(self.p_dim):
+                r += b[i]/(1 - b[i]*w)
+        r /= self.dim
+        return r
+
+    def cauchy(self,init_G, z, max_iter=100, thres=1e-7):
+        g = init_G
+        timer = Timer()
+        timer.tic()
+        for it in range(max_iter):
+            g += 1./(z - self.R_transform(g) )
+            g *= 0.5
+            if it % 10 == 9:
+                g_old = np.copy(g)
+            elif it > 0 and it % 10 == 0 :
+                sub = (g - g_old)**2
+                if sub < thres:
+                    break
+        timer.toc()
+        logging.debug("cauchy time={}/ {}-iter".format(timer.total_time, it))
+        return g
+
+
+
+    def density(self, x_array):
+        G = self.G
+        num = len(x_array)
+        rho_list = []
+        for i in range(num):
+            z = x_array[i] + 1j*self.scale
+            G = self.cauchy(G, z)
+            self.G = G
+            rho =  -G.imag/sp.pi
+            #logging.debug( "(density_info_plus_noise)rho(", x, ")= " ,rho
+            rho_list.append(rho)
+
+        return np.array(rho_list)
+
+    def ESD(self, num_shot, COMPLEX = False):
+        p = self.p_dim
+        d = self.dim
+        B = np.diag(self.b)
+        evs_list = []
+        for n in range(num_shot):
+            Z = Ginibre(p, d, COMPLEX)
+            W = Z.H @ B @ Z
+            evs = np.linalg.eigh(W)[0]
+            evs_list += evs.tolist()
+        return evs_list
+
+    def plot_density(self, COMPLEX=False, min_x = -50, max_x = 50,\
+    resolution=0.2, dim_cauchy_vec = 1000,num_shot = 100,bins=100, jobname="plot_density"):
+
+        evs_list = self.ESD(num_shot, COMPLEX)
+        length = len(evs_list)
+        c_noise =  sp.stats.cauchy.rvs(loc=0, scale=self.scale, size=dim_cauchy_vec)
+        for i in range(length):
+            for j  in range(dim_cauchy_vec):
+                evs_list.append(evs_list[i] - c_noise[j])
+        plt.figure()
+        plt.hist(evs_list, bins=bins, normed=True, label="ESD with cauchy noise")
+
+        max_x = min(max_x, max(evs_list))
+        min_x = max(min_x, min(evs_list))
+        resolution = min(resolution,(max_x - min_x) /100)
+        max_x += resolution*10
+        num_step = (max_x - min_x )/resolution
+
+        x_array = np.linspace(min_x,max_x, num_step)
+        out_array =  self.density(x_array)
+        plt.plot(x_array,out_array, label="theoretical value",color="green", lw = 2)
+        plt.legend(loc="upper right")
+        plt.savefig("images/plot_density/{}.png".format(jobname))
+        plt.show()
+
+        return x_array, out_array
+    def gradients(self):
+        G = self.G
+        p = self.p_dim
+        d = self.dim
+        b = self.b
+        TG_R = (float(p)/float(d))*np.average(( b/(1-b*G) )**2)
+        grads_R = 1./(d*(1-b*G)**2)
+
+        TG_Ge = G**2*TG_R
+        grads_Ge = G**2*grads_R
+        grads = grads_Ge/( 1 - TG_Ge)
+
+        return grads
+
+    def grad_loss(self, sample):
+            num_sample = len(sample)
+            rho_list = []
+            grads = np.zeros(self.p_dim)
+            for i in range(num_sample):
+                x = sample[i]
+                z = x+1j*self.scale
+                G = self.cauchy(self.G, z)
+                ### Update initial value of G
+                self.G  = G
+                rho =  -G.imag/sp.pi
+                rho_list.append(rho)
+                grads_G = self.gradients()
+                ### (-log \rho)' = - \rho' / \rho
+                grads += grads_G.imag/(sp.pi*rho)
+
+            loss = np.average(-sp.log(rho_list))
+            grads/= num_sample
+            return grads, loss
+
+
+
+
 
 
 class Descrete(object):

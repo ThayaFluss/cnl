@@ -286,7 +286,9 @@ def train_fde_sc(dim, p_dim, sample,\
             #logging.debug("test_loss: {}".format(np.linalg.norm(new_loss- t_new_loss)))
             #logging.debug("test_grad: {}".format(np.linalg.norm(new_grads- t_new_grads)))
         else :
-                new_grads, new_loss = sc.grad_loss(diag_A, sigma, mini)
+            new_grads, new_loss = sc.grad_loss(diag_A, sigma, mini)
+
+
 
         r_grads, r_loss =  sc.regularization_grad_loss(diag_A, sigma,reg_coef=reg_coef, TYPE=REG_TYPE)
         new_grads += r_grads
