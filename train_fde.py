@@ -26,13 +26,19 @@ else:
 i_dpi = 120  #Resolution of figures
 
 
-def get_minibatch(sample, minibatch_size, mb_idx, scale, dim_cauchy_vec):
+def get_minibatch(sample, minibatch_size, n, scale, dim_cauchy_vec, SAMPLING="SHUFLLE"):
     """
     Choose minibatch from sample
+    iter_per_epoch = len(sample)/minibatch_size
     """
-    mb_idx
-    mini = sample[minibatch_size*mb_idx:minibatch_size*(mb_idx+1)]
-    mini = np.sort(mini)
+    if SAMPLING == "SHUFFLE":
+        mb_idx = n % minibatch_size
+        if mb_idx == 0:
+            np.random.shuffle(sample)
+        mini = sample[minibatch_size*mb_idx:minibatch_size*(mb_idx+1)]
+    elif SAMPLING == "RANDOM_INDEX":
+        mini = np.random.choice(sample, minibatch_size)
+
     new_mini = np.zeros((minibatch_size,dim_cauchy_vec))
     for i in range(minibatch_size):
         c_noise =  sp.stats.cauchy.rvs(loc=0, scale=scale, size=dim_cauchy_vec)
@@ -41,17 +47,21 @@ def get_minibatch(sample, minibatch_size, mb_idx, scale, dim_cauchy_vec):
     new_mini = new_mini.flatten()
     mini = np.sort(new_mini)
     mini = np.array(mini, dtype=np.complex128)
+
+
     return mini
 
 
-def get_learning_rate(idx, base_lr, lr_policy, **kwards):
-            if lr_policy == "inv":
-                gamma = kwards["gamma"]
-                power = kwards["power"]
-                lr = base_lr * (1 + gamma * idx)**(- power)
-                return lr
-            elif lr_policy == "fix":
-                return base_lr
+def get_learning_rate(idx, base_lr, lr_policy,  **kwards):
+    assert base_lr >= 0
+    assert idx >= 0
+    if lr_policy == "inv":
+        gamma = kwards["gamma"]
+        power = kwards["power"]
+        lr = base_lr * (1 + gamma * idx )**(- power)
+        return lr
+    elif lr_policy == "fix":
+        return base_lr
 
 
 
@@ -98,19 +108,45 @@ def train_fde_sc(dim, p_dim, sample,\
 
     ###sample
     #minibatch_size = 1
-    sample_size =sample.shape[0]
+    sample_size =len(sample)
+    assert sample_size == sample.shape[0]
     ### SGD
     #base_lr = 0.1
     iter_per_epoch = int(sample_size/minibatch_size)
     max_iter = max_epoch*iter_per_epoch
     stepsize = -1 #iter_per_epoch
-    momentum = 0
+    optimizer = "Adam"
+    if optimizer == "momenutm":
+        momentum = 0
+        #momentum = momentum*np.ones(size+1)
+        #momentum[-1] = 0.1  #momentum for sigma
+        start_update_sigma = 0
+        lr_mult_sigma = 1./dim
+        ###TODO test
+        #lr_mult_sigma = 1./sp.sqrt(dim)
+        #lr_mult_sigma = 0.1
+
+    elif optimizer == "Adam":
+        alpha = 1e-4
+        beta1 = 0.9
+        beta2 = 0.999
+        eps = 1e-8
+        base_lr = -1 ### Adam does not use base_lr.
+        lr = base_lr
+    else: sys.exit("optimizer is momentum or Adam")
+
+    if update_sigma:
+        start_update_sigma = 0
+    else:
+        lr_mult_sigma = 0.
+
+
     REG_TYPE = "L1"
     lr_policy = "inv"
     if lr_policy == "inv":
         lr_kwards = {
-        "gamma": 1e-4*iter_per_epoch,
-        "power": 0.75
+        "gamma": 1e-4,
+        "power": 0.75,
         }
     elif lr_policy == "step":
         lr_kwards = {
@@ -120,7 +156,7 @@ def train_fde_sc(dim, p_dim, sample,\
     elif lr_policy == "fix":
         lr_kwards = dict()
     else:
-        sys.exit(-1)
+        sys.exit("lr_policy is inv, step or fix")
 
 
     ### tf_summary, logging and  plot
@@ -131,14 +167,6 @@ def train_fde_sc(dim, p_dim, sample,\
     plot_stepsize = -1
     stop_count_thres = 100
 
-
-    ### update sigma
-    lr_mult_sigma = 0.
-    if update_sigma:
-        #momentum = momentum*np.ones(size+1)
-        #momentum[-1] = 0.1  #momentum for sigma
-        start_update_sigma = 0
-        lr_mult_sigma = 1./dim
 
 
     ### inputs to be denoised
@@ -244,7 +272,6 @@ def train_fde_sc(dim, p_dim, sample,\
 
 
     scale = base_scale
-    lr = base_lr
     ### to return
     train_loss_list = []
     val_loss_list = []
@@ -258,206 +285,222 @@ def train_fde_sc(dim, p_dim, sample,\
     average_diagA = 0
     #list_zero_thres.append(sc.sigma)
     num_zero = np.zeros(len(list_zero_thres))
-    old_PA = np.zeros(dim)
-    old_Psigma = 0
+    if optimizer == "momentum":
+        lr = base_lr
+        old_grads = np.zeros(dim+1)
+    elif optimizer == "Adam":
+        mean_adam = np.zeros(dim + 1)
+        var_adam = np.zeros(dim + 1)
+
+
+
     stop_count = 0
     ### SGD
-    n = 0
-    for e_idx in trange(max_epoch):
+    for n in trange(max_iter):
+        ### for epoch base
+        # e_idx = int(n/ iter_per_epoch)
+        mini = get_minibatch(sample, minibatch_size, n, scale, dim_cauchy_vec, SAMPLING="RANDOM_INDEX")
+
+        ### run
+        sc.scale= scale
+        if SUBO:
+            sc.update_params(diag_A, sigma)
+            new_grads, new_loss = sc.grad_loss_subordination(mini)
+
+            if TEST_C2:
+                sc2.scale = scale
+                sc2.update_params(diag_A, sigma)
+                sc2_new_grads, sc2_new_loss = sc2.grad_loss_subordination(mini)
+                print("")
+                print("sub-Psigma:", sc2_new_grads[-1] - new_grads[-1])
+                print("sc2 psigma:", sc2_new_grads[-1])
+                print("psigma:", new_grads[-1])
+                #print("subloss:",sc2_new_loss - new_loss)
+                #import pdb; pdb.set_trace()
+
+
+
+            #t_new_grads, t_new_loss = sc.grad_loss(diag_A, sigma, mini)
+            #logging.debug("test_loss: {}".format(np.linalg.norm(new_loss- t_new_loss)))
+            #logging.debug("test_grad: {}".format(np.linalg.norm(new_grads- t_new_grads)))
+        else :
+            new_grads, new_loss = sc.grad_loss(diag_A, sigma, mini)
+
+
+
+        r_grads, r_loss =  sc.regularization_grad_loss(diag_A, sigma,reg_coef=reg_coef, TYPE=REG_TYPE)
+        new_grads += r_grads
+        new_loss += r_loss
+        train_loss_list.append(new_loss)
+
+
+
         ### learning rate
-        lr = get_learning_rate(e_idx, base_lr, lr_policy, **lr_kwards)
-        np.random.shuffle(sample)
-        for mb_idx in range(iter_per_epoch):
-            n+=1 ###Count total iteration
-            mini = get_minibatch(sample, minibatch_size, mb_idx, scale, dim_cauchy_vec)
+        if optimizer == "momentum":
+            lr = get_learning_rate(n, base_lr, lr_policy, **lr_kwards)
+            m_grads = lr*new_grads + momentum*old_grads
 
-            ### run
-            sc.scale= scale
-            if SUBO:
-                sc.update_params(diag_A, sigma)
-                new_grads, new_loss = sc.grad_loss_subordination(mini)
+            m_grads[-1] *= lr_mult_sigma ### for rescale new_Psigma
 
-                if TEST_C2:
-                    sc2.scale = scale
-                    sc2.update_params(diag_A, sigma)
-                    sc2_new_grads, sc2_new_loss = sc2.grad_loss_subordination(mini)
-                    print("")
-                    print("sub-Psigma:", sc2_new_grads[-1] - new_grads[-1])
-                    print("sc2 psigma:", sc2_new_grads[-1])
-                    print("psigma:", new_grads[-1])
-                    #print("subloss:",sc2_new_loss - new_loss)
-                    #import pdb; pdb.set_trace()
+
+        elif optimizer == "Adam":
+            mean_adam = beta1 * mean_adam + ( 1- beta1)*new_grads
+            var_adam = beta2 * var_adam + ( 1- beta2)*new_grads**2
+            m = mean_adam/(1-beta1**(n+1))
+            v = var_adam/(1-beta2**(n+1))
+            m_grads = alpha*m/(sp.sqrt(v)+eps)
+
+        m_PA = m_grads[:-1]
+        m_Psigma = m_grads[-1]
 
 
 
-                #t_new_grads, t_new_loss = sc.grad_loss(diag_A, sigma, mini)
-                #logging.debug("test_loss: {}".format(np.linalg.norm(new_loss- t_new_loss)))
-                #logging.debug("test_grad: {}".format(np.linalg.norm(new_grads- t_new_grads)))
-            else :
-                new_grads, new_loss = sc.grad_loss(diag_A, sigma, mini)
+        logging.debug("m_Psigma=\n{}".format(m_Psigma))
+        logging.debug("m_PA=\n{}".format(m_PA))
 
-
-
-            r_grads, r_loss =  sc.regularization_grad_loss(diag_A, sigma,reg_coef=reg_coef, TYPE=REG_TYPE)
-            new_grads += r_grads
-            new_loss += r_loss
-            train_loss_list.append(new_loss)
-
-            new_grads[-1] *= lr_mult_sigma ### for rescale new_Psigma
-
-
-            new_PA = new_grads[:-1]
-            new_Psigma = new_grads[-1]
-
-
-            #logging.info("new_Psigma:{}".format(new_Psigma))
-            #logging.info("new_PA:\n{}".format(new_PA))
-            m_Psigma = lr*new_Psigma + momentum*old_Psigma
-            #m_Psigma *= lr_mult_sigma
-            m_PA = lr*new_PA + momentum*old_PA
-            logging.debug("m_Psigma=\n{}".format(m_Psigma))
-            logging.debug("m_PA=\n{}".format(m_PA))
-
-            ### clip
-            if clip_grad > 0:
-                for k in range(dim):
-                    if abs(m_PA[k]) > clip_grad :
-                        logging.info("m_PA[{}]={} is clipped.".format(k,m_PA[k]))
-                        m_PA[k] = np.sign(m_PA[k])*clip_grad
-                if abs(m_Psigma) > clip_grad :
-                    logging.info("m_Psigma={} is clipped.".format(m_Psigma))
-                    m_Psigma = np.sign(m_Psigma)*clip_grad
-
-            ### update
-            old_diag_A = np.copy(diag_A)
-            diag_A = diag_A - m_PA
+        ### clip
+        if clip_grad > 0:
             for k in range(dim):
-                if abs(diag_A[k]) > edge:
-                    logging.info( "diag_A[{}]={} reached the boundary".format(k,diag_A[k]))
-                    #import pdb; pdb.set_trace()
+                if abs(m_PA[k]) > clip_grad :
+                    logging.info("m_PA[{}]={} is clipped.".format(k,m_PA[k]))
+                    m_PA[k] = np.sign(m_PA[k])*clip_grad
+            if abs(m_Psigma) > clip_grad :
+                logging.info("m_Psigma={} is clipped.".format(m_Psigma))
+                m_Psigma = np.sign(m_Psigma)*clip_grad
 
-                    diag_A[k] =edge  -  1e-2
-                    m_PA[k] = -1e-8
+        ### update
+        old_diag_A = np.copy(diag_A)
+        diag_A = diag_A - m_PA
+        for k in range(dim):
+            if abs(diag_A[k]) > edge:
+                logging.info( "diag_A[{}]={} reached the boundary".format(k,diag_A[k]))
+                #import pdb; pdb.set_trace()
+
+                diag_A[k] =edge  -  1e-2
+                m_PA[k] = -1e-8
 
 
-            if update_sigma:
-                logging.debug( "m_Psigma=", m_Psigma)
-                if n > start_update_sigma:
-                    sigma -= m_Psigma
-                if abs(sigma**2) > edge:
-                    logging.info("sigma reached the boundary:{}".format(sigma))
-                    sigma  = sp.sqrt(edge) - 1e-2
-                    m_Psigma = -1e-8
-            old_m_PA= np.copy(m_PA)
-            old_Psigma = np.copy(m_Psigma)
+        if update_sigma:
+            logging.debug( "m_Psigma=", m_Psigma)
+            if n > start_update_sigma:
+                sigma -= m_Psigma
+            if abs(sigma**2) > edge:
+                logging.info("sigma reached the boundary:{}".format(sigma))
+                sigma  = sp.sqrt(edge) - 1e-2
+                m_Psigma = -1e-8
 
 
-            ######################################
-            ### Monitoring
-            #####################################
-            if monitor_validation:
-                #val_loss=np.sum(np.abs(np.sort(np.abs(diag_A)) - np.sort(np.abs(n_test_diag_A)))) +  np.abs(np.abs(sigma) - n_test_sigma)
-                val_loss=np.linalg.norm(np.sort(np.abs(diag_A)) - np.sort(np.abs(n_test_diag_A))) +  np.abs(np.abs(sigma) - n_test_sigma)
-                val_loss_list.append(val_loss)
-                average_val_loss += val_loss
+        old_m_PA= np.copy(m_PA)
+        old_m_Psigma = np.copy(m_Psigma)
+        olg_grads = np.hstack(old_m_PA, old_Psigma)
 
-            num_zero_list.append( \
-            [  np.where( np.abs(diag_A) < list_zero_thres[l])[0].size \
-            for l in range(len(list_zero_thres))])
 
-            average_loss += new_loss
-            average_sigma += sigma
-            average_diagA += np.sort(np.abs(diag_A))
+        ######################################
+        ### Monitoring
+        #####################################
+        if monitor_validation:
+            #val_loss=np.sum(np.abs(np.sort(np.abs(diag_A)) - np.sort(np.abs(n_test_diag_A)))) +  np.abs(np.abs(sigma) - n_test_sigma)
+            val_loss=np.linalg.norm(np.sort(np.abs(diag_A)) - np.sort(np.abs(n_test_diag_A))) +  np.abs(np.abs(sigma) - n_test_sigma)
+            val_loss_list.append(val_loss)
+            average_val_loss += val_loss
 
-            if n %  log_step == 0:
-                ### Count zeros under several thresholds
-                num_zero = num_zero_list[-1]
+        num_zero_list.append( \
+        [  np.where( np.abs(diag_A) < list_zero_thres[l])[0].size \
+        for l in range(len(list_zero_thres))])
 
-                if n > 0:
-                    average_loss /= log_step
-                    average_sigma /= log_step
-                    average_diagA /= log_step
-                    if monitor_validation:
-                        average_val_loss /= log_step
-                    if stop_for_rank:
-                        num_zero_old = num_zero_list[-log_step]
-                        if np.allclose(num_zero,num_zero_old) and not np.allclose(num_zero, 0):
-                                stop_count += 1
-                        else:
-                            stop_count = 0
-                        if stop_count == stop_count_thres:
-                            import pdb; pdb.set_trace()
-                            break
+        average_loss += new_loss
+        average_sigma += sigma
+        average_diagA += np.sort(np.abs(diag_A))
 
-                #average_sigma *= normalize_ratio
-                #average_diagA *= normalize_ratio
-                if n % stdout_step == 0:
-                    logging.info("{0}/{4}-iter:lr = {1:4.3e}, scale = {2:4.3e}, num_cauchy = {3}".format(n,lr,scale,dim_cauchy_vec,max_iter ))
-                    logging.info("loss= {}".format( average_loss))
+        if n %  log_step == 0:
+            ### Count zeros under several thresholds
+            num_zero = num_zero_list[-1]
 
+            if n > 0:
+                average_loss /= log_step
+                average_sigma /= log_step
+                average_diagA /= log_step
                 if monitor_validation:
+                    average_val_loss /= log_step
+                if stop_for_rank:
+                    num_zero_old = num_zero_list[-log_step]
+                    if np.allclose(num_zero,num_zero_old) and not np.allclose(num_zero, 0):
+                            stop_count += 1
+                    else:
+                        stop_count = 0
+                    if stop_count == stop_count_thres:
+                        import pdb; pdb.set_trace()
+                        break
 
-                    #val_loss_average = np.sum(np.abs(np.sort(np.abs(average_diagA)) - np.sort(np.abs(n_test_diag_A)))) \
-                    val_loss_average = np.linalg.norm(np.sort(np.abs(average_diagA)) - np.sort(np.abs(n_test_diag_A)))\
-                    +  np.abs(np.abs(average_sigma) - n_test_sigma)
-                    if n % stdout_step == 0:
-                        logging.info("val_loss= {}".format(average_val_loss))
-                        logging.info("val_loss_average= {}".format(val_loss_average))
-                if n % stdout_step == 0:
+            #average_sigma *= normalize_ratio
+            #average_diagA *= normalize_ratio
+            if n % stdout_step == 0:
+                logging.info("{0}/{4}-iter:lr = {1:4.3e}, scale = {2:4.3e}, num_cauchy = {3}".format(n,lr,scale,dim_cauchy_vec,max_iter ))
+                logging.info("loss= {}".format( average_loss))
 
-                    logging.info("sigma= {}".format(average_sigma))
-                    #logging.info("diag_A (sorted)=\n{}  / 10-iter".format(np.sort(average_diagA)))
-                    #logging.info( "diag_A (raw) =\n{}".format(diag_A))
-                    logging.info("num_zero={} / thres={}".format(num_zero,list_zero_thres))
-                    logging.debug("average-sorted-abs(diag_A) =\n{}".format(average_diagA))
-                    #logging.info("diag_A/ average: min, mean, max= \n {}, {}, {} ".format(np.min(average_diagA), np.average(average_diagA), np.max(average_diagA)))
-
-                if monitor_KL and n % (KL_log_step) == 0:
-                    logging.info("Computing KL divergence from truth ...")
-                    sc.diag_A = average_diagA
-                    sc.sigma = average_sigma
-                    cross_entropy = sc.loss(sc.ESD(num_shot=num_shot_for_KL, dim_cauchy_vec=dim_cauchy_vec_for_KL))
-                    KL = cross_entropy - entropy
-                    logging.info("val_KL= : {}".format(KL))
-
-
-                if n < max_iter  :
-                    average_loss = 0
-                    average_val_loss = 0
-                    average_sigma = 0
-                    average_diagA = 0
-
-
-            logging.debug( "{}-iter:lr={},scale{}, loss: {}".format(n,lr, scale, new_loss) )
-            logging.debug( "sigma: {}".format(sigma))
-            #diag_A=np.sort(diag_A)
             if monitor_validation:
-                logging.debug( "val_loss: {}".format(val_loss))
+
+                #val_loss_average = np.sum(np.abs(np.sort(np.abs(average_diagA)) - np.sort(np.abs(n_test_diag_A)))) \
+                val_loss_average = np.linalg.norm(np.sort(np.abs(average_diagA)) - np.sort(np.abs(n_test_diag_A)))\
+                +  np.abs(np.abs(average_sigma) - n_test_sigma)
+                if n % stdout_step == 0:
+                    logging.info("val_loss= {}".format(average_val_loss))
+                    logging.info("val_loss_average= {}".format(val_loss_average))
+            if n % stdout_step == 0:
+
+                logging.info("sigma= {}".format(average_sigma))
+                #logging.info("diag_A (sorted)=\n{}  / 10-iter".format(np.sort(average_diagA)))
+                #logging.info( "diag_A (raw) =\n{}".format(diag_A))
+                logging.info("num_zero={} / thres={}".format(num_zero,list_zero_thres))
+                logging.debug("average-sorted-abs(diag_A) =\n{}".format(average_diagA))
+                #logging.info("diag_A/ average: min, mean, max= \n {}, {}, {} ".format(np.min(average_diagA), np.average(average_diagA), np.max(average_diagA)))
+
+            if monitor_KL and n % (KL_log_step) == 0:
+                logging.info("Computing KL divergence from truth ...")
+                sc.diag_A = average_diagA
+                sc.sigma = average_sigma
+                cross_entropy = sc.loss(sc.ESD(num_shot=num_shot_for_KL, dim_cauchy_vec=dim_cauchy_vec_for_KL))
+                KL = cross_entropy - entropy
+                logging.info("val_KL= : {}".format(KL))
 
 
-            logging.debug( "mean_of_diagA: {}, var_of_A={}".format(np.average(diag_A), np.var(diag_A) ))
-            logging.debug( "diag_A (raw) =\n{}".format(diag_A))
+            if n < max_iter  :
+                average_loss = 0
+                average_val_loss = 0
+                average_sigma = 0
+                average_diagA = 0
+
+
+        logging.debug( "{}-iter:lr={},scale{}, loss: {}".format(n,lr, scale, new_loss) )
+        logging.debug( "sigma: {}".format(sigma))
+        #diag_A=np.sort(diag_A)
+        if monitor_validation:
+            logging.debug( "val_loss: {}".format(val_loss))
+
+
+        logging.debug( "mean_of_diagA: {}, var_of_A={}".format(np.average(diag_A), np.var(diag_A) ))
+        logging.debug( "diag_A (raw) =\n{}".format(diag_A))
 
 
 
-            if plot_stepsize > 0 and n % plot_stepsize == 0:
-                logging.info("Plotting density...")
-                plt.clf()
-                plt.close()
-                plt.figure()
-                if monitor_validation:
+        if plot_stepsize > 0 and n % plot_stepsize == 0:
+            logging.info("Plotting density...")
+            plt.clf()
+            plt.close()
+            plt.figure()
+            if monitor_validation:
 
-                    y_axis_truth = sc_for_plot.density_subordinaiton(x_axis)
-                    plt.plot(x_axis,y_axis_truth, label="truth", linestyle="--", color="red")
-                #plt.plot(x_axis,y_axis_init, label="Init")
-                sc.set_params(diag_A, sigma)
-                y_axis = sc.density_subordinaiton(x_axis)
-                plt.plot(x_axis,y_axis, label="{}-iter".format(n), color="blue")
-                plt.legend()
-                plt.savefig("{}/plot_density_{}-iter".format(dirname, n),dpi=i_dpi)
-                plt.clf()
-                plt.close()
-                logging.info("Plotting density...done")
+                y_axis_truth = sc_for_plot.density_subordinaiton(x_axis)
+                plt.plot(x_axis,y_axis_truth, label="truth", linestyle="--", color="red")
+            #plt.plot(x_axis,y_axis_init, label="Init")
+            sc.set_params(diag_A, sigma)
+            y_axis = sc.density_subordinaiton(x_axis)
+            plt.plot(x_axis,y_axis, label="{}-iter".format(n), color="blue")
+            plt.legend()
+            plt.savefig("{}/plot_density_{}-iter".format(dirname, n),dpi=i_dpi)
+            plt.clf()
+            plt.close()
+            logging.info("Plotting density...done")
     average_sigma *= normalize_ratio
     average_diagA *= normalize_ratio
     logging.info("result:")
@@ -491,26 +534,51 @@ def train_fde_cw(dim, p_dim, sample,\
     stepsize = -1 #iter_per_epoch
     momentum = 0#0.9
     clip_grad = 100
-    lr_policy = "inv"
+
+    optimizer = "Adam"
+    if optimizer == "momenutm":
+        momentum = 0
+        #momentum = momentum*np.ones(size+1)
+        #momentum[-1] = 0.1  #momentum for sigma
+        start_update_sigma = 0
+        lr_mult_sigma = 1./dim
+        ###TODO test
+        #lr_mult_sigma = 1./sp.sqrt(dim)
+        #lr_mult_sigma = 0.1
+
+    elif optimizer == "Adam":
+        alpha = 1e-4
+        beta1 = 0.9
+        beta2 = 0.999
+        eps = 1e-8
+        base_lr = -1 ### Adam does not use base_lr.
+        lr = base_lr
+    else: sys.exit("optimizer is momentum or Adam")
+
+
+
+
+    lr_policy = "fix"
     if lr_policy == "inv":
-        stepsize = 1 #iter_per_epoch
-        gamma = 1e-4
-        power = 0.75
-        scale_gamma = 0
-        scale_power = 0.75
+        lr_kwards = {
+        "gamma": 1e-4,
+        "power": 0.75,
+        }
     elif lr_policy == "step":
-        decay = 0.5
-        scale_decay =1.
-        stepvalue = [640]
-        #stepvalue = [int(max_iter/2)]
-        stepvalue.append(max_iter)
-        logging.info("stepvalue= {}".format(stepvalue))
+        lr_kwards = {
+        "decay": 0.5,
+        "stepvalue": [640, max_iter]
+        }
+    elif lr_policy == "fix":
+        lr_kwards = dict()
+    else:
+        sys.exit("lr_policy is inv, step or fix")
 
 
     ### tf_summary, logging and  plot
     log_step = 20*iter_per_epoch
     plot_stepsize = log_step
-    #plot_stepsize = -1 #TODO Comment out this line for plotting density.
+    plot_stepsize = -1 #TODO Comment out this line for plotting density.
 
     ### inputs to be denoised
     sample = np.array(sample)
@@ -598,26 +666,24 @@ def train_fde_cw(dim, p_dim, sample,\
     average_loss = 0
     average_val_loss = 0
     average_b = 0
-    old_grads = np.zeros(p_dim)
     cw.b = b
+
+
+    if optimizer == "momentum":
+        lr = base_lr
+        old_grads = np.zeros(p_dim)
+    elif optimizer == "Adam":
+        mean_adam = np.zeros(p_dim)
+        var_adam = np.zeros(p_dim)
+
+
+
     ### SGD
-    for n in trange(max_iter):
+    for n  in trange(max_iter):
         ### learning rate
-        if lr_policy == "inv":
-            if n % stepsize == 0:
-                lr = base_lr * (1 + gamma * float(n)/stepsize)**(- power)
-                scale = base_scale * (1 + scale_gamma * float(n)/stepsize)**(- scale_power)
-        elif lr_policy == "step":
-            step= stepvalue[step_idx]
-            if n > step:
-                step_idx += 1
-            lr =  base_lr*decay**(step_idx)
-            scale = base_scale*scale_decay**step_idx
-
-
-        ### minibatch
-        mini =get_minibatch(sample, minibatch_size, n, iter_per_epoch, scale, dim_cauchy_vec)
-
+        #temp_idx =  int(n/iter_per_epoch) * iter_per_epoch
+        temp_idx = n
+        mini = get_minibatch(sample, minibatch_size, n, scale, dim_cauchy_vec, SAMPLING="RANDOM_INDEX")
 
 
         ### run
@@ -626,10 +692,26 @@ def train_fde_cw(dim, p_dim, sample,\
         new_grads, new_loss = cw.grad_loss(mini)
         train_loss_list.append(new_loss)
 
-        #logging.info("new_Psigma:{}".format(new_Psigma))
-        #logging.info("new_PA:\n{}".format(new_PA))
-        ad_momentum = 1- (1-momentum)*lr/base_lr
-        m_grads = lr*new_grads + ad_momentum*old_grads
+
+        ### learning rate
+        if optimizer == "momentum":
+            lr = get_learning_rate(n, base_lr, lr_policy, **lr_kwards)
+            m_grads = lr*new_grads + momentum*old_grads
+
+
+            ### TODO Delete after estimation
+            #ad_momentum = 1- (1-momentum)*lr/base_lr
+            #m_grads = lr*new_grads + ad_momentum*old_grads
+            ###
+
+        elif optimizer == "Adam":
+            mean_adam = beta1 * mean_adam + ( 1- beta1)*new_grads
+            var_adam = beta2 * var_adam + ( 1- beta2)*new_grads**2
+            m = mean_adam/(1-beta1**(n+1))
+            v = var_adam/(1-beta2**(n+1))
+            m_grads = alpha*m/(sp.sqrt(v)+eps)
+
+
         logging.debug("m_grads=\n{}".format(m_grads))
 
         ### clip

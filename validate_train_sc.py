@@ -32,43 +32,43 @@ def options(logger=None):
                         dest     = 'dim',
                         required = False,
                         default  =  50,
-                        help     = "column")
+                        help     = "column (default: %(default)s)")
     parser.add_argument('-p', '--p_dim',
                         type     = int,
                         dest     = 'p_dim',
                         required = False,
                         default  =  50,
-                        help     = "row")
+                        help     = "row (default: %(default)s)")
     parser.add_argument('-m', '--minibatch',
                         type     = int,
                         dest     = 'minibatch',
                         required = False,
                         default  =  1,
-                        help     = "minibatch_size")
+                        help     = "minibatch_size (default: %(default)s)")
     parser.add_argument('-j', '--jobname',
                         type     = str,
                         dest     = 'jobname',
                         required = False,
                         default  =  50,
-                        help     = "min_singular")
+                        help     = "min_singular (default: %(default)s)")
     parser.add_argument('-v', '--vbmf',
                         type     = bool,
                         dest     = 'vbmf',
                         required = False,
                         default  =  False,
-                        help     = "empirical vbmf")
+                        help     = "empirical vbmf (default: %(default)s)")
     parser.add_argument('-nt', '--num_test',
                         type     = int,
                         dest     = 'num_test',
                         required = False,
                         default  =  10,
-                        help     = "Number of tests")
+                        help     = "Number of tests (default: %(default)s)")
     parser.add_argument('-me', '--max_epoch',
                         type     = int,
                         dest     = 'max_epoch',
                         required = False,
                         default  =  120,
-                        help     = "max_epoch")
+                        help     = "max_epoch (default: %(default)s)")
 
     return parser.parse_args()
 
@@ -161,10 +161,13 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
     max_epoch= int(max_epoch*i_p_dim/i_dim)
     base_scale = 0.2
     base_scale *= i_p_dim/i_dim
-    base_lr = 0.1
-    ### for paper
-    reg_coef = 2e-4
-    #reg_coef = 0
+    ### for paper: rank estimation
+    #base_lr = 0.1
+    reg_coef = 4e-4
+    ###TODO test: completion
+    base_lr = -1
+    reg_coef = 0
+
     if jobname == "scale_balance":
         #list_base_scale =[ 0.5*1e-1,1e-1, 2*1e-1 ]
         list_dim_cauchy_vec =  [1]
@@ -187,6 +190,8 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         #list_min_singular=[ 0.2]
         #list_base_scale = [0.2*i_p_dim/i_dim]
         #list_dim_cauchy_vec = [2]
+        #list_zero_thres = [1e-4,1e-2, 5e-2, 1e-1]
+
     else:
         sys.exit(-1)
 

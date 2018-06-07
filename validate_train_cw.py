@@ -25,43 +25,43 @@ def options(logger=None):
                         dest     = 'dim',
                         required = False,
                         default  =  50,
-                        help     = "column")
+                        help     = "column (default: %(default)s)")
     parser.add_argument('-p', '--p_dim',
                         type     = int,
                         dest     = 'p_dim',
                         required = False,
                         default  =  50,
-                        help     = "row")
+                        help     = "row (default: %(default)s)")
     parser.add_argument('-m', '--minibatch',
                         type     = int,
                         dest     = 'minibatch',
                         required = False,
                         default  =  1,
-                        help     = "minibatch_size")
+                        help     = "minibatch_size (default: %(default)s)")
     parser.add_argument('-j', '--jobname',
                         type     = str,
                         dest     = 'jobname',
                         required = False,
                         default  =  50,
-                        help     = "min_singular")
+                        help     = "min_singular (default: %(default)s)")
     parser.add_argument('-nt', '--num_test',
                         type     = int,
                         dest     = 'num_test',
                         required = False,
                         default  =  10,
-                        help     = "Number of tests")
+                        help     = "Number of tests (default: %(default)s)")
     parser.add_argument('-me', '--max_epoch',
                         type     = int,
                         dest     = 'max_epoch',
                         required = False,
                         default  =  200,
-                        help     = "max_epoch")
+                        help     = "max_epoch (default: %(default)s)")
     parser.add_argument('-dpi', '--dpi',
                         type     = int,
                         dest     = 'dpi',
                         required = False,
                         default  =  600,
-                        help     = "Resolution of figures (default:60)")
+                        help     = "Resolution of figures (default: %(default)s)")
 
     return parser.parse_args()
 
