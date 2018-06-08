@@ -14,7 +14,7 @@ from tqdm import tqdm,trange
 from datetime import datetime
 from train_fde import *
 from vbmf.vbmf import VBMF2
-from vbmf.validate_vbmf_ipn import validate_vbmf_ipn
+from vbmf.validate_vbmf_spn import validate_vbmf_spn
 
 
 from argparse import ArgumentParser
@@ -237,7 +237,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
                 min_singular = list_min_singular[j]
                 results = []
                 for n in range(num_test):
-                    r = validate_vbmf_ipn(i_dim,i_p_dim, 0.1, min_singular, zero_dim)
+                    r = validate_vbmf_spn(i_dim,i_p_dim, 0.1, min_singular, zero_dim)
                     results.append(r)
 
                 m_r, v_r = _mean_and_var(results)
@@ -476,9 +476,9 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
 
         logging.info(list_zero_dim)
         logging.info(list_min_singular)
-        fde_ipn_estimated_rank_curve = np.asarray(list_estimated_rank_curve).reshape( num_zero_dim, num_min_singular, -1, num_thres)
+        fde_spn_estimated_rank_curve = np.asarray(list_estimated_rank_curve).reshape( num_zero_dim, num_min_singular, -1, num_thres)
         ### Consider last result
-        fde_ipn_estimated_rank = fde_ipn_estimated_rank_curve[:,:,-1,:]
+        fde_spn_estimated_rank = fde_spn_estimated_rank_curve[:,:,-1,:]
 
 
         x_axis = list_min_singular
@@ -495,12 +495,12 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
 
             for k in range(num_thres):
                 if list_zero_thres[k] == 0.0001:
-                    label = "FDEIPN: $\delta=10^{-4}$"
+                    label = "FDESPN: $\delta=10^{-4}$"
                 elif list_zero_thres[k] == 0.01:
-                    label = "FDEIPN: $\delta=10^{-2}$"
+                    label = "FDESPN: $\delta=10^{-2}$"
                 else:
-                    label = "FDEIPN: $\delta={}$".format(list_zero_thres[k])
-                plt.plot(x_axis,fde_ipn_estimated_rank[i,:,k], label=label, marker="+")
+                    label = "FDESPN: $\delta={}$".format(list_zero_thres[k])
+                plt.plot(x_axis,fde_spn_estimated_rank[i,:,k], label=label, marker="+")
 
             if VS_VBMF:
                 plt.plot(x_axis, vbmf_estimated_rank[i], label="EVBMF", marker="+")

@@ -392,7 +392,7 @@ def train_fde_sc(dim, p_dim, sample,\
 
         old_m_PA= np.copy(m_PA)
         old_m_Psigma = np.copy(m_Psigma)
-        olg_grads = np.hstack(old_m_PA, old_Psigma)
+        olg_grads = np.hstack((old_m_PA, old_m_Psigma))
 
 
         ######################################

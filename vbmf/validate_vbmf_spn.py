@@ -5,7 +5,7 @@ from .vbmf import VBMF2
 from matrix_util import *
 from random_matrices import *
 
-def validate_vbmf_ipn(dim, p_dim, sigma, min_singular, zero_dim, COMPLEX=False):
+def validate_vbmf_spn(dim, p_dim, sigma, min_singular, zero_dim, COMPLEX=False):
     assert min_singular < 1
     assert(zero_dim <= dim )
     assert(p_dim >= dim)
