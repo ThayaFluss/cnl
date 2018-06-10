@@ -26,7 +26,8 @@ else:
 i_dpi = 120  #Resolution of figures
 
 
-def get_minibatch(sample, minibatch_size, n, scale, dim_cauchy_vec, SAMPLING="SHUFLLE"):
+def get_minibatch(sample, minibatch_size, n, scale, dim_cauchy_vec, \
+SAMPLING="RANDOM_INDEX", MIX = True):
     """
     Choose minibatch from sample
     iter_per_epoch = len(sample)/minibatch_size
@@ -39,17 +40,28 @@ def get_minibatch(sample, minibatch_size, n, scale, dim_cauchy_vec, SAMPLING="SH
     elif SAMPLING == "RANDOM_INDEX":
         mini = np.random.choice(sample, minibatch_size)
 
-    new_mini = np.zeros((minibatch_size,dim_cauchy_vec))
-    for i in range(minibatch_size):
+    else: sys.exit("SAMPLING is SHUFFLE or RANDOM_INDEX")
+
+    if MIX:
+        new_mini = np.zeros(minibatch_size*dim_cauchy_vec)
         c_noise =  sp.stats.cauchy.rvs(loc=0, scale=scale, size=dim_cauchy_vec)
-        for j  in range(dim_cauchy_vec):
-            new_mini[i][j] = mini[i] - c_noise[j]
-    new_mini = new_mini.flatten()
-    mini = np.sort(new_mini)
-    mini = np.array(mini, dtype=np.complex128)
+        n = 0
+        for j in range(minibatch_size):
+            for k in range(dim_cauchy_vec):
+                new_mini[n] = mini[j] + c_noise[k]
+                n+=1
+        return new_mini
 
-
-    return mini
+    else:
+        new_mini = np.zeros((minibatch_size,dim_cauchy_vec))
+        for i in range(minibatch_size):
+            c_noise =  sp.stats.cauchy.rvs(loc=0, scale=scale, size=dim_cauchy_vec)
+            for j  in range(dim_cauchy_vec):
+                new_mini[i][j] = mini[i] + c_noise[j]
+        new_mini = new_mini.flatten()
+        mini = np.sort(new_mini)
+        mini = np.array(mini, dtype=np.complex128)
+        return mini
 
 
 def get_learning_rate(idx, base_lr, lr_policy,  **kwards):
@@ -283,8 +295,10 @@ def train_fde_sc(dim, p_dim, sample,\
     average_val_loss = 0
     average_sigma = 0
     average_diagA = 0
-    #list_zero_thres.append(sc.sigma)
-    num_zero = np.zeros(len(list_zero_thres))
+
+    o_zero_thres = list_zero_thres
+
+
     if optimizer == "momentum":
         lr = base_lr
         old_grads = np.zeros(dim+1)
@@ -300,6 +314,11 @@ def train_fde_sc(dim, p_dim, sample,\
         ### for epoch base
         # e_idx = int(n/ iter_per_epoch)
         mini = get_minibatch(sample, minibatch_size, n, scale, dim_cauchy_vec, SAMPLING="RANDOM_INDEX")
+
+        ### TODO to add sigma to zero thres
+        #list_zero_thres = o_zero_thres + [sigma]
+        list_zero_thres = o_zero_thres
+        num_zero = np.zeros(len(list_zero_thres))
 
         ### run
         sc.scale= scale
@@ -515,6 +534,8 @@ def train_fde_sc(dim, p_dim, sample,\
 
     num_zero_array = np.asarray(num_zero_list)
     del sc
+    ### TODO for sigma
+    #list_zero_thres = list_zero_thres[:-1]
     if monitor_validation:
         del sc_for_plot
     return average_diagA, average_sigma, train_loss_array, val_loss_array, num_zero_array
@@ -535,7 +556,7 @@ def train_fde_cw(dim, p_dim, sample,\
     momentum = 0#0.9
     clip_grad = 100
 
-    optimizer = "Adam"
+    optimizer = "momentum"
     if optimizer == "momenutm":
         momentum = 0
         #momentum = momentum*np.ones(size+1)

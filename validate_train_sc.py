@@ -119,6 +119,7 @@ def test_optimize(\
     sq_sample = np.array(sp.sqrt(evs_list))
     mean_param =np.average(sq_sample)
 
+    #TODO: initial num zero_array
 
     sample = np.asarray(evs_list)
 
@@ -160,13 +161,13 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
     max_epoch = opt.max_epoch
     max_epoch= int(max_epoch*i_p_dim/i_dim)
     base_scale = 0.2
-    base_scale *= i_p_dim/i_dim
+    #base_scale *= i_p_dim/i_dim
     ### for paper: rank estimation
     #base_lr = 0.1
-    reg_coef = 4e-4
+    #reg_coef = 4e-4
     ###TODO test: completion
     base_lr = -1
-    reg_coef = 0
+    reg_coef = 4e-4
 
     if jobname == "scale_balance":
         #list_base_scale =[ 0.5*1e-1,1e-1, 2*1e-1 ]
@@ -182,15 +183,14 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         list_zero_dim = [10,20,30,40]
         list_min_singular =[0.05,0.1, 0.2,0.3,0.4]
         list_base_scale = [base_scale]
-        list_dim_cauchy_vec = [2]
+        list_dim_cauchy_vec = [1] ### 2 for version 1
         list_zero_thres = [1e-4,1e-2]
 
         ### for debug
-        #list_zero_dim = [20]
-        #list_min_singular=[ 0.2]
-        #list_base_scale = [0.2*i_p_dim/i_dim]
-        #list_dim_cauchy_vec = [2]
-        #list_zero_thres = [1e-4,1e-2, 5e-2, 1e-1]
+        list_zero_dim = [20]
+        list_min_singular=[ 0.2]
+        list_dim_cauchy_vec = [4]
+        list_zero_thres = [1e-4,reg_coef, 1e-2, 1e-1]
 
     else:
         sys.exit(-1)
