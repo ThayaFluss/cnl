@@ -55,6 +55,7 @@ class SemiCircular(object):
         self.grads2 = np.zeros((self.dim+1, 2,2),dtype = np.complex128)
         self.omega = np.ones(2)*1j
         self.omega_sc = np.ones(2)*1j
+        self.forward_iter = 0
 
     def set_params(self, a,sigma):
         assert self.dim == a.shape[0]
@@ -486,7 +487,6 @@ class SemiCircular(object):
         for n in range(max_iter):
             assert omega.imag[0] > 0
             assert omega.imag[1] > 0
-
             sc_g = self.cauchy_2by2(omega, sc_g)
             sc_h = 1/sc_g - omega
             omega_transform = des.h_transform(sc_h + B) + B
@@ -561,6 +561,7 @@ class SemiCircular(object):
         G = G_init
         sigma = self.sigma
         flag = False
+
         for d in range(max_iter):
             eta = np.copy(G[::-1])
             eta[0] *=float(self.p_dim)/self.dim ### for recutangular matrix
@@ -570,9 +571,11 @@ class SemiCircular(object):
                 flag = True
             G += sub
             if flag:
+                self.forward_iter += d
                 return G
         #logging.info("cauchy_2by2: sub = {} @ iter= {}".format(np.linalg.norm(sub),d))
         loggin.info("cauchy_2by2: reahed max_iter")
+        self.forward_iter += d
         return G_init
 
 

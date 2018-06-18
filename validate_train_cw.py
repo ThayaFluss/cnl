@@ -8,6 +8,7 @@ from timer import Timer
 import os
 import time
 import logging
+from datetime import datetime
 
 from argparse import ArgumentParser
 from train_fde import *
@@ -60,7 +61,7 @@ def options(logger=None):
                         type     = int,
                         dest     = 'dpi',
                         required = False,
-                        default  =  600,
+                        default  =  300,
                         help     = "Resolution of figures (default: %(default)s)")
 
     return parser.parse_args()
@@ -103,7 +104,8 @@ def test_optimize(\
     p_dim = dim
     ###marhcnko 1 + \sqrt{p/d}
     MP_ratio = p_dim/dim
-    high_singular = 1./ ( 1 + sp.sqrt(MP_ratio))
+    #high_singular = 1./ ( 1 + sp.sqrt(MP_ratio))
+    high_singular = 0.1
     assert min_singular < high_singular
     param = np.random.uniform(low=min_singular, high=high_singular, size = p_dim)
     #param = 2*np.random_sample(dim)
@@ -128,7 +130,7 @@ def test_optimize(\
 
 
 
-    b, train_loss_array, val_loss_array= train_fde_cw(dim, p_dim,\
+    b, train_loss_array, val_loss_array, forward_iter= train_fde_cw(dim, p_dim,\
         sample=evs_list,\
         base_scale=base_scale ,\
         dim_cauchy_vec=dim_cauchy_vec,\
@@ -157,30 +159,38 @@ def test_optimize(\
     train_loss_array = train_loss_array.reshape([-1,epoch]).mean(axis=1)
     val_loss_array = val_loss_array.reshape([-1,epoch]).mean(axis=1)
 
-    return b, train_loss_array, val_loss_array
+    return b, train_loss_array, val_loss_array, forward_iter
 
 
 def test_scale_balance():
     num_test = opt.num_test
     ### MP-ratio
-    min_singular = - 1./( 1  + np.sqrt(1))
+    #min_singular = - 1./( 1  + np.sqrt(1))
+    min_singular = -0.1
     zero_dim = 0
     max_epoch = opt.max_epoch
-    base_lr = 1e-2
+    #base_lr = 1e-2
+    base_lr = 1e-4
     minibatch_size = opt.minibatch
     ### TODO for paper
-    list_base_scale =[ 1e-1/4, 1e-1/2, 1e-1, 2e-1, 4e-1]
+    base_scale = 1e-1
+    list_base_scale =[ 0.1*base_scale, base_scale, base_scale*10]
     list_dim_cauchy_vec =  [1]
     ### for test
-    list_base_scale =[ 1e-1]
+    #list_base_scale =[ 1e-1]
+
+
+
+
 
     list_val_loss_array = []
     list_train_loss_array = []
+    list_forward_iter = []
     for base_scale in list_base_scale:
         for dim_cauchy_vec in list_dim_cauchy_vec:
-            average_b = 0;  average_val_loss=0;average_train_loss=0;
+            average_b = 0;  average_val_loss=0;average_train_loss=0;average_forward_iter = 0
             for n in range(num_test):
-                b, train_loss_array, val_loss_array=test_optimize(\
+                b, train_loss_array, val_loss_array, forward_iter=test_optimize(\
                 base_lr = base_lr,minibatch_size=minibatch_size,\
                  max_epoch=max_epoch,\
                 min_singular=min_singular, zero_dim = zero_dim, \
@@ -188,13 +198,48 @@ def test_scale_balance():
                 average_b += b
                 average_val_loss += val_loss_array
                 average_train_loss += train_loss_array
+                average_forward_iter += forward_iter
             average_b /= num_test
             average_val_loss /= num_test
             average_train_loss /= num_test
+            average_forward_iter /= num_test
             logging.info("RESULT:base_scale = {}, ncn = {}, val_loss = {},\n  average_b = \n{}".format(\
             base_scale, dim_cauchy_vec, average_val_loss[-1], average_b) )
             list_val_loss_array.append(average_val_loss)
             list_train_loss_array.append(average_train_loss)
+            list_forward_iter.append(average_forward_iter)
+
+
+
+
+
+
+
+    jobname = "test_cw"
+    now = datetime.now()
+    temp_jobname = jobname + '_{0:%m%d%H%M}'.format(now)
+    dirname = "images/{}".format(temp_jobname)
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
+    setting_log = open("{}/setting.log".format(dirname), "w")
+    setting_log.write("jobname:{}\n".format(temp_jobname))
+    setting_log.write("dim:{}\n".format(opt.dim))
+    setting_log.write("p_dim:{}\n".format(opt.p_dim))
+    setting_log.write("minibatch:{}\n".format(minibatch_size))
+    setting_log.write("num_test:{}\n".format(opt.num_test))
+    setting_log.write("max_epoch:{}\n".format(max_epoch         ))
+    setting_log.write("base_lr:{}\n".format(base_lr           ))
+    setting_log.write("list_dim_cauchy_vec:{}\n".format(list_dim_cauchy_vec))
+    setting_log.write("list_base_scale:{}\n".format(list_base_scale   ))
+    setting_log.write("min_singular:{}\n".format(min_singular ))
+    setting_log.close()
+
+
+
+    iter_log = open("{}/forward_iter.log".format(dirname), "w")
+    iter_log.write("{}".format(list_forward_iter))
+    iter_log.close()
+
 
     plt.figure()
     plt.rc('font', family='serif', serif='Times')
@@ -202,41 +247,47 @@ def test_scale_balance():
     plt.rcParams["font.size"] = 8*2
 
     if len(list_dim_cauchy_vec) == 1:
-        plt.title("Noise dimension = {}".format(list_dim_cauchy_vec[0]))
-    x_axis = np.arange(average_val_loss.shape[0])
+        #plt.title("Noise dimension = {}".format(list_dim_cauchy_vec[0]))
+        plt.title("CW")
 
+    x_axis = np.arange(average_val_loss.shape[0])
+    ### plot validation
     n = 0
     for base_scale in list_base_scale:
         for dim_cauchy_vec in list_dim_cauchy_vec:
-            plt.plot(x_axis,list_val_loss_array[n], label="({}, {})".format(base_scale, dim_cauchy_vec))
+            ### separate dim_cauchy_vec
+            #plt.plot(x_axis,list_val_loss_array[n], label="({0:3.2e}, {1})".format(base_scale, dim_cauchy_vec))
+            ### set dim_cauchy_vec == 1
+            base_scale = round(base_scale, 2)
+            plt.plot(x_axis,list_val_loss_array[n], label="$\gamma={}$".format(base_scale))
             n+=1
-    #plt.title("Validation loss")
+
+    plt.title("CW")
     plt.xlabel("Epoch")
-    plt.ylabel("Validation loss")
-    plt.ylim(0.2, 1.2)
+    plt.ylabel("Validation Loss")
+    plt.ylim(0., 0.3)
     plt.legend()
-    dirname = "./images/scale_balance_cw"
-    if not os.path.exists(dirname):
-        os.makedirs(dirname)
     filename = "{}/test_val.png".format(dirname)
     logging.info(filename)
     plt.savefig(filename,dpi=i_dpi)
     plt.clf()
     plt.close()
 
+
     n = 0
     for base_scale in list_base_scale:
         for dim_cauchy_vec in list_dim_cauchy_vec:
-            plt.plot(x_axis,list_train_loss_array[n], label="({}, {})".format(base_scale, dim_cauchy_vec))
+            plt.plot(x_axis,list_train_loss_array[n], label="({0:3.2e}, {1})".format(base_scale, dim_cauchy_vec))
             n+=1
     #plt.title("Validation loss")
-    plt.xlabel("epoch")
+    plt.xlabel("Epoch")
     plt.ylabel("train loss")
     plt.legend()
     filename = "{}/test_train.png".format(dirname)
     plt.savefig(filename,dpi=i_dpi)
     plt.clf()
     plt.close()
+
 
 
 

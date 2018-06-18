@@ -27,7 +27,7 @@ i_dpi = 120  #Resolution of figures
 
 
 def get_minibatch(sample, minibatch_size, n, scale, dim_cauchy_vec, \
-SAMPLING="RANDOM_INDEX", MIX = True):
+SAMPLING="CHOICE", MIX = "DIAGONAL"):
     """
     Choose minibatch from sample
     iter_per_epoch = len(sample)/minibatch_size
@@ -37,12 +37,16 @@ SAMPLING="RANDOM_INDEX", MIX = True):
         if mb_idx == 0:
             np.random.shuffle(sample)
         mini = sample[minibatch_size*mb_idx:minibatch_size*(mb_idx+1)]
-    elif SAMPLING == "RANDOM_INDEX":
+    elif SAMPLING == "CHOICE":
+        ###TODO temp
+        if MIX == "DIAGONAL":
+            minibatch_size = dim_cauchy_vec
+
         mini = np.random.choice(sample, minibatch_size)
 
-    else: sys.exit("SAMPLING is SHUFFLE or RANDOM_INDEX")
+    else: sys.exit("SAMPLING is SHUFFLE or CHOICE")
 
-    if MIX:
+    if MIX == "SEPARATE":
         new_mini = np.zeros(minibatch_size*dim_cauchy_vec)
         c_noise =  sp.stats.cauchy.rvs(loc=0, scale=scale, size=dim_cauchy_vec)
         n = 0
@@ -52,7 +56,7 @@ SAMPLING="RANDOM_INDEX", MIX = True):
                 n+=1
         return new_mini
 
-    else:
+    elif MIX == "X_ORIGIN":
         new_mini = np.zeros((minibatch_size,dim_cauchy_vec))
         for i in range(minibatch_size):
             c_noise =  sp.stats.cauchy.rvs(loc=0, scale=scale, size=dim_cauchy_vec)
@@ -62,6 +66,12 @@ SAMPLING="RANDOM_INDEX", MIX = True):
         mini = np.sort(new_mini)
         mini = np.array(mini, dtype=np.complex128)
         return mini
+    elif MIX == "DIAGONAL":
+        new_mini = np.zeros(minibatch_size)
+        for i in range(minibatch_size):
+            c_noise =  sp.stats.cauchy.rvs(loc=0, scale=scale, size=minibatch_size)
+            new_mini[i] = mini[i] + c_noise[i]
+        return new_mini
 
 
 def get_learning_rate(idx, base_lr, lr_policy,  **kwards):
@@ -139,11 +149,10 @@ def train_fde_sc(dim, p_dim, sample,\
         #lr_mult_sigma = 0.1
 
     elif optimizer == "Adam":
-        alpha = 1e-4
+        alpha = base_lr
         beta1 = 0.9
         beta2 = 0.999
         eps = 1e-8
-        base_lr = -1 ### Adam does not use base_lr.
         lr = base_lr
     else: sys.exit("optimizer is momentum or Adam")
 
@@ -307,13 +316,13 @@ def train_fde_sc(dim, p_dim, sample,\
         var_adam = np.zeros(dim + 1)
 
 
-
+    old_forward_iter = 0
     stop_count = 0
     ### SGD
     for n in trange(max_iter):
         ### for epoch base
         # e_idx = int(n/ iter_per_epoch)
-        mini = get_minibatch(sample, minibatch_size, n, scale, dim_cauchy_vec, SAMPLING="RANDOM_INDEX")
+        mini = get_minibatch(sample, minibatch_size, n, scale, dim_cauchy_vec, SAMPLING="CHOICE")
 
         ### TODO to add sigma to zero thres
         #list_zero_thres = o_zero_thres + [sigma]
@@ -354,8 +363,8 @@ def train_fde_sc(dim, p_dim, sample,\
 
 
 
-        ### learning rate
         if optimizer == "momentum":
+            ### learning rate
             lr = get_learning_rate(n, base_lr, lr_policy, **lr_kwards)
             m_grads = lr*new_grads + momentum*old_grads
 
@@ -464,7 +473,7 @@ def train_fde_sc(dim, p_dim, sample,\
                 +  np.abs(np.abs(average_sigma) - n_test_sigma)
                 if n % stdout_step == 0:
                     logging.info("val_loss= {}".format(average_val_loss))
-                    logging.info("val_loss_average= {}".format(val_loss_average))
+                    logging.debug("val_loss_average= {}".format(val_loss_average))
             if n % stdout_step == 0:
 
                 logging.info("sigma= {}".format(average_sigma))
@@ -473,7 +482,11 @@ def train_fde_sc(dim, p_dim, sample,\
                 logging.info("num_zero={} / thres={}".format(num_zero,list_zero_thres))
                 logging.debug("average-sorted-abs(diag_A) =\n{}".format(average_diagA))
                 #logging.info("diag_A/ average: min, mean, max= \n {}, {}, {} ".format(np.min(average_diagA), np.average(average_diagA), np.max(average_diagA)))
-
+                forward_iter = sc.forward_iter
+                diff_forward_iter = forward_iter - old_forward_iter
+                diff_forward_iter /= stdout_step
+                logging.info("forward_iter={}".format(diff_forward_iter))
+                old_forward_iter = forward_iter
             if monitor_KL and n % (KL_log_step) == 0:
                 logging.info("Computing KL divergence from truth ...")
                 sc.diag_A = average_diagA
@@ -533,12 +546,14 @@ def train_fde_sc(dim, p_dim, sample,\
         val_loss_array = -1
 
     num_zero_array = np.asarray(num_zero_list)
+    forward_iter = sc.forward_iter/ (max_iter*minibatch_size)
+
     del sc
     ### TODO for sigma
     #list_zero_thres = list_zero_thres[:-1]
     if monitor_validation:
         del sc_for_plot
-    return average_diagA, average_sigma, train_loss_array, val_loss_array, num_zero_array
+    return average_diagA, average_sigma, train_loss_array, val_loss_array, num_zero_array, forward_iter
 
 
 def train_fde_cw(dim, p_dim, sample,\
@@ -552,12 +567,13 @@ def train_fde_cw(dim, p_dim, sample,\
     #base_lr = 0.1
     iter_per_epoch = int(sample_size/minibatch_size)
     max_iter = max_epoch*iter_per_epoch
+
     stepsize = -1 #iter_per_epoch
     momentum = 0#0.9
     clip_grad = 100
 
-    optimizer = "momentum"
-    if optimizer == "momenutm":
+    optimizer = "Adam"
+    if optimizer == "momentum":
         momentum = 0
         #momentum = momentum*np.ones(size+1)
         #momentum[-1] = 0.1  #momentum for sigma
@@ -568,11 +584,10 @@ def train_fde_cw(dim, p_dim, sample,\
         #lr_mult_sigma = 0.1
 
     elif optimizer == "Adam":
-        alpha = 1e-4
+        alpha = base_lr ###1e-4
         beta1 = 0.9
         beta2 = 0.999
         eps = 1e-8
-        base_lr = -1 ### Adam does not use base_lr.
         lr = base_lr
     else: sys.exit("optimizer is momentum or Adam")
 
@@ -612,13 +627,13 @@ def train_fde_cw(dim, p_dim, sample,\
 
     max_sample = np.max(abs(sample))
     #edge = max_sample/2.
-    edge = 0.6
+    edge = 1.0
     ### initialization of weights
     ### TODO find nice value
     init_mean_b = 0.
 
-    b = init_mean_b+ np.random.randn(p_dim)/sp.sqrt(p_dim)
-    #b = random.uniform(low=-1, high=1, sizep_dim)
+    #b = init_mean_b+ np.random.uniform(p_dim)/sp.sqrt(p_dim)
+    b = np.random.uniform(low=-1, high=1, size=p_dim)/sp.sqrt(p_dim)
     b = np.sort(b)
     b = np.array(b, dtype=np.complex128)
 
@@ -704,7 +719,7 @@ def train_fde_cw(dim, p_dim, sample,\
         ### learning rate
         #temp_idx =  int(n/iter_per_epoch) * iter_per_epoch
         temp_idx = n
-        mini = get_minibatch(sample, minibatch_size, n, scale, dim_cauchy_vec, SAMPLING="RANDOM_INDEX")
+        mini = get_minibatch(sample, minibatch_size, n, scale, dim_cauchy_vec, SAMPLING="CHOICE")
 
 
         ### run
@@ -811,9 +826,12 @@ def train_fde_cw(dim, p_dim, sample,\
     logging.info("result:")
     logging.info("b:\\{}".format(b))
 
+
     train_loss_array = np.array(train_loss_list)
+    forward_iter = cw.forward_iter/ ( max_iter * minibatch_size)
+    del cw
     if monitor_validation:
         val_loss_array = np.array(val_loss_list)
-        return b, train_loss_array, val_loss_array
+        return b, train_loss_array, val_loss_array, forward_iter
     else:
-        return b, train_loss_array, -1
+        return b, train_loss_array, -1, forward_iter

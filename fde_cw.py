@@ -29,6 +29,7 @@ class CompoundWishart(object):
         self.p_dim = p_dim
         self.b = np.zeros(p_dim)
         self.G= 1-1j
+        self.forward_iter = 0   ###count number of iterations in forward
 
     def R_transform(self, w):
         r = 0
@@ -49,6 +50,7 @@ class CompoundWishart(object):
             g += 0.5*sub
         timer.toc()
         logging.debug("cauchy time={}/ {}-iter".format(timer.total_time, it))
+        self.forward_iter += it
         return g
 
 

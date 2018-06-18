@@ -67,7 +67,7 @@ def options(logger=None):
                         type     = int,
                         dest     = 'max_epoch',
                         required = False,
-                        default  =  120,
+                        default  =  400,
                         help     = "max_epoch (default: %(default)s)")
 
     return parser.parse_args()
@@ -123,7 +123,7 @@ def test_optimize(\
 
     sample = np.asarray(evs_list)
 
-    r_diag_A, r_sigma, train_loss_array, val_loss_array,num_zero_array\
+    r_diag_A, r_sigma, train_loss_array, val_loss_array,num_zero_array,  forward_iter\
     = train_fde_sc(dim, p_dim,  sample,\
         base_scale=base_scale ,\
         dim_cauchy_vec=dim_cauchy_vec,\
@@ -142,7 +142,7 @@ def test_optimize(\
     plt.plot(sq_sample, label="Sample")
     plt.plot(r_diag_A, label="Result")
     plt.legend()
-    plt.savefig("images/train_v2/{}.png".format(jobname),dpi=300)
+    plt.savefig("images/train_v2/{}.pdf".format(jobname),dpi=300)
     plt.clf()
     plt.close()
     #logging.getLogger().removeHandler(file_log)
@@ -153,50 +153,117 @@ def test_optimize(\
     val_loss_array = val_loss_array.reshape([-1,epoch]).mean(axis=1)
     num_zero_array = num_zero_array.reshape([-1,epoch, len(list_zero_thres)]).mean(axis=1)
 
-    return r_diag_A, r_sigma, train_loss_array, val_loss_array, num_zero_array
+    return r_diag_A, r_sigma, train_loss_array, val_loss_array, num_zero_array, forward_iter
 
 #@param jobname = "min_singular" or "scale_balance"
 def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
     num_test = opt.num_test
     max_epoch = opt.max_epoch
     max_epoch= int(max_epoch*i_p_dim/i_dim)
-    base_scale = 0.2
     #base_scale *= i_p_dim/i_dim
-    ### for paper: rank estimation
-    #base_lr = 0.1
-    #reg_coef = 4e-4
-    ###TODO test: completion
-    base_lr = -1
-    reg_coef = 4e-4
+    base_lr = 1e-4
+    base_scale = 0.1
 
+    #jobname = "scale_balance"
     if jobname == "scale_balance":
         #list_base_scale =[ 0.5*1e-1,1e-1, 2*1e-1 ]
+        reg_coef = 0 ###no regularization
         list_dim_cauchy_vec =  [1]
-        list_base_scale = [ base_scale/2, base_scale, base_scale*2]
+        list_base_scale = [ 0.1*base_scale, base_scale,base_scale*10]
         ###fix
-        list_min_singular = [0.5]
-        list_zero_dim = [int(i_dim/2)]
+        list_min_singular = [0.]
+        list_zero_dim = [0]
+        list_zero_thres = [0.]
 
-        list_zero_thres = [1e-4,1e-2]
+        ###for debug
+        #list_base_scale = [base_scale]
     elif jobname == "min_singular":
         ### for paper
+        reg_coef = 1e-3
         list_zero_dim = [10,20,30,40]
-        list_min_singular =[0.05,0.1, 0.2,0.3,0.4]
+        list_min_singular =[0.05,0.1,0.2,0.3,0.4]
         list_base_scale = [base_scale]
-        list_dim_cauchy_vec = [1] ### 2 for version 1
+        list_dim_cauchy_vec = [1] ### set 2 for version 1
         list_zero_thres = [1e-4,1e-2]
 
         ### for debug
-        list_zero_dim = [20]
-        list_min_singular=[ 0.2]
-        list_dim_cauchy_vec = [4]
-        list_zero_thres = [1e-4,reg_coef, 1e-2, 1e-1]
+        list_zero_dim = [20, 40]
+        list_min_singular=[ 0.1, 0.4]
+        list_dim_cauchy_vec = [1]
+        list_zero_thres = [reg_coef, 1e-1]
+
 
     else:
         sys.exit(-1)
 
-    now = datetime.now()
 
+
+
+
+
+    num_zero_dim = len(list_zero_dim)
+    num_min_singular = len(list_min_singular)
+
+
+    def _mean_and_var(results):
+        m = np.mean(results, axis = 0)
+        v = np.mean( (results -m)**2, axis=0)
+        return m,v
+
+
+
+
+    ### Run
+    num_thres = len(list_zero_thres)
+
+    list_val_loss_curve = []
+    list_train_loss_curve = []
+    list_estimated_rank_curve  = []
+    list_forward_iter = []
+
+    for base_scale in list_base_scale:
+        for dim_cauchy_vec in list_dim_cauchy_vec:
+            for zero_dim in list_zero_dim:
+                for min_singular in list_min_singular:
+                    result_diag_A = []; result_sigma=[]; result_val_loss=[];result_train_loss=[];
+                    result_num_zero = []; result_forward_iter = []
+                    for n in trange(num_test, desc="num_test"):
+                        diag_A, sigma, train_loss_array, val_loss_array,num_zero_array,forward_iter\
+                        =test_optimize(\
+                        base_lr=base_lr,
+                        max_epoch=max_epoch,min_singular=min_singular, zero_dim = zero_dim,\
+                        base_scale=base_scale, dim_cauchy_vec=dim_cauchy_vec,\
+                        reg_coef=reg_coef,\
+                        list_zero_thres= list_zero_thres,
+                        SUBO=SUBO)
+                        result_diag_A.append( diag_A)
+                        result_sigma.append(sigma)
+                        result_val_loss.append( val_loss_array)
+                        result_train_loss.append( train_loss_array)
+                        #result_num_zero.append( num_zero_array.T[idx_zero_thres_for_plot])
+                        result_num_zero.append( num_zero_array)
+                        result_forward_iter.append(forward_iter)
+                    m_diag_A, v_diag_A = _mean_and_var(result_diag_A)
+                    m_sigma, v_sigma = _mean_and_var(result_sigma)
+                    m_train_loss, v_train_loss = _mean_and_var(result_train_loss)
+                    m_val_loss, v_val_loss = _mean_and_var(result_val_loss)
+                    m_num_zero, v_num_zero = _mean_and_var(result_num_zero)
+                    m_f_iter, v_f_iter = _mean_and_var(result_forward_iter)
+
+                    logging.info("RESULT:base_scale = {}, ncn = {}, val_loss = {},\n average_sigma = {}, average_diag_A = \n{}".format(\
+                    base_scale, dim_cauchy_vec, m_val_loss[-1], m_sigma, m_diag_A) )
+                    list_train_loss_curve.append(m_train_loss)
+                    list_val_loss_curve.append(m_val_loss)
+                    list_estimated_rank_curve.append( i_dim - m_num_zero )
+                    list_forward_iter.append(m_f_iter)
+
+    x_axis = np.arange(m_val_loss.shape[0])
+
+
+
+
+
+    now = datetime.now()
     temp_jobname = jobname + '_{0:%m%d%H%M}'.format(now)
     dirname = "images/{}".format(temp_jobname)
     if not os.path.exists(dirname):
@@ -218,14 +285,14 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
     setting_log.close()
 
 
-    num_zero_dim = len(list_zero_dim)
-    num_min_singular = len(list_min_singular)
 
+    iter_log = open("{}/forward_iter.log".format(dirname), "w")
+    iter_log.write("{}".format(list_forward_iter))
+    iter_log.close()
 
-    def _mean_and_var(results):
-        m = np.mean(results, axis = 0)
-        v = np.mean( (results -m)**2, axis=0)
-        return m,v
+    ###base_line
+    rank_recovery_baseline(dirname, list_zero_dim, list_min_singular, list_zero_thres, sigma=0.1)
+
 
 
     if VS_VBMF:
@@ -257,55 +324,12 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
             plt.xlabel("$\lambda_{min}$")
             plt.ylabel("Estimated rank")
             plt.legend()
-            plt.savefig("{}/vbmf_true_ranks-{}.png".format(dirname,true_rank ),dpi=300)
+            plt.savefig("{}/vbmf_true_ranks-{}.pdf".format(dirname,true_rank ),dpi=300)
             plt.clf()
             plt.close()
 
 
 
-
-    ### Run
-    num_thres = len(list_zero_thres)
-
-    list_val_loss_curve = []
-    list_train_loss_curve = []
-    list_estimated_rank_curve  = []
-
-
-    for base_scale in list_base_scale:
-        for dim_cauchy_vec in list_dim_cauchy_vec:
-            for zero_dim in list_zero_dim:
-                for min_singular in list_min_singular:
-                    result_diag_A = []; result_sigma=[]; result_val_loss=[];result_train_loss=[];
-                    result_num_zero = []
-                    for n in trange(num_test, desc="num_test"):
-                        diag_A, sigma, train_loss_array, val_loss_array,num_zero_array\
-                        =test_optimize(\
-                        base_lr=base_lr,
-                        max_epoch=max_epoch,min_singular=min_singular, zero_dim = zero_dim,\
-                        base_scale=base_scale, dim_cauchy_vec=dim_cauchy_vec,\
-                        reg_coef=reg_coef,\
-                        list_zero_thres= list_zero_thres,
-                        SUBO=SUBO)
-                        result_diag_A.append( diag_A)
-                        result_sigma.append(sigma)
-                        result_val_loss.append( val_loss_array)
-                        result_train_loss.append( train_loss_array)
-                        #result_num_zero.append( num_zero_array.T[idx_zero_thres_for_plot])
-                        result_num_zero.append( num_zero_array)
-                    m_diag_A, v_diag_A = _mean_and_var(result_diag_A)
-                    m_sigma, v_sigma = _mean_and_var(result_sigma)
-                    m_train_loss, v_train_loss = _mean_and_var(result_train_loss)
-                    m_val_loss, v_val_loss = _mean_and_var(result_val_loss)
-                    m_num_zero, v_num_zero = _mean_and_var(result_num_zero)
-
-                    logging.info("RESULT:base_scale = {}, ncn = {}, val_loss = {},\n average_sigma = {}, average_diag_A = \n{}".format(\
-                    base_scale, dim_cauchy_vec, m_val_loss[-1], m_sigma, m_diag_A) )
-                    list_train_loss_curve.append(m_train_loss)
-                    list_val_loss_curve.append(m_val_loss)
-                    list_estimated_rank_curve.append( i_dim - m_num_zero )
-
-    x_axis = np.arange(m_val_loss.shape[0])
 
     if jobname == "scale_balance":
         #############
@@ -315,15 +339,18 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         n = 0
         for base_scale in list_base_scale:
             for dim_cauchy_vec in list_dim_cauchy_vec:
-                plt.plot(x_axis,list_val_loss_curve[n], label="({}, {})".format(base_scale, dim_cauchy_vec))
+                ### separate dim cauchy vec
+                #plt.plot(x_axis,list_val_loss_curve[n], label="({0:3.2e}, {1})".format(base_scale, dim_cauchy_vec))
+                ### set dim_cauchy_vec =  1
+                plt.plot(x_axis,list_val_loss_curve[n], label="$\gamma={}$".format(round(base_scale,2)))
                 n+=1
         plt.legend()
 
-        plt.title("Validation loss")
+        plt.title("SPN")
         plt.xlabel("Epoch")
         plt.ylabel("Validation loss")
 
-        plt.savefig("{}/test_scale_val.png".format(dirname),dpi=300)
+        plt.savefig("{}/test_scale_val.pdf".format(dirname),dpi=300)
         plt.clf()
         plt.close()
 
@@ -335,14 +362,14 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         n = 0
         for base_scale in list_base_scale:
             for dim_cauchy_vec in list_dim_cauchy_vec:
-                plt.plot(x_axis,list_train_loss_curve[n], label="({}, {})".format(base_scale, dim_cauchy_vec))
+                plt.plot(x_axis,list_train_loss_curve[n], label="({0:3.2e}, {1})".format(base_scale, dim_cauchy_vec))
                 n+=1
 
         plt.legend()
         plt.title("Train loss")
         plt.xlabel("Epoch")
         plt.ylabel("Train loss")
-        plt.savefig("{}/test_scale_train.png".format(dirname),dpi=300)
+        plt.savefig("{}/test_scale_train.pdf".format(dirname),dpi=300)
 
         plt.clf()
         plt.close()
@@ -363,12 +390,13 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
                 plt.plot(x_axis,list_val_loss_curve[n], label="({}, {})".format(i_dim - zero_dim, min_singular))
                 n+=1
 
-        plt.title("Validation loss")
+        #plt.title("SPN")
         plt.xlabel("Epoch")
         plt.ylabel("Validation loss")
+        plt.yticks([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7])
 
         plt.legend()
-        plt.savefig("{}/test_ms_low_val.png".format(dirname),dpi=300)
+        plt.savefig("{}/test_ms_low_val.pdf".format(dirname),dpi=300)
         plt.clf()
         plt.close()
 
@@ -378,12 +406,13 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
                 plt.plot(x_axis,list_val_loss_curve[n], label="({}, {})".format(i_dim -zero_dim, min_singular))
                 n+=1
 
-        plt.title("Validation loss")
+        #plt.title("SPN")
         plt.xlabel("Epoch")
         plt.ylabel("Validation loss")
+        plt.yticks([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7])
 
         plt.legend()
-        plt.savefig("{}/test_ms_high_val.png".format(dirname),dpi=300)
+        plt.savefig("{}/test_ms_high_val.pdf".format(dirname),dpi=300)
         plt.clf()
         plt.close()
 
@@ -409,7 +438,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
             plt.ylim(0,i_dim)
 
             plt.legend()
-            name = "{}/test_ms_low_zeros_thres-{}.png".format(dirname, list_zero_thres[k])
+            name = "{}/test_ms_low_zeros_thres-{}.pdf".format(dirname, list_zero_thres[k])
             logging.info(name)
             plt.savefig(name,dpi=300)
             plt.clf()
@@ -429,13 +458,11 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
             plt.ylim(0,i_dim)
             #plt.yticks( np.arange(5, i_dim+1))
             plt.legend()
-            name = "{}/test_ms_high_zeros_thres-{}.png".format(dirname, list_zero_thres[k])
+            name = "{}/test_ms_high_zeros_thres-{}.pdf".format(dirname, list_zero_thres[k])
             logging.info(name)
             plt.savefig(name,dpi=300)
             plt.clf()
             plt.close()
-
-
 
 
 
@@ -455,7 +482,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         plt.ylabel("train loss")
         plt.legend()
 
-        plt.savefig("{}/test_ms_low_train.png".format(dirname),dpi=300)
+        plt.savefig("{}/test_ms_low_train.pdf".format(dirname),dpi=300)
         plt.clf()
         plt.close()
 
@@ -470,7 +497,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         plt.ylabel("train loss")
 
         plt.legend()
-        plt.savefig("{}/test_ms_high_train.png".format(dirname),dpi=300)
+        plt.savefig("{}/test_ms_high_train.pdf".format(dirname),dpi=300)
         plt.clf()
         plt.close()
 
@@ -511,12 +538,116 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
             plt.ylim(0,i_dim)
             plt.ylabel("Estimated rank")
             plt.legend()
-            plt.savefig("{}/true_ranks-{}.png".format(dirname, true_rank ),dpi=300)
+            plt.savefig("{}/true_ranks-{}.pdf".format(dirname, true_rank ),dpi=300)
+            plt.clf()
+            plt.close()
+
+        ### plot esimted rank - true rank
+        x_axis = list_min_singular
+        for k in range(num_thres):
+            plt.figure()
+            plt.rc('font', family='serif', serif='Times')
+            plt.rc('text', usetex=True)
+            plt.rcParams["font.size"] = 8*2
+            thres = list_zero_thres[k]
+            for i in range(num_zero_dim):
+
+                zero_dim = list_zero_dim[i]
+                true_rank = i_dim - zero_dim
+                diff_rank = fde_spn_estimated_rank[i,:,k] - true_rank
+
+                label = "${}$".format(true_rank)
+                plt.plot(x_axis,diff_rank, label=label, marker="+")
+
+
+
+            plt.title("Rank Recovery")
+            plt.xlabel("$\lambda_{min}$")
+            plt.yticks([2.0, -1.5, -1.0, -0.5, 0, 0.5, 1.0, 1.5,2.0])
+            #plt.ylim(0,i_dim)
+            plt.ylabel("Estimated Rank $-$ True Rank")
+            plt.legend()
+            plt.savefig("{0}/rank-recovery_th-{1:1.0e}.pdf".format(dirname, thres),dpi=300)
             plt.clf()
             plt.close()
 
 
+        if VS_VBMF:
+            plt.figure()
+            plt.rc('font', family='serif', serif='Times')
+            plt.rc('text', usetex=True)
+            plt.rcParams["font.size"] = 8*2
+
+            for i in range(num_zero_dim):
+                zero_dim = list_zero_dim[i]
+                true_rank = i_dim - zero_dim
+                diff_rank = vbmf_estimated_rank[i] - true_rank
+                plt.plot(x_axis, diff_rank, label="EVBMF", marker="+")
+
+
+            plt.title("Rank Recovery")
+            plt.xlabel("$\lambda_{min}$")
+            plt.ylim(-2,2)
+            plt.ylabel("Estimated Rank $-$ True Rank")
+            plt.legend()
+            plt.savefig("{}/rank-recovery-evbmf.pdf".format(dirname),dpi=300)
+
+            plt.clf()
+            plt.close()
+
     else: sys.exit(-1)
+
+
+def rank_recovery_baseline(dirname, list_zero_dim, list_min_singular, list_zero_thres,sigma=0.1):
+    """
+    Rank recovery based on baseline method;
+    cutting off the lower singular values which are smaller than zerto_thres
+    """
+    logging.info("rank_recovery_baseline")
+    p_dim = opt.p_dim
+    dim = opt.dim
+    COMPLEX = False
+    for thres in list_zero_thres:
+        plt.figure()
+        plt.rc('font', family='serif', serif='Times')
+        plt.rc('text', usetex=True)
+        plt.rcParams["font.size"] = 8*2
+        plt.title("Baseline, thres={}".format(thres))
+        x_axis = list_min_singular
+        for zero_dim in list_zero_dim:
+            num_zero_list = []
+            for min_singular in list_min_singular:
+                mean = 0
+                for n in range(opt.num_test):
+                    logging.info( "zero_dim={}".format(zero_dim) )
+                    logging.info( "min_singular={}".format(min_singular) )
+
+                    param_mat = random_from_diag(p_dim, dim, zero_dim, min_singular, COMPLEX)
+                    _, param, _ = np.linalg.svd(param_mat)
+                    #logging.info( "truth=\n{}".format(np.sort(param)))
+
+                    evs= np.linalg.eigh(info_plus_noise(param_mat,sigma, COMPLEX=False))[0]
+                    sq_sample = sp.sqrt(evs)
+                    ### count zero
+                    mean +=   np.where( sq_sample < thres)[0].size
+                mean /= opt.num_test
+                num_zero_list.append(mean)
+
+            diff_rank = zero_dim - np.asarray(num_zero_list)
+            true_rank = dim -  zero_dim
+            label = "${}$".format(true_rank)
+            plt.plot(x_axis,diff_rank, label=label, marker="+")
+
+
+        plt.xlabel("$\lambda_{min}$")
+        plt.ylim(-1,dim)
+        plt.ylabel("Estimated Rank $-$ True Rank")
+        plt.legend()
+        filename = "{0}/rank-recovery-baseline-{1:1.0e}.pdf".format(dirname,thres)
+        logging.info(filename)
+        plt.savefig(filename)
+        plt.clf()
+        plt.close()
 
 
 timer = Timer()
