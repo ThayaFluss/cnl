@@ -835,11 +835,9 @@ class Descrete(object):
         """
         return np.asarray(G)
 
-    def f_transfrom(self, W):
-        return 1/(self.cauchy_transform(W))
 
     def h_transform(self,W):
-        return self.f_transfrom(W) - W
+        return 1/(self.cauchy_transform(W)) - W
 
 
     ### Transpose of total_derivation

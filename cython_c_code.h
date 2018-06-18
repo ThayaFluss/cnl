@@ -1,4 +1,5 @@
 #ifndef CYTHON_CODE
 #define CYTHON_CODE
-long c_algo(long*, long*, int, int);
+#include <complex.h>
+double complex c_algo(double complex*, double complex*, int, int);
 #endif
