@@ -24,7 +24,7 @@ else:
         from fde_sc import *
 
 i_dpi = 120  #Resolution of figures
-
+i_ext = "png"
 
 def get_minibatch(sample, minibatch_size, n, scale, dim_cauchy_vec, \
 SAMPLING="CHOICE", MIX = "DIAGONAL"):
@@ -286,7 +286,7 @@ def train_fde_sc(dim, p_dim, sample,\
         dirname = "images/train_rnn_sc"
         if not os.path.exists(dirname):
             os.makedirs(dirname)
-        plt.savefig("{}/plot_density_init.png".format(dirname),dpi=i_dpi)
+        plt.savefig("{}/plot_density_init.{}".format(dirname,i_ext),dpi=i_dpi)
         plt.clf()
         plt.close()
         logging.info("Plotting initial density...done.")
@@ -684,7 +684,7 @@ def train_fde_cw(dim, p_dim, sample,\
         dirname = "images/train_rnn_cw"
         if not os.path.exists(dirname):
             os.makedirs(dirname)
-        plt.savefig("{}/plot_density_init.png".format(dirname), dpi=i_dpi)
+        plt.savefig("{}/plot_density_init.{}".format(dirname,i_ext), dpi=i_dpi)
         plt.clf()
         plt.close()
         logging.info("Plotting initial density...done.")
@@ -801,7 +801,7 @@ def train_fde_cw(dim, p_dim, sample,\
             plt.close()
             plt.figure()
             plt.rc('font', family='serif', serif='Times')
-            plt.rc('text', usetex=True)
+            plt.rc('t{}', usetex=True)
             plt.rcParams["font.size"] = 16
 
 

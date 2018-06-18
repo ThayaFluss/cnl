@@ -69,6 +69,18 @@ def options(logger=None):
                         required = False,
                         default  =  400,
                         help     = "max_epoch (default: %(default)s)")
+    parser.add_argument('-dpi', '--dpi',
+                        type     = int,
+                        dest     = 'dpi',
+                        required = False,
+                        default  =  300,
+                        help     = "Resolution of figures (default: %(default)s)")
+    parser.add_argument('-ext', '--ext',
+                        type     = str,
+                        dest     = 'ext',
+                        required = False,
+                        default  =  "pdf",
+                        help     = "image (default: %(default)s)")
 
     return parser.parse_args()
 
@@ -142,7 +154,7 @@ def test_optimize(\
     plt.plot(sq_sample, label="Sample")
     plt.plot(r_diag_A, label="Result")
     plt.legend()
-    plt.savefig("images/train_v2/{}.pdf".format(jobname),dpi=300)
+    plt.savefig("images/train_v2/{}.{}".format(jobname, opt.ext),dpi=opt.dpi)
     plt.clf()
     plt.close()
     #logging.getLogger().removeHandler(file_log)
@@ -324,7 +336,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
             plt.xlabel("$\lambda_{min}$")
             plt.ylabel("Estimated rank")
             plt.legend()
-            plt.savefig("{}/vbmf_true_ranks-{}.pdf".format(dirname,true_rank ),dpi=300)
+            plt.savefig("{}/vbmf_true_ranks-{}.{}".format(dirname,true_rank , opt.ext),dpi=opt.dpi)
             plt.clf()
             plt.close()
 
@@ -350,7 +362,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         plt.xlabel("Epoch")
         plt.ylabel("Validation loss")
 
-        plt.savefig("{}/test_scale_val.pdf".format(dirname),dpi=300)
+        plt.savefig("{}/test_scale_val.{}".format(dirname, opt.ext),dpi=opt.dpi)
         plt.clf()
         plt.close()
 
@@ -369,7 +381,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         plt.title("Train loss")
         plt.xlabel("Epoch")
         plt.ylabel("Train loss")
-        plt.savefig("{}/test_scale_train.pdf".format(dirname),dpi=300)
+        plt.savefig("{}/test_scale_train.{}".format(dirname, opt.ext),dpi=opt.dpi)
 
         plt.clf()
         plt.close()
@@ -396,7 +408,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         plt.yticks([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7])
 
         plt.legend()
-        plt.savefig("{}/test_ms_low_val.pdf".format(dirname),dpi=300)
+        plt.savefig("{}/test_ms_low_val.{}".format(dirname,opt.ext),dpi=opt.dpi)
         plt.clf()
         plt.close()
 
@@ -412,7 +424,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         plt.yticks([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7])
 
         plt.legend()
-        plt.savefig("{}/test_ms_high_val.pdf".format(dirname),dpi=300)
+        plt.savefig("{}/test_ms_high_val.{}".format(dirname, opt.ext),dpi=opt.dpi)
         plt.clf()
         plt.close()
 
@@ -438,9 +450,9 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
             plt.ylim(0,i_dim)
 
             plt.legend()
-            name = "{}/test_ms_low_zeros_thres-{}.pdf".format(dirname, list_zero_thres[k])
+            name = "{}/test_ms_low_zeros_thres-{}.{}".format(dirname, list_zero_thres[k],opt.ext)
             logging.info(name)
-            plt.savefig(name,dpi=300)
+            plt.savefig(name,dpi=opt.dpi)
             plt.clf()
             plt.close()
 
@@ -458,9 +470,9 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
             plt.ylim(0,i_dim)
             #plt.yticks( np.arange(5, i_dim+1))
             plt.legend()
-            name = "{}/test_ms_high_zeros_thres-{}.pdf".format(dirname, list_zero_thres[k])
+            name = "{}/test_ms_high_zeros_thres-{}.{}".format(dirname, list_zero_thres[k], opt.ext)
             logging.info(name)
-            plt.savefig(name,dpi=300)
+            plt.savefig(name,dpi=opt.dpi)
             plt.clf()
             plt.close()
 
@@ -482,7 +494,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         plt.ylabel("train loss")
         plt.legend()
 
-        plt.savefig("{}/test_ms_low_train.pdf".format(dirname),dpi=300)
+        plt.savefig("{}/test_ms_low_train.{}".format(dirname,opt.ext),dpi=opt.dpi)
         plt.clf()
         plt.close()
 
@@ -497,7 +509,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         plt.ylabel("train loss")
 
         plt.legend()
-        plt.savefig("{}/test_ms_high_train.pdf".format(dirname),dpi=300)
+        plt.savefig("{}/test_ms_high_train.{}".format(dirname,opt.ext),dpi=opt.dpi)
         plt.clf()
         plt.close()
 
@@ -538,7 +550,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
             plt.ylim(0,i_dim)
             plt.ylabel("Estimated rank")
             plt.legend()
-            plt.savefig("{}/true_ranks-{}.pdf".format(dirname, true_rank ),dpi=300)
+            plt.savefig("{}/true_ranks-{}.{}".format(dirname, true_rank ,opt.ext),dpi=opt.dpi)
             plt.clf()
             plt.close()
 
@@ -567,7 +579,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
             #plt.ylim(0,i_dim)
             plt.ylabel("Estimated Rank $-$ True Rank")
             plt.legend()
-            plt.savefig("{0}/rank-recovery_th-{1:1.0e}.pdf".format(dirname, thres),dpi=300)
+            plt.savefig("{0}/rank-recovery_th-{1:1.0e}.{}".format(dirname, thres,opt.ext),dpi=opt.dpi)
             plt.clf()
             plt.close()
 
@@ -590,7 +602,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
             plt.ylim(-2,2)
             plt.ylabel("Estimated Rank $-$ True Rank")
             plt.legend()
-            plt.savefig("{}/rank-recovery-evbmf.pdf".format(dirname),dpi=300)
+            plt.savefig("{}/rank-recovery-evbmf.{}".format(dirname, opt.ext),dpi=opt.dpi)
 
             plt.clf()
             plt.close()
@@ -643,7 +655,7 @@ def rank_recovery_baseline(dirname, list_zero_dim, list_min_singular, list_zero_
         plt.ylim(-1,dim)
         plt.ylabel("Estimated Rank $-$ True Rank")
         plt.legend()
-        filename = "{0}/rank-recovery-baseline-{1:1.0e}.pdf".format(dirname,thres)
+        filename = "{0}/rank-recovery-baseline-{1:1.0e}.{2}".format(dirname,thres,opt.ext)
         logging.info(filename)
         plt.savefig(filename)
         plt.clf()

@@ -63,6 +63,12 @@ def options(logger=None):
                         required = False,
                         default  =  300,
                         help     = "Resolution of figures (default: %(default)s)")
+    parser.add_argument('-ext', '--ext',
+                        type     = str,
+                        dest     = 'ext',
+                        required = False,
+                        default  =  "pdf",
+                        help     = "image (default: %(default)s)")
 
     return parser.parse_args()
 
@@ -150,7 +156,7 @@ def test_optimize(\
     if not os.path.exists(dirname):
             os.makedirs(dirname)
 
-    plt.savefig("{}/{}.png".format(dirname, jobname),dpi=i_dpi)
+    plt.savefig("{}/{}.{}".format(dirname, jobname,opt.ext),dpi=i_dpi)
     plt.clf()
     plt.close()
     logging.getLogger().removeHandler(file_log)
@@ -267,7 +273,7 @@ def test_scale_balance():
     plt.ylabel("Validation Loss")
     plt.ylim(0., 0.3)
     plt.legend()
-    filename = "{}/test_val.png".format(dirname)
+    filename = "{}/test_val.{}".format(dirname,opt.ext)
     logging.info(filename)
     plt.savefig(filename,dpi=i_dpi)
     plt.clf()
@@ -283,7 +289,7 @@ def test_scale_balance():
     plt.xlabel("Epoch")
     plt.ylabel("train loss")
     plt.legend()
-    filename = "{}/test_train.png".format(dirname)
+    filename = "{}/test_train.{}".format(dirname, opt.ext)
     plt.savefig(filename,dpi=i_dpi)
     plt.clf()
     plt.close()

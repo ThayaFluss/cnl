@@ -124,7 +124,7 @@ def plot_evs(X, job_name, activation_name="", small_threshold=-1, large_threshol
     log_dir ="{}/../log".format(this_dir)
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
-    filename="{}/{}x{}_{}{}.png".format(log_dir, X.shape[0],X.shape[1], job_name, activation_name)
+    filename="{}/{}x{}_{}{}.ext".format(log_dir, X.shape[0],X.shape[1], job_name, activation_name)
     print("-->{}".format(filename))
     plt.savefig(filename)
     plt.clf()

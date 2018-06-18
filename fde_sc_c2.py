@@ -803,6 +803,7 @@ class SemiCircular(object):
 
 
 
+
 class Descrete(object):
     """docstring for Descrete."""
     def __init__(self, a, p_dim=-1):
