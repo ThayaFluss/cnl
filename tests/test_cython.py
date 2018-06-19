@@ -1,7 +1,7 @@
 # -*-encode: utf-8-*-
 from timer import *
 import numpy as np
-from cython_code import *
+from cython_fde_sc_c2 import *
 
 timer = Timer()
 
@@ -44,4 +44,3 @@ print("result={}".format(result))
 print("forward_iter={}".format(o_forward_iter))
 print("o_G_sc={}".format(o_G_sc))
 print("{} [sec]".format(timer.total_time))
-import pdb; pdb.set_trace()
