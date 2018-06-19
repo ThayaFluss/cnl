@@ -4,7 +4,7 @@
 This is a tool for optimization of two random matrix models; compound Wishart model and information-plus noise model.
 
 ## Description
-The compound Wishart model is 
+The compound Wishart model is
 ####    W = Z^*AZ,
 where Z is a (real or complex) p x d Ginibre random matrix (i.e. whose entries are i.i.d. and distributed with N(0, sqrt(1/d)) ), and A is p x p deterministic self-adjoint matrix.
 
@@ -27,6 +27,11 @@ python  3, numpy, scipy, matplotlib, tqdm.  We recommend to use a plotform [Anac
 
 ```bash
 $ git clone https://github.com/ThayaFluss/cnl.git
+```
+## setup
+
+```bash
+$ bash cython_setup.bash
 ```
 
 ## Usage
@@ -61,7 +66,7 @@ For example; (https://github.com/ThayaFluss/cnl/blob/master/demo_rank_estimation
  A_true = U @ D @ V ; #random rotation
  X = info_plus_noise(A_true, sigma=0.1) ### sample matrix
  from rank_estimation import *
- rank, a, sigma = rank_estimation(X) ### estimated rank and parameters 
+ rank, a, sigma = rank_estimation(X) ### estimated rank and parameters
  print(rank, true_rank) ### compare with the true_rank !
  ```
 
