@@ -13,7 +13,8 @@ from itertools import chain #for ESD
 import time
 import logging
 
-
+### To spped up forward iteration.
+from cython_code import cy_cauchy_2by2, cy_cauchy_subordination
 
 E = np.zeros([2,2,2,2])
 for i in range(2):
@@ -55,7 +56,7 @@ class SemiCircular(object):
         self.grads2 = np.zeros((self.dim+1, 2,2),dtype = np.complex128)
         self.omega = np.ones(2)*1j
         self.omega_sc = np.ones(2)*1j
-        self.forward_iter = 0
+        self.forward_iter = np.asarray([0], dtype=np.int)
 
     def set_params(self, a,sigma):
         assert self.dim == a.shape[0]
@@ -479,34 +480,58 @@ class SemiCircular(object):
     ###### Subordinatioin ####
     ##########################
     def cauchy_subordination(self, B, \
-    init_omega,init_G_sc, max_iter=1000,thres=1e-7, TEST_MODE=i_TEST_MODE):
-        des = self.des
-        omega = init_omega
-        flag = False;
-        sc_g = init_G_sc
-        for n in range(max_iter):
-            assert omega.imag[0] > 0
-            assert omega.imag[1] > 0
-            sc_g = self.cauchy_2by2(omega, sc_g)
-            sc_h = 1/sc_g - omega
-            omega_transform = des.h_transform(sc_h + B) + B
-            sub = omega_transform - omega
-            if np.linalg.norm(sub) < thres:
-                flag = True
-            omega += sub
-            if flag :
-                break
-        out = self.cauchy_2by2(omega, sc_g)
-        omega_sc = 1/out - omega + B
-        if TEST_MODE:
-            G1 = out
-            G2 = des.cauchy_transform(omega_sc)
-            G3 = 1/(omega + omega_sc - B)
-            assert ( np.allclose(G1, G2))
-            assert ( np.allclose(G1, G3))
-            assert ( np.allclose(G2, G3))
+    init_omega,init_G_sc, max_iter=1000,thres=1e-7, TEST_MODE=False, CYTHON=True):
+        if not CYTHON or TEST_MODE:
+            des = self.des
+            omega = init_omega
+            flag = False;
+            sc_g = init_G_sc
+            for n in range(max_iter):
+                assert omega.imag[0] > 0
+                assert omega.imag[1] > 0
+                sc_g = self.cauchy_2by2(omega, sc_g)
+                sc_h = 1/sc_g - omega
+                omega_transform = des.h_transform(sc_h + B) + B
+                sub = omega_transform - omega
+                if np.linalg.norm(sub) < thres:
+                    flag = True
+                omega += sub
+                if flag :
+                    #logging.debug("subo:{}-iter".format(n))
+                    break
+            out = self.cauchy_2by2(omega, sc_g)
+            omega_sc = 1/out - omega + B
+            if TEST_MODE:
+                G1 = out
+                G2 = des.cauchy_transform(omega_sc)
+                G3 = 1/(omega + omega_sc - B)
+                assert ( np.allclose(G1, G2))
+                assert ( np.allclose(G1, G3))
+                assert ( np.allclose(G2, G3))
+            if not CYTHON:
+                return out, omega, omega_sc
 
-        return out, omega, omega_sc
+
+        if CYTHON:
+            a = np.asarray(self.des.a, dtype=np.float)
+            sigma = float(self.sigma)
+            cy_omega_sc = np.zeros(2, dtype=np.complex)
+            result = cy_cauchy_subordination(B, init_omega,init_G_sc,max_iter,thres, \
+            sigma, self.p_dim, self.dim, self.forward_iter, a, cy_omega_sc)
+
+            if TEST_MODE:
+                cy_G1 = init_G_sc
+                cy_G2 = des.cauchy_transform(cy_omega_sc)
+                cy_G3 = 1/(init_omega + cy_omega_sc - B)
+                assert ( np.allclose(cy_G1, cy_G2))
+                assert ( np.allclose(cy_G1, cy_G3))
+                assert ( np.allclose(cy_G2, cy_G3))
+                assert ( np.allclose(init_omega, omega))
+                assert ( np.allclose(cy_omega_sc,omega_sc ))
+                assert ( np.allclose(init_G_sc, out))
+
+            return init_G_sc, init_omega, cy_omega_sc
+
 
 
     def rho(self, x, G, omega):
@@ -557,26 +582,40 @@ class SemiCircular(object):
 
         return np.array(rho_list)
 
-    def cauchy_2by2(self,Z,  G_init, max_iter=1000, thres=1e-7):
-        G = G_init
-        sigma = self.sigma
-        flag = False
+    def cauchy_2by2(self,Z,  G_init, max_iter=1000, thres=1e-7, CYTHON=True, TEST_MODE=False):
+        if not CYTHON or TEST_MODE:
+            G = np.copy(G_init) ### copy to avoid overlapping with cython
+            sigma = self.sigma
+            flag = False
 
-        for d in range(max_iter):
-            eta = np.copy(G[::-1])
-            eta[0] *=float(self.p_dim)/self.dim ### for recutangular matrix
-            sub = 1/(Z - sigma**2*eta) -G
-            sub *= 0.5
-            if np.linalg.norm(sub) < thres:
-                flag = True
-            G += sub
-            if flag:
-                self.forward_iter += d
+            for d in range(max_iter):
+                eta = np.copy(G[::-1])
+                eta[0] *=float(self.p_dim)/self.dim ### for recutangular matrix
+                sub = 1/(Z - sigma**2*eta) -G
+                sub *= 0.5
+                if np.linalg.norm(sub) < thres:
+                    flag = True
+                G += sub
+                if flag:
+                    break
+            #logging.info("cauchy_2by2: sub = {} @ iter= {}".format(np.linalg.norm(sub),d))
+            if d == max_iter:
+                loggin.info("cauchy_2by2: reahed max_iter")
+            self.forward_iter += d
+            if not TEST_MODE:
                 return G
-        #logging.info("cauchy_2by2: sub = {} @ iter= {}".format(np.linalg.norm(sub),d))
-        loggin.info("cauchy_2by2: reahed max_iter")
-        self.forward_iter += d
-        return G_init
+        if CYTHON:
+            sigma = float(self.sigma)
+            result = cy_cauchy_2by2(Z, G_init,max_iter,thres, sigma, self.p_dim, self.dim,self.forward_iter)
+            if result == 0:
+                loggin.info("cy_cauchy_2by2: reahed max_iter")
+
+            G_cy = G_init
+            if TEST_MODE:
+                assert( np.allclose(G, G_init))
+
+            return G_cy
+
 
 
     ######## Derivations of SemiCircular

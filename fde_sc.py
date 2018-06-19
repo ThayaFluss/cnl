@@ -331,7 +331,7 @@ class SemiCircular(object):
         plt.plot(x_list,rho_sub_list, label="theoretical value (sub)",color="green", lw = 2)
 
         plt.legend(loc="upper right")
-        plt.savefig("images/plot_density/{}.png".format(jobname))
+        plt.savefig("images/plot_density/{}.ext".format(jobname))
         plt.show()
 
         return x_list#, rho_list

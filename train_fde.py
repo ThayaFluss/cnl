@@ -484,7 +484,7 @@ def train_fde_sc(dim, p_dim, sample,\
                 #logging.info("diag_A/ average: min, mean, max= \n {}, {}, {} ".format(np.min(average_diagA), np.average(average_diagA), np.max(average_diagA)))
                 forward_iter = sc.forward_iter
                 diff_forward_iter = forward_iter - old_forward_iter
-                diff_forward_iter /= stdout_step
+                diff_forward_iter = diff_forward_iter/ stdout_step
                 logging.info("forward_iter={}".format(diff_forward_iter))
                 old_forward_iter = forward_iter
             if monitor_KL and n % (KL_log_step) == 0:
