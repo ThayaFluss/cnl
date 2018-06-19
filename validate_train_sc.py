@@ -199,10 +199,10 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         list_zero_thres = [1e-4,1e-2]
 
         ### for debug
-        list_zero_dim = [20, 40]
-        list_min_singular=[ 0.1, 0.4]
-        list_dim_cauchy_vec = [1]
-        list_zero_thres = [reg_coef, 1e-1]
+        #list_zero_dim = [20, 40]
+        #list_min_singular=[ 0.1, 0.4]
+        #list_dim_cauchy_vec = [1]
+        #list_zero_thres = [reg_coef, 1e-1]
 
 
     else:

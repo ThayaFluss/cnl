@@ -14,7 +14,7 @@ import time
 import logging
 
 ### To spped up forward iteration.
-from cython_code import cy_cauchy_2by2, cy_cauchy_subordination
+from cython_fde_sc_c2 import cy_cauchy_2by2, cy_cauchy_subordination
 
 E = np.zeros([2,2,2,2])
 for i in range(2):
@@ -480,7 +480,7 @@ class SemiCircular(object):
     ###### Subordinatioin ####
     ##########################
     def cauchy_subordination(self, B, \
-    init_omega,init_G_sc, max_iter=1000,thres=1e-7, TEST_MODE=False, CYTHON=True):
+    init_omega,init_G_sc, max_iter=1000,thres=1e-7, TEST_MODE=i_TEST_MODE, CYTHON=True):
         if not CYTHON or TEST_MODE:
             des = self.des
             omega = init_omega
@@ -518,7 +518,8 @@ class SemiCircular(object):
             cy_omega_sc = np.zeros(2, dtype=np.complex)
             result = cy_cauchy_subordination(B, init_omega,init_G_sc,max_iter,thres, \
             sigma, self.p_dim, self.dim, self.forward_iter, a, cy_omega_sc)
-
+            if result == 0:
+                logging.info("cy_cauchy_subordination: reached max iter")
             if TEST_MODE:
                 cy_G1 = init_G_sc
                 cy_G2 = des.cauchy_transform(cy_omega_sc)
