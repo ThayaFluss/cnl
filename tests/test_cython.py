@@ -8,7 +8,7 @@ timer = Timer()
 Z = np.asarray( [0.1j, 0.1j], dtype=np.complex)
 o_G = np.asarray( [-1j, -1j], dtype=np.complex)
 max_iter = 1000
-thres = 1e-7
+thres = 1e-8
 p_dim = 50
 dim = 50
 sigma = 0.1
@@ -28,7 +28,7 @@ o_omega_sc = np.asarray( [0.1j, 0.1j], dtype=np.complex)
 
 o_G_sc = np.asarray( [-1j, -1j], dtype=np.complex)
 max_iter = 1000
-thres = 1e-7
+thres = 1e-8
 p_dim = 50
 dim = 50
 sigma = 0.1

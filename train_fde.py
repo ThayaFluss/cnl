@@ -316,7 +316,7 @@ def train_fde_sc(dim, p_dim, sample,\
         var_adam = np.zeros(dim + 1)
 
 
-    old_forward_iter = 0
+    old_forward_iter = np.zeros(1)
     stop_count = 0
     ### SGD
     for n in trange(max_iter):
@@ -486,7 +486,7 @@ def train_fde_sc(dim, p_dim, sample,\
                 diff_forward_iter = forward_iter - old_forward_iter
                 diff_forward_iter = diff_forward_iter/ stdout_step
                 logging.info("forward_iter={}".format(diff_forward_iter))
-                old_forward_iter = forward_iter
+                old_forward_iter[0] = forward_iter[0]
             if monitor_KL and n % (KL_log_step) == 0:
                 logging.info("Computing KL divergence from truth ...")
                 sc.diag_A = average_diagA
@@ -666,7 +666,7 @@ def train_fde_cw(dim, p_dim, sample,\
         plt.clf()
         plt.close()
         plt.figure()
-        plt.rc('font', family='serif', serif='Times')
+        plt.rc('font', family="sans-serif", serif='Helvetica')
         plt.rc('text', usetex=True)
         plt.rcParams["font.size"] = 16
         #plt.rc("text", fontsize=12)
@@ -800,7 +800,7 @@ def train_fde_cw(dim, p_dim, sample,\
             plt.clf()
             plt.close()
             plt.figure()
-            plt.rc('font', family='serif', serif='Times')
+            plt.rc('font', family="sans-serif", serif='Helvetica')
             plt.rc('t{}', usetex=True)
             plt.rcParams["font.size"] = 16
 

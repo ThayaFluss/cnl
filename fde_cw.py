@@ -39,7 +39,7 @@ class CompoundWishart(object):
         r /= self.dim
         return r
 
-    def cauchy(self,init_G, z, max_iter=1000, thres=1e-7):
+    def cauchy(self,init_G, z, max_iter=1000, thres=1e-8):
         g = init_G
         timer = Timer()
         timer.tic()

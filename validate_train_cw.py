@@ -55,7 +55,7 @@ def options(logger=None):
                         type     = int,
                         dest     = 'max_epoch',
                         required = False,
-                        default  =  200,
+                        default  =  400,
                         help     = "max_epoch (default: %(default)s)")
     parser.add_argument('-dpi', '--dpi',
                         type     = int,
@@ -83,6 +83,16 @@ i_dpi = opt.dpi
 
 
 
+
+def _mean_and_std(results):
+    m = np.mean(results, axis = 0)
+    v = np.mean( (results - m)**2, axis=0)
+    if len(results) == 1:
+        std = 0
+    else:
+        v *= len(results) / (len(results) -1)
+        std = sp.sqrt(v)
+    return m,std
 
 
 def test_optimize(\
@@ -194,26 +204,32 @@ def test_scale_balance():
     list_forward_iter = []
     for base_scale in list_base_scale:
         for dim_cauchy_vec in list_dim_cauchy_vec:
-            average_b = 0;  average_val_loss=0;average_train_loss=0;average_forward_iter = 0
+            result_b = []
+            result_val_loss = []
+            result_train_loss = []
+            result_forward_iter = []
             for n in range(num_test):
                 b, train_loss_array, val_loss_array, forward_iter=test_optimize(\
                 base_lr = base_lr,minibatch_size=minibatch_size,\
                  max_epoch=max_epoch,\
                 min_singular=min_singular, zero_dim = zero_dim, \
                 base_scale=base_scale, dim_cauchy_vec=dim_cauchy_vec)
-                average_b += b
-                average_val_loss += val_loss_array
-                average_train_loss += train_loss_array
-                average_forward_iter += forward_iter
-            average_b /= num_test
-            average_val_loss /= num_test
-            average_train_loss /= num_test
-            average_forward_iter /= num_test
+                result_b.append(b)
+                result_val_loss.append(val_loss_array)
+                result_train_loss.append(train_loss_array)
+                result_forward_iter.append(forward_iter)
+
+
+            m_b, s_b = _mean_and_std(result_b)
+            m_val_loss, s_val_loss = _mean_and_std(result_val_loss)
+            m_train_loss, s_train_loss = _mean_and_std(result_train_loss)
+            m_forward_iter, s_forward_iter = _mean_and_std(result_forward_iter)
+
             logging.info("RESULT:base_scale = {}, ncn = {}, val_loss = {},\n  average_b = \n{}".format(\
-            base_scale, dim_cauchy_vec, average_val_loss[-1], average_b) )
-            list_val_loss_array.append(average_val_loss)
-            list_train_loss_array.append(average_train_loss)
-            list_forward_iter.append(average_forward_iter)
+            base_scale, dim_cauchy_vec, m_val_loss[-1], m_b) )
+            list_val_loss_array.append(m_val_loss)
+            list_train_loss_array.append(m_train_loss)
+            list_forward_iter.append([m_forward_iter, s_forward_iter])
 
 
 
@@ -248,7 +264,8 @@ def test_scale_balance():
 
 
     plt.figure()
-    plt.rc('font', family='serif', serif='Times')
+    plt.style.use("seaborn-paper")
+    plt.rc('font', family="sans-serif", serif='Helvetica')
     plt.rc('text', usetex=True)
     plt.rcParams["font.size"] = 8*2
 
@@ -256,7 +273,7 @@ def test_scale_balance():
         #plt.title("Noise dimension = {}".format(list_dim_cauchy_vec[0]))
         plt.title("CW")
 
-    x_axis = np.arange(average_val_loss.shape[0])
+    x_axis = np.arange(m_val_loss.shape[0])
     ### plot validation
     n = 0
     for base_scale in list_base_scale:

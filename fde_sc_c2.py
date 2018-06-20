@@ -108,7 +108,7 @@ class SemiCircular(object):
     ### -jbW + \eta(W)W = 1
     ###  VW + \eta(W)W = 1
     #@jit
-    def fixed_point(self, init_mat, var_mat , max_iter=100, thres=1e-7):
+    def fixed_point(self, init_mat, var_mat , max_iter=100, thres=1e-8):
         W = init_mat
         size = W.shape[0]
         sub = thres + 1
@@ -461,7 +461,7 @@ class SemiCircular(object):
             loss =  np.sum(np.abs(diag_A)) #+ abs(sigma)
             loss *= reg_coef
             grads = np.empty( self.dim + 1)
-            grads[:self.dim] = np.sign(diag_A)
+            grads[:self.dim] = np.sign(diag_A.real)
             grads[-1] = 0#np.sign(sigma)
             grads *= reg_coef
             #logging.info("LASSO: grads={}, loss={}".format(grads,loss))
@@ -480,7 +480,7 @@ class SemiCircular(object):
     ###### Subordinatioin ####
     ##########################
     def cauchy_subordination(self, B, \
-    init_omega,init_G_sc, max_iter=1000,thres=1e-7, TEST_MODE=i_TEST_MODE, CYTHON=True):
+    init_omega,init_G_sc, max_iter=1000,thres=1e-8, TEST_MODE=i_TEST_MODE, CYTHON=True):
         if not CYTHON or TEST_MODE:
             des = self.des
             omega = init_omega
@@ -583,7 +583,7 @@ class SemiCircular(object):
 
         return np.array(rho_list)
 
-    def cauchy_2by2(self,Z,  G_init, max_iter=1000, thres=1e-7, CYTHON=True, TEST_MODE=False):
+    def cauchy_2by2(self,Z,  G_init, max_iter=1000, thres=1e-8, CYTHON=True, TEST_MODE=False):
         if not CYTHON or TEST_MODE:
             G = np.copy(G_init) ### copy to avoid overlapping with cython
             sigma = self.sigma

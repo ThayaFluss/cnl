@@ -22,6 +22,8 @@ import logging
 
 import env_logger
 
+linestyles = ["-", "--", "-.", ":"]
+
 def options(logger=None):
     desc   = u'{0} [Args] [Options]\nDetailed options -h or --help'.format(__file__)
     parser = ArgumentParser(description = desc)
@@ -167,6 +169,19 @@ def test_optimize(\
 
     return r_diag_A, r_sigma, train_loss_array, val_loss_array, num_zero_array, forward_iter
 
+
+def _mean_and_std(results):
+    m = np.mean(results, axis = 0)
+    v = np.mean( (results - m)**2, axis=0)
+    if len(results) == 1:
+        std = 0
+    else:
+        v *= len(results) / (len(results) -1)
+        std = sp.sqrt(v)
+    return m,std
+
+
+
 #@param jobname = "min_singular" or "scale_balance"
 def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
     num_test = opt.num_test
@@ -174,14 +189,14 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
     max_epoch= int(max_epoch*i_p_dim/i_dim)
     #base_scale *= i_p_dim/i_dim
     base_lr = 1e-4
-    base_scale = 0.1
+    base_scale = 1e-1
 
     #jobname = "scale_balance"
     if jobname == "scale_balance":
         #list_base_scale =[ 0.5*1e-1,1e-1, 2*1e-1 ]
         reg_coef = 0 ###no regularization
         list_dim_cauchy_vec =  [1]
-        list_base_scale = [ 0.1*base_scale, base_scale,base_scale*10]
+        list_base_scale = [ base_scale/10, base_scale,base_scale*10]
         ###fix
         list_min_singular = [0.]
         list_zero_dim = [0]
@@ -192,18 +207,27 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
     elif jobname == "min_singular":
         ### for paper
         reg_coef = 1e-3
+
+        #TODO to check robustness
+        ROBUST_CHECK = True
+        if ROBUST_CHECK:
+            #reg_coef = 5e-4
+            #reg_coef = 1e-3
+            reg_coef = 2e-3
+
+
         list_zero_dim = [10,20,30,40]
-        list_min_singular =[0.05,0.1,0.2,0.3,0.4]
+        list_min_singular =[0.05,0.1,0.15,0.2,0.3,0.4]
         list_base_scale = [base_scale]
         list_dim_cauchy_vec = [1] ### set 2 for version 1
-        list_zero_thres = [1e-4,1e-2]
+        list_zero_thres = [reg_coef, 1e-1]
+
 
         ### for debug
         #list_zero_dim = [20, 40]
         #list_min_singular=[ 0.1, 0.4]
         #list_dim_cauchy_vec = [1]
-        #list_zero_thres = [reg_coef, 1e-1]
-
+        #
 
     else:
         sys.exit(-1)
@@ -215,62 +239,6 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
 
     num_zero_dim = len(list_zero_dim)
     num_min_singular = len(list_min_singular)
-
-
-    def _mean_and_var(results):
-        m = np.mean(results, axis = 0)
-        v = np.mean( (results -m)**2, axis=0)
-        return m,v
-
-
-
-
-    ### Run
-    num_thres = len(list_zero_thres)
-
-    list_val_loss_curve = []
-    list_train_loss_curve = []
-    list_estimated_rank_curve  = []
-    list_forward_iter = []
-
-    for base_scale in list_base_scale:
-        for dim_cauchy_vec in list_dim_cauchy_vec:
-            for zero_dim in list_zero_dim:
-                for min_singular in list_min_singular:
-                    result_diag_A = []; result_sigma=[]; result_val_loss=[];result_train_loss=[];
-                    result_num_zero = []; result_forward_iter = []
-                    for n in trange(num_test, desc="num_test"):
-                        diag_A, sigma, train_loss_array, val_loss_array,num_zero_array,forward_iter\
-                        =test_optimize(\
-                        base_lr=base_lr,
-                        max_epoch=max_epoch,min_singular=min_singular, zero_dim = zero_dim,\
-                        base_scale=base_scale, dim_cauchy_vec=dim_cauchy_vec,\
-                        reg_coef=reg_coef,\
-                        list_zero_thres= list_zero_thres,
-                        SUBO=SUBO)
-                        result_diag_A.append( diag_A)
-                        result_sigma.append(sigma)
-                        result_val_loss.append( val_loss_array)
-                        result_train_loss.append( train_loss_array)
-                        #result_num_zero.append( num_zero_array.T[idx_zero_thres_for_plot])
-                        result_num_zero.append( num_zero_array)
-                        result_forward_iter.append(forward_iter)
-                    m_diag_A, v_diag_A = _mean_and_var(result_diag_A)
-                    m_sigma, v_sigma = _mean_and_var(result_sigma)
-                    m_train_loss, v_train_loss = _mean_and_var(result_train_loss)
-                    m_val_loss, v_val_loss = _mean_and_var(result_val_loss)
-                    m_num_zero, v_num_zero = _mean_and_var(result_num_zero)
-                    m_f_iter, v_f_iter = _mean_and_var(result_forward_iter)
-
-                    logging.info("RESULT:base_scale = {}, ncn = {}, val_loss = {},\n average_sigma = {}, average_diag_A = \n{}".format(\
-                    base_scale, dim_cauchy_vec, m_val_loss[-1], m_sigma, m_diag_A) )
-                    list_train_loss_curve.append(m_train_loss)
-                    list_val_loss_curve.append(m_val_loss)
-                    list_estimated_rank_curve.append( i_dim - m_num_zero )
-                    list_forward_iter.append(m_f_iter)
-
-    x_axis = np.arange(m_val_loss.shape[0])
-
 
 
 
@@ -298,18 +266,16 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
 
 
 
-    iter_log = open("{}/forward_iter.log".format(dirname), "w")
-    iter_log.write("{}".format(list_forward_iter))
-    iter_log.close()
-
     ###base_line
     rank_recovery_baseline(dirname, list_zero_dim, list_min_singular, list_zero_thres, sigma=0.1)
 
-
+    linestyles = ["-", "--", "-.", ":"]
 
     if VS_VBMF:
         ### Run VBMF
         vbmf_estimated_rank = np.empty((num_zero_dim, num_min_singular))
+        std_vbmf_estimated_rank = np.empty((num_zero_dim, num_min_singular))
+
         for i in range(num_zero_dim):
             zero_dim = list_zero_dim[i]
             for j in range(num_min_singular):
@@ -319,14 +285,15 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
                     r = validate_vbmf_spn(i_dim,i_p_dim, 0.1, min_singular, zero_dim)
                     results.append(r)
 
-                m_r, v_r = _mean_and_var(results)
+                m_r, v_r = _mean_and_std(results)
                 vbmf_estimated_rank[i][j] =  m_r
+                std_vbmf_estimated_rank[i][j] =  v_r
 
         ### plot results
         x_axis = list_min_singular
         for i in range(num_zero_dim):
             plt.figure()
-            plt.rc('font', family='serif', serif='Times')
+            plt.rc('font', family="sans-serif", serif='Helvetica')
             plt.rc('text', usetex=True)
             plt.rcParams["font.size"] = 8*2
 
@@ -340,6 +307,93 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
             plt.clf()
             plt.close()
 
+        ### concated plot
+        plt.figure()
+        plt.style.use("seaborn-paper")
+        plt.rc('font', family='sans-serif', serif='Helvetica')
+        plt.rc('text', usetex=True)
+        plt.rcParams["font.size"] = 8*2
+
+
+        for i in range(num_zero_dim):
+            zero_dim = list_zero_dim[i]
+            true_rank = i_dim - zero_dim
+            diff_rank = vbmf_estimated_rank[i] - true_rank
+            std_rank = std_vbmf_estimated_rank[i]
+            plt.errorbar(x_axis, diff_rank, std_rank, label="{}".format(true_rank), marker="^", markersize=8, linestyle=linestyles[i])
+
+
+        plt.title("EVBMF")
+        plt.xlabel("$\lambda_{min}$")
+        plt.ylim(-i_dim, 30)
+        plt.ylabel("Estimated Rank $-$ True Rank")
+        plt.legend()
+        plt.savefig("{}/rank-recovery-evbmf.{}".format(dirname, opt.ext),dpi=opt.dpi)
+
+        plt.clf()
+        plt.close()
+
+
+
+
+    ### Run
+    num_thres = len(list_zero_thres)
+
+    list_val_loss_curve = []
+    list_train_loss_curve = []
+    list_estimated_rank_curve  = []
+    list_std_estimated_rank_curve  = []
+
+    list_forward_iter = []
+
+    for base_scale in list_base_scale:
+        for dim_cauchy_vec in list_dim_cauchy_vec:
+            for zero_dim in list_zero_dim:
+                for min_singular in list_min_singular:
+                    result_diag_A = []; result_sigma=[]; result_val_loss=[];result_train_loss=[];
+                    result_num_zero = []; result_forward_iter = []
+                    for n in trange(num_test, desc="num_test"):
+                        diag_A, sigma, train_loss_array, val_loss_array,num_zero_array,forward_iter\
+                        =test_optimize(\
+                        base_lr=base_lr,
+                        max_epoch=max_epoch,min_singular=min_singular, zero_dim = zero_dim,\
+                        base_scale=base_scale, dim_cauchy_vec=dim_cauchy_vec,\
+                        reg_coef=reg_coef,\
+                        list_zero_thres= list_zero_thres,
+                        SUBO=SUBO)
+                        result_diag_A.append( diag_A)
+                        result_sigma.append(sigma)
+                        result_val_loss.append( val_loss_array)
+                        result_train_loss.append( train_loss_array)
+                        #result_num_zero.append( num_zero_array.T[idx_zero_thres_for_plot])
+                        result_num_zero.append( num_zero_array)
+                        result_forward_iter.append(forward_iter)
+                    m_diag_A, v_diag_A = _mean_and_std(result_diag_A)
+                    m_sigma, v_sigma = _mean_and_std(result_sigma)
+                    m_train_loss, v_train_loss = _mean_and_std(result_train_loss)
+                    m_val_loss, v_val_loss = _mean_and_std(result_val_loss)
+                    m_num_zero, v_num_zero = _mean_and_std(result_num_zero)
+                    m_f_iter, v_f_iter = _mean_and_std(result_forward_iter)
+
+                    logging.info("RESULT:base_scale = {}, ncn = {}, val_loss = {},\n average_sigma = {}, average_diag_A = \n{}".format(\
+                    base_scale, dim_cauchy_vec, m_val_loss[-1], m_sigma, m_diag_A) )
+                    list_train_loss_curve.append(m_train_loss)
+                    list_val_loss_curve.append(m_val_loss)
+                    list_estimated_rank_curve.append( i_dim - m_num_zero )
+                    list_std_estimated_rank_curve.append( v_num_zero)
+                    list_forward_iter.append([m_f_iter, v_f_iter])
+
+    x_axis = np.arange(m_val_loss.shape[0])
+
+
+
+
+    ### print average forward_iter
+    iter_log = open("{}/forward_iter.log".format(dirname), "w")
+    iter_log.write("{}".format(list_forward_iter))
+    iter_log.close()
+
+
 
 
 
@@ -348,19 +402,23 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         ###plot val loss
         #############
         plt.figure()
+        plt.style.use("seaborn-paper")
         n = 0
+        linestyles = ["-", "--", "-.", ":"]
         for base_scale in list_base_scale:
             for dim_cauchy_vec in list_dim_cauchy_vec:
                 ### separate dim cauchy vec
                 #plt.plot(x_axis,list_val_loss_curve[n], label="({0:3.2e}, {1})".format(base_scale, dim_cauchy_vec))
-                ### set dim_cauchy_vec =  1
-                plt.plot(x_axis,list_val_loss_curve[n], label="$\gamma={}$".format(round(base_scale,2)))
+                ### TODO set dim_cauchy_vec =  1
+                plt.plot(x_axis,list_val_loss_curve[n], label="$\gamma={}$".format(round(base_scale,2)), linestyle=linestyles[ n % 4])
                 n+=1
         plt.legend()
 
         plt.title("SPN")
         plt.xlabel("Epoch")
         plt.ylabel("Validation loss")
+        ### TODO modify here
+        plt.ylim(0.0, 0.3)
 
         plt.savefig("{}/test_scale_val.{}".format(dirname, opt.ext),dpi=opt.dpi)
         plt.clf()
@@ -516,14 +574,16 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         logging.info(list_zero_dim)
         logging.info(list_min_singular)
         fde_spn_estimated_rank_curve = np.asarray(list_estimated_rank_curve).reshape( num_zero_dim, num_min_singular, -1, num_thres)
+        std_fde_spn_estimated_rank_curve = np.asarray(list_std_estimated_rank_curve).reshape( num_zero_dim, num_min_singular, -1, num_thres)
+
         ### Consider last result
         fde_spn_estimated_rank = fde_spn_estimated_rank_curve[:,:,-1,:]
-
+        std_fde_spn_estimated_rank = std_fde_spn_estimated_rank_curve[:,:,-1,:]
 
         x_axis = list_min_singular
         for i in range(num_zero_dim):
             plt.figure()
-            plt.rc('font', family='serif', serif='Times')
+            plt.rc('font', family="sans-serif", serif='Helvetica')
             plt.rc('text', usetex=True)
             plt.rcParams["font.size"] = 8*2
 
@@ -558,7 +618,8 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         x_axis = list_min_singular
         for k in range(num_thres):
             plt.figure()
-            plt.rc('font', family='serif', serif='Times')
+            plt.style.use("seaborn-paper")
+            plt.rc('font', family="sans-serif", serif='Helvetica')
             plt.rc('text', usetex=True)
             plt.rcParams["font.size"] = 8*2
             thres = list_zero_thres[k]
@@ -567,47 +628,32 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
                 zero_dim = list_zero_dim[i]
                 true_rank = i_dim - zero_dim
                 diff_rank = fde_spn_estimated_rank[i,:,k] - true_rank
-
+                std_rank = std_fde_spn_estimated_rank[i,:, k]
                 label = "${}$".format(true_rank)
-                plt.plot(x_axis,diff_rank, label=label, marker="+")
+                plt.errorbar(x_axis,diff_rank, std_rank, label=label,linestyle=linestyles[i])
 
 
 
-            plt.title("Rank Recovery")
+
+
             plt.xlabel("$\lambda_{min}$")
-            plt.yticks([2.0, -1.5, -1.0, -0.5, 0, 0.5, 1.0, 1.5,2.0])
-            #plt.ylim(0,i_dim)
+            if ROBUST_CHECK:
+                plt.title("CNL")
+                #plt.yticks([2.0, -1.5, -1.0, -0.5, 0, 0.5, 1.0, 1.5,2.0])
+                plt.ylim(-i_dim, 30)
+            else:
+                plt.title(r"$\xi =$ {0}".format(reg_coef))
+                plt.ylim(-10, 10)
             plt.ylabel("Estimated Rank $-$ True Rank")
             plt.legend()
-            plt.savefig("{0}/rank-recovery_th-{1:1.0e}.{}".format(dirname, thres,opt.ext),dpi=opt.dpi)
+            plt.savefig("{0}/rank-recovery_th-{1:1.0e}.{2}".format(dirname, thres,opt.ext),dpi=opt.dpi)
             plt.clf()
             plt.close()
 
 
-        if VS_VBMF:
-            plt.figure()
-            plt.rc('font', family='serif', serif='Times')
-            plt.rc('text', usetex=True)
-            plt.rcParams["font.size"] = 8*2
-
-            for i in range(num_zero_dim):
-                zero_dim = list_zero_dim[i]
-                true_rank = i_dim - zero_dim
-                diff_rank = vbmf_estimated_rank[i] - true_rank
-                plt.plot(x_axis, diff_rank, label="EVBMF", marker="+")
-
-
-            plt.title("Rank Recovery")
-            plt.xlabel("$\lambda_{min}$")
-            plt.ylim(-2,2)
-            plt.ylabel("Estimated Rank $-$ True Rank")
-            plt.legend()
-            plt.savefig("{}/rank-recovery-evbmf.{}".format(dirname, opt.ext),dpi=opt.dpi)
-
-            plt.clf()
-            plt.close()
 
     else: sys.exit(-1)
+
 
 
 def rank_recovery_baseline(dirname, list_zero_dim, list_min_singular, list_zero_thres,sigma=0.1):
@@ -621,15 +667,19 @@ def rank_recovery_baseline(dirname, list_zero_dim, list_min_singular, list_zero_
     COMPLEX = False
     for thres in list_zero_thres:
         plt.figure()
-        plt.rc('font', family='serif', serif='Times')
+        plt.rc('font', family="sans-serif", serif='Helvetica')
         plt.rc('text', usetex=True)
         plt.rcParams["font.size"] = 8*2
-        plt.title("Baseline, thres={}".format(thres))
+        plt.title("Baseline")
+        plt.style.use("seaborn-paper")
         x_axis = list_min_singular
+        ls_idx=0 ###linestyle index
         for zero_dim in list_zero_dim:
             num_zero_list = []
+            std_num_zero_list = []
+
             for min_singular in list_min_singular:
-                mean = 0
+                list_results = []
                 for n in range(opt.num_test):
                     logging.info( "zero_dim={}".format(zero_dim) )
                     logging.info( "min_singular={}".format(min_singular) )
@@ -641,18 +691,21 @@ def rank_recovery_baseline(dirname, list_zero_dim, list_min_singular, list_zero_
                     evs= np.linalg.eigh(info_plus_noise(param_mat,sigma, COMPLEX=False))[0]
                     sq_sample = sp.sqrt(evs)
                     ### count zero
-                    mean +=   np.where( sq_sample < thres)[0].size
-                mean /= opt.num_test
+                    list_results.append(  np.where( sq_sample < thres)[0].size )
+                mean, std = _mean_and_std(list_results)
                 num_zero_list.append(mean)
+                std_num_zero_list.append(std)
 
             diff_rank = zero_dim - np.asarray(num_zero_list)
             true_rank = dim -  zero_dim
             label = "${}$".format(true_rank)
-            plt.plot(x_axis,diff_rank, label=label, marker="+")
+            plt.errorbar(x_axis,diff_rank, std_num_zero_list, label=label, linestyle=linestyles[ls_idx])
+            ls_idx+=1
 
 
         plt.xlabel("$\lambda_{min}$")
-        plt.ylim(-1,dim)
+        #TODO modify here
+        plt.ylim(-dim, 30)
         plt.ylabel("Estimated Rank $-$ True Rank")
         plt.legend()
         filename = "{0}/rank-recovery-baseline-{1:1.0e}.{2}".format(dirname,thres,opt.ext)

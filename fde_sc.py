@@ -102,7 +102,7 @@ class SemiCircular(object):
     ### -jbW + \eta(W)W = 1
     ###  VW + \eta(W)W = 1
     #@jit
-    def fixed_point(self, init_mat, var_mat , max_iter=1000, thres=1e-7):
+    def fixed_point(self, init_mat, var_mat , max_iter=1000, thres=1e-8):
         W = init_mat
         size = W.shape[0]
         sub = thres + 1
@@ -569,7 +569,7 @@ class SemiCircular(object):
     ###### Subordinatioin ####
     ##########################
     def cauchy_subordination(self, B, \
-    init_omega,init_G_sc, max_iter=1000,thres=1e-7, TEST_MODE=True):
+    init_omega,init_G_sc, max_iter=1000,thres=1e-8, TEST_MODE=True):
         des = self.des
         omega = init_omega
         flag = False;
@@ -650,7 +650,7 @@ class SemiCircular(object):
 
         return np.array(rho_list)
 
-    def cauchy_2by2(self,Z,  G_init, max_iter=1000, thres=1e-7):
+    def cauchy_2by2(self,Z,  G_init, max_iter=1000, thres=1e-8):
         G = G_init
         sigma = self.sigma
         flag = False
