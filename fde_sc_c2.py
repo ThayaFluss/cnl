@@ -31,7 +31,6 @@ J_eta = np.asarray([[d00eta, d01eta], [d10eta, d11eta]])
 
 i_TEST_MODE= False
 
-#@jitclass(spec)
 class SemiCircular(object):
     """Matrix valued SemiCircular."""
     def __init__(self,dim=1,p_dim=-1, scale=1e-1):
@@ -83,7 +82,7 @@ class SemiCircular(object):
             out[i]= t1
 
         return np.diag(out)
-    #@jit
+    
     def eta_array(self, in_mat):
         M = in_mat.shape[0]
         #assert  M % 2 == 0 and  M == in_mat.shape[1]
@@ -107,7 +106,7 @@ class SemiCircular(object):
     ###  G^{-1} = b - \eta(G)
     ### -jbW + \eta(W)W = 1
     ###  VW + \eta(W)W = 1
-    #@jit
+
     def fixed_point(self, init_mat, var_mat , max_iter=100, thres=1e-8):
         W = init_mat
         size = W.shape[0]
@@ -126,7 +125,7 @@ class SemiCircular(object):
         #timer.toc()
         #logging.info("cauchy time={}/ {}-iter".format(timer.total_time, it))
         return W
-    #@jit
+
     def cauchy(self, init_G, var_mat,sigma):
         #assert init_G.shape == var_mat.shape
         #assert sigma > 0 or sigma ==0
@@ -251,7 +250,7 @@ class SemiCircular(object):
     ### G^{-1} = b - v^2 \eta(G)
     ### - G^{-1} dG G^{-1} = db -v^2\eta(dG) -dv^2 \eta(G)
     ### dG = G(-db +   v^2\eta(dG)  + dv^2 \eta(G))G
-    #@jit
+
     #if use_numba:
     def grad_by_iteration(self, G, sigma, grads_init,  max_iter=500, base_thres = 1e-6, use_numba=False):
     #    return sc_grad_by_iteration_fast(G, var_mat,sigma, grads_init,  max_iter, base_thres)
@@ -391,13 +390,13 @@ class SemiCircular(object):
                 out = PAGe @ tpS
                 out = out.reshape([size,L,L])
                 return out
-    #@jit
+
     def loss(self,sample):
         density = self.density(sample)
         loss = -np.average(sp.log(density))
         return loss
 
-    #@jit
+
     def grad_loss(self, param_array, sigma, sample):
             size = np.shape(param_array)[0]
             param_mat = np.matrix(np.diag(param_array))
@@ -929,3 +928,12 @@ class Descrete(object):
         for k in range(self.dim):
                 tpPah[k] = -F*tpPaCT[k]*F
         return tpPah
+
+
+class Laplace(object):
+    """docstring for Laplace."""
+    def __init__(self, arg):
+        super(Laplace, self).__init__()
+        self.d = d
+        self.p = p
+        self.xi = xi

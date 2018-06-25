@@ -88,7 +88,7 @@ def _mean_and_std(results):
     m = np.mean(results, axis = 0)
     v = np.mean( (results - m)**2, axis=0)
     if len(results) == 1:
-        std = 0
+        std = 0*v
     else:
         v *= len(results) / (len(results) -1)
         std = sp.sqrt(v)
@@ -243,7 +243,7 @@ def test_scale_balance():
     dirname = "images/{}".format(temp_jobname)
     if not os.path.exists(dirname):
         os.makedirs(dirname)
-    setting_log = open("{}/setting.log".format(dirname), "w")
+    setting_log = open("{}/setting.txt".format(dirname), "w")
     setting_log.write("jobname:{}\n".format(temp_jobname))
     setting_log.write("dim:{}\n".format(opt.dim))
     setting_log.write("p_dim:{}\n".format(opt.p_dim))
@@ -258,20 +258,18 @@ def test_scale_balance():
 
 
 
-    iter_log = open("{}/forward_iter.log".format(dirname), "w")
+    iter_log = open("{}/forward_iter.txt".format(dirname), "w")
     iter_log.write("{}".format(list_forward_iter))
     iter_log.close()
 
-
-    plt.figure()
+    plt.clf()
+    plt.close()
+    plt.figure(figsize=(6,4))
     plt.style.use("seaborn-paper")
-    plt.rc('font', family="sans-serif", serif='Helvetica')
     plt.rc('text', usetex=True)
+    plt.rc('font', family="sans-serif", serif='Helvetica')
     plt.rcParams["font.size"] = 8*2
-
-    if len(list_dim_cauchy_vec) == 1:
-        #plt.title("Noise dimension = {}".format(list_dim_cauchy_vec[0]))
-        plt.title("CW")
+    linestyles = ["-", "--", "-.", ":"]
 
     x_axis = np.arange(m_val_loss.shape[0])
     ### plot validation
@@ -282,7 +280,7 @@ def test_scale_balance():
             #plt.plot(x_axis,list_val_loss_array[n], label="({0:3.2e}, {1})".format(base_scale, dim_cauchy_vec))
             ### set dim_cauchy_vec == 1
             base_scale = round(base_scale, 2)
-            plt.plot(x_axis,list_val_loss_array[n], label="$\gamma={}$".format(base_scale))
+            plt.plot(x_axis,list_val_loss_array[n], label="$\gamma={}$".format(base_scale), linestyle=linestyles[n % 4])
             n+=1
 
     plt.title("CW")

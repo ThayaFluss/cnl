@@ -174,7 +174,7 @@ def _mean_and_std(results):
     m = np.mean(results, axis = 0)
     v = np.mean( (results - m)**2, axis=0)
     if len(results) == 1:
-        std = 0
+        std = 0*v
     else:
         v *= len(results) / (len(results) -1)
         std = sp.sqrt(v)
@@ -209,23 +209,23 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         reg_coef = 1e-3
 
         #TODO to check robustness
-        ROBUST_CHECK = True
+        ROBUST_CHECK = False
         if ROBUST_CHECK:
             #reg_coef = 5e-4
-            #reg_coef = 1e-3
-            reg_coef = 2e-3
+            #reg_coef = 2e-3
+            reg_coef = 1e-3
 
 
         list_zero_dim = [10,20,30,40]
         list_min_singular =[0.05,0.1,0.15,0.2,0.3,0.4]
         list_base_scale = [base_scale]
         list_dim_cauchy_vec = [1] ### set 2 for version 1
-        list_zero_thres = [reg_coef, 1e-1]
+        list_zero_thres = [1e-3, 1e-1]
 
 
         ### for debug
-        #list_zero_dim = [20, 40]
-        #list_min_singular=[ 0.1, 0.4]
+        #list_zero_dim = [10, 40]
+        #list_min_singular=[ 0.1, 0.2, 0.3]
         #list_dim_cauchy_vec = [1]
         #
 
@@ -246,9 +246,10 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
     now = datetime.now()
     temp_jobname = jobname + '_{0:%m%d%H%M}'.format(now)
     dirname = "images/{}".format(temp_jobname)
-    if not os.path.exists(dirname):
-        os.makedirs(dirname)
-    setting_log = open("{}/setting.log".format(dirname), "w")
+    while(os.path.exists(dirname)):
+        dirname = dirname + "0"
+    os.makedirs(dirname)
+    setting_log = open("{}/setting.txt".format(dirname), "w")
     setting_log.write("jobname:{}\n".format(temp_jobname))
     setting_log.write("dim:{}\n".format(i_dim))
     setting_log.write("p_dim:{}\n".format(i_p_dim))
@@ -293,8 +294,9 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         x_axis = list_min_singular
         for i in range(num_zero_dim):
             plt.figure()
-            plt.rc('font', family="sans-serif", serif='Helvetica')
+            plt.style.use("seaborn-paper")
             plt.rc('text', usetex=True)
+            plt.rc('font', family="sans-serif", serif='Helvetica')
             plt.rcParams["font.size"] = 8*2
 
             zero_dim = list_zero_dim[i]
@@ -310,8 +312,8 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         ### concated plot
         plt.figure()
         plt.style.use("seaborn-paper")
-        plt.rc('font', family='sans-serif', serif='Helvetica')
         plt.rc('text', usetex=True)
+        plt.rc('font', family='sans-serif', serif='Helvetica')
         plt.rcParams["font.size"] = 8*2
 
 
@@ -320,7 +322,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
             true_rank = i_dim - zero_dim
             diff_rank = vbmf_estimated_rank[i] - true_rank
             std_rank = std_vbmf_estimated_rank[i]
-            plt.errorbar(x_axis, diff_rank, std_rank, label="{}".format(true_rank), marker="^", markersize=8, linestyle=linestyles[i])
+            plt.errorbar(x_axis, diff_rank, std_rank, label="{}".format(true_rank), linestyle=linestyles[i])
 
 
         plt.title("EVBMF")
@@ -328,8 +330,9 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         plt.ylim(-i_dim, 30)
         plt.ylabel("Estimated Rank $-$ True Rank")
         plt.legend()
-        plt.savefig("{}/rank-recovery-evbmf.{}".format(dirname, opt.ext),dpi=opt.dpi)
-
+        filename = "{}/rank-recovery-evbmf.{}".format(dirname, opt.ext)
+        plt.savefig(filename,dpi=opt.dpi)
+        logging.info(filename)
         plt.clf()
         plt.close()
 
@@ -389,7 +392,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
 
 
     ### print average forward_iter
-    iter_log = open("{}/forward_iter.log".format(dirname), "w")
+    iter_log = open("{}/forward_iter.txt".format(dirname), "w")
     iter_log.write("{}".format(list_forward_iter))
     iter_log.close()
 
@@ -401,26 +404,32 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         #############
         ###plot val loss
         #############
-        plt.figure()
+        plt.clf()
+        plt.close()
+        plt.figure(figsize=(6,4))
         plt.style.use("seaborn-paper")
+        plt.rc('text', usetex=True)
+
         n = 0
         linestyles = ["-", "--", "-.", ":"]
         for base_scale in list_base_scale:
+            line_idx  = 0
             for dim_cauchy_vec in list_dim_cauchy_vec:
                 ### separate dim cauchy vec
                 #plt.plot(x_axis,list_val_loss_curve[n], label="({0:3.2e}, {1})".format(base_scale, dim_cauchy_vec))
                 ### TODO set dim_cauchy_vec =  1
-                plt.plot(x_axis,list_val_loss_curve[n], label="$\gamma={}$".format(round(base_scale,2)), linestyle=linestyles[ n % 4])
+                plt.plot(x_axis,list_val_loss_curve[n], label="$\gamma={}$".format(round(base_scale,2)), linestyle=linestyles[ line_idx % 4])
                 n+=1
-        plt.legend()
-
+                line_idx += 1
         plt.title("SPN")
         plt.xlabel("Epoch")
-        plt.ylabel("Validation loss")
+        plt.ylabel("Validation Loss")
         ### TODO modify here
-        plt.ylim(0.0, 0.3)
-
-        plt.savefig("{}/test_scale_val.{}".format(dirname, opt.ext),dpi=opt.dpi)
+        plt.ylim(0., 0.3)
+        plt.legend()
+        filename = "{}/test_scale_val.{}".format(dirname, opt.ext)
+        logging.info(filename)
+        plt.savefig(filename,dpi=opt.dpi)
         plt.clf()
         plt.close()
 
@@ -453,17 +462,18 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         ###plot val_loss
         ################
         n = 0
-
         plt.figure()
         for zero_dim in list_zero_dim[:half]:
+            idx = 0
             for min_singular in list_min_singular:
-                plt.plot(x_axis,list_val_loss_curve[n], label="({}, {})".format(i_dim - zero_dim, min_singular))
+                plt.plot(x_axis,list_val_loss_curve[n], label="({}, {})".format(i_dim - zero_dim, min_singular), linestyle=linestyles[idx % 4])
                 n+=1
+                idx+=1
 
         #plt.title("SPN")
         plt.xlabel("Epoch")
         plt.ylabel("Validation loss")
-        plt.yticks([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7])
+        plt.ylim(0, 0.7)
 
         plt.legend()
         plt.savefig("{}/test_ms_low_val.{}".format(dirname,opt.ext),dpi=opt.dpi)
@@ -473,13 +483,13 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         plt.figure()
         for zero_dim in list_zero_dim[half:]:
             for min_singular in list_min_singular:
-                plt.plot(x_axis,list_val_loss_curve[n], label="({}, {})".format(i_dim -zero_dim, min_singular))
+                plt.plot(x_axis,list_val_loss_curve[n], label="({}, {})".format(i_dim -zero_dim, min_singular), linestyle=linestyles[ n % 4])
                 n+=1
 
         #plt.title("SPN")
         plt.xlabel("Epoch")
         plt.ylabel("Validation loss")
-        plt.yticks([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7])
+        plt.ylim(0, 0.7)
 
         plt.legend()
         plt.savefig("{}/test_ms_high_val.{}".format(dirname, opt.ext),dpi=opt.dpi)
@@ -583,8 +593,9 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         x_axis = list_min_singular
         for i in range(num_zero_dim):
             plt.figure()
-            plt.rc('font', family="sans-serif", serif='Helvetica')
+            plt.style.use("seaborn-paper")
             plt.rc('text', usetex=True)
+            plt.rc('font', family="sans-serif", serif='Helvetica')
             plt.rcParams["font.size"] = 8*2
 
             zero_dim = list_zero_dim[i]
@@ -619,12 +630,11 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         for k in range(num_thres):
             plt.figure()
             plt.style.use("seaborn-paper")
-            plt.rc('font', family="sans-serif", serif='Helvetica')
             plt.rc('text', usetex=True)
+            plt.rc('font', family="sans-serif", serif='Helvetica')
             plt.rcParams["font.size"] = 8*2
             thres = list_zero_thres[k]
             for i in range(num_zero_dim):
-
                 zero_dim = list_zero_dim[i]
                 true_rank = i_dim - zero_dim
                 diff_rank = fde_spn_estimated_rank[i,:,k] - true_rank
@@ -633,23 +643,48 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
                 plt.errorbar(x_axis,diff_rank, std_rank, label=label,linestyle=linestyles[i])
 
 
-
-
-
             plt.xlabel("$\lambda_{min}$")
-            if ROBUST_CHECK:
-                plt.title("CNL")
-                #plt.yticks([2.0, -1.5, -1.0, -0.5, 0, 0.5, 1.0, 1.5,2.0])
-                plt.ylim(-i_dim, 30)
-            else:
-                plt.title(r"$\xi =$ {0}".format(reg_coef))
-                plt.ylim(-10, 10)
+            plt.title("CNL")
+            plt.ylim(-i_dim, 30)
+
             plt.ylabel("Estimated Rank $-$ True Rank")
             plt.legend()
-            plt.savefig("{0}/rank-recovery_th-{1:1.0e}.{2}".format(dirname, thres,opt.ext),dpi=opt.dpi)
+            filename = "{0}/rank-recovery_th-{1:1.0e}.{2}".format(dirname, thres,opt.ext)
+            plt.savefig(filename,dpi=opt.dpi)
             plt.clf()
             plt.close()
+            logging.info(filename)
 
+
+        ### plot esimted rank - true rank
+        ### for robust check,
+        ### yrange is scoped
+        x_axis = list_min_singular
+        for k in range(num_thres):
+            plt.figure()
+            plt.style.use("seaborn-paper")
+            plt.rc('text', usetex=True)
+            plt.rc('font', family="sans-serif", serif='Helvetica')
+            plt.rcParams["font.size"] = 8*2
+            thres = list_zero_thres[k]
+            for i in range(num_zero_dim):
+                zero_dim = list_zero_dim[i]
+                true_rank = i_dim - zero_dim
+                diff_rank = fde_spn_estimated_rank[i,:,k] - true_rank
+                std_rank = std_fde_spn_estimated_rank[i,:, k]
+                label = "${}$".format(true_rank)
+                plt.errorbar(x_axis,diff_rank, std_rank, label=label,linestyle=linestyles[i])
+
+            plt.xlabel("$\lambda_{min}$")
+            plt.title(r"$\xi =$ {0}".format(reg_coef))
+            #plt.yticks([2.0, -1.5, -1.0, -0.5, 0, 0.5, 1.0, 1.5,2.0])
+            plt.ylim(-10, 10)
+
+            plt.ylabel("Estimated Rank $-$ True Rank")
+            plt.legend()
+            plt.savefig("{0}/rank-recovery_th-{1:1.0e}_scoped.{2}".format(dirname, thres,opt.ext),dpi=opt.dpi)
+            plt.clf()
+            plt.close()
 
 
     else: sys.exit(-1)
@@ -667,11 +702,11 @@ def rank_recovery_baseline(dirname, list_zero_dim, list_min_singular, list_zero_
     COMPLEX = False
     for thres in list_zero_thres:
         plt.figure()
-        plt.rc('font', family="sans-serif", serif='Helvetica')
         plt.rc('text', usetex=True)
-        plt.rcParams["font.size"] = 8*2
-        plt.title("Baseline")
         plt.style.use("seaborn-paper")
+        #plt.rc('font', family="sans-serif", serif='Helvetica')
+        #plt.rcParams["font.size"] = 8*2
+        plt.title("Baseline")
         x_axis = list_min_singular
         ls_idx=0 ###linestyle index
         for zero_dim in list_zero_dim:
