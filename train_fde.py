@@ -117,7 +117,7 @@ def KL_divergence(diag_A,sigma, sc_true, num_shot = 20, dim_cauchy_vec=100):
 def train_fde_sc(dim, p_dim, sample,\
  base_scale = 1e-1, dim_cauchy_vec=1, base_lr = 1e-4,minibatch_size=1,\
  max_epoch=120, normalize_sample = False,\
- reg_coef = 1e-3,\
+ edge=1.2, reg_coef = 1e-3,\
  monitor_validation=True, monitor_KL=False, test_diag_A=-1, test_sigma=-1, \
  list_zero_thres=[1e-5,1e-4,1e-3,1e-2,1e-1], SUBO=True,  stop_for_rank=False):
     update_sigma = True
@@ -210,7 +210,6 @@ def train_fde_sc(dim, p_dim, sample,\
 
     ### Cutting off too large parameter
     #edge = max_sq_sample*1.1
-    edge = 1.2
     clip_grad = 100
 
     ### initialization of weights

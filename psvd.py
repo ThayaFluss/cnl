@@ -22,7 +22,7 @@ def prob_svd_cnl(sample_mat):
     reg_coef = 0
 
     diag_A, sigma, _, _, _, _ \
-    =  train_fde_sc(dim, p_dim, sample, max_epoch=max_epoch, reg_coef=reg_coef)
+    =  train_fde_sc(dim, p_dim, sample, max_epoch=max_epoch, edge=1.01, reg_coef=reg_coef)
 
     out_D = norm*np.sort(diag_A)[::-1]
     out_sigma = sigma*norm
