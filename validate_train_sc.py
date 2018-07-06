@@ -224,7 +224,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
 
 
         ### for debug
-        #list_zero_dim = [10, 40]
+        #list_zero_dim = [40]
         #list_min_singular=[ 0.1, 0.2, 0.3]
         #list_dim_cauchy_vec = [1]
         #

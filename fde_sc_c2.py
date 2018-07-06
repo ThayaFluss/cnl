@@ -82,7 +82,7 @@ class SemiCircular(object):
             out[i]= t1
 
         return np.diag(out)
-    
+
     def eta_array(self, in_mat):
         M = in_mat.shape[0]
         #assert  M % 2 == 0 and  M == in_mat.shape[1]
@@ -455,7 +455,7 @@ class SemiCircular(object):
 
 
 
-    def regularization_grad_loss(self, diag_A, sigma,reg_coef, TYPE="L1"):
+    def regularization_grad_loss(self, diag_A, sigma,reg_coef, TYPE="L1_trunc"):
         if TYPE == "L1":
             loss =  np.sum(np.abs(diag_A)) #+ abs(sigma)
             loss *= reg_coef
@@ -464,6 +464,8 @@ class SemiCircular(object):
             grads[-1] = 0#np.sign(sigma)
             grads *= reg_coef
             #logging.info("LASSO: grads={}, loss={}".format(grads,loss))
+            
+
         elif TYPE == "L2":
             loss =  np.sum(diag_A**2) #+ sigma**2
             loss *= reg_coef

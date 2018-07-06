@@ -115,9 +115,9 @@ def KL_divergence(diag_A,sigma, sc_true, num_shot = 20, dim_cauchy_vec=100):
 
 
 def train_fde_sc(dim, p_dim, sample,\
- base_scale = 2e-1, dim_cauchy_vec=2, base_lr = 0.1,minibatch_size=1,\
+ base_scale = 1e-1, dim_cauchy_vec=1, base_lr = 1e-4,minibatch_size=1,\
  max_epoch=120, normalize_sample = False,\
- reg_coef = 2e-4,\
+ reg_coef = 1e-3,\
  monitor_validation=True, monitor_KL=False, test_diag_A=-1, test_sigma=-1, \
  list_zero_thres=[1e-5,1e-4,1e-3,1e-2,1e-1], SUBO=True,  stop_for_rank=False):
     update_sigma = True
@@ -137,6 +137,13 @@ def train_fde_sc(dim, p_dim, sample,\
     iter_per_epoch = int(sample_size/minibatch_size)
     max_iter = max_epoch*iter_per_epoch
     stepsize = -1 #iter_per_epoch
+
+    ### for online L1 -regularization
+    ### LLZ, Sparse Online Learning via Truncated Gradient
+    ### Depricated now
+    use_truncated_grad = False
+    truncate_step = 1
+
     optimizer = "Adam"
     if optimizer == "momenutm":
         momentum = 0
@@ -178,7 +185,6 @@ def train_fde_sc(dim, p_dim, sample,\
         lr_kwards = dict()
     else:
         sys.exit("lr_policy is inv, step or fix")
-
 
     ### tf_summary, logging and  plot
     log_step = iter_per_epoch
@@ -355,10 +361,10 @@ def train_fde_sc(dim, p_dim, sample,\
             new_grads, new_loss = sc.grad_loss(diag_A, sigma, mini)
 
 
-
-        r_grads, r_loss =  sc.regularization_grad_loss(diag_A, sigma,reg_coef=reg_coef, TYPE=REG_TYPE)
-        new_grads += r_grads
-        new_loss += r_loss
+        if not use_truncated_grad:
+            r_grads, r_loss =  sc.regularization_grad_loss(diag_A, sigma,reg_coef=reg_coef, TYPE=REG_TYPE)
+            new_grads += r_grads
+            new_loss += r_loss
         train_loss_list.append(new_loss)
 
 
@@ -376,7 +382,10 @@ def train_fde_sc(dim, p_dim, sample,\
             var_adam = beta2 * var_adam + ( 1- beta2)*new_grads**2
             m = mean_adam/(1-beta1**(n+1))
             v = var_adam/(1-beta2**(n+1))
-            m_grads = alpha*m/(sp.sqrt(v)+eps)
+            m_grads = m*alpha/(sp.sqrt(v)+eps)
+            lr_for_trunc = alpha/(sp.sqrt(v)+eps)
+
+
 
         m_PA = m_grads[:-1]
         m_Psigma = m_grads[-1]
@@ -399,6 +408,23 @@ def train_fde_sc(dim, p_dim, sample,\
         ### update
         old_diag_A = np.copy(diag_A)
         diag_A = diag_A - m_PA
+
+        ### Online L1 reguralization
+        if use_truncated_grad:
+            if n > 0 and n % truncate_step == 0:
+                for k in range(dim):
+                    #lrk = lr_for_trunc[k]
+                    lrk = alpha
+                    ak = diag_A[k]
+                    if ak  > 0 and ak  < reg_coef:
+                        diag_A[k] = max(0, ak - lrk*reg_coef*truncate_step)
+                    elif ak < 0 and ak < -reg_coef:
+                        diag_A[k] = min(0, ak + lrk*reg_coef*truncate_step)
+
+
+
+
+
         for k in range(dim):
             if abs(diag_A[k]) > edge:
                 logging.info( "diag_A[{}]={} reached the boundary".format(k,diag_A[k]))
@@ -412,7 +438,7 @@ def train_fde_sc(dim, p_dim, sample,\
             logging.debug( "m_Psigma=", m_Psigma)
             if n > start_update_sigma:
                 sigma -= m_Psigma
-            if abs(sigma**2) > edge:
+            if abs(sigma) > edge:
                 logging.info("sigma reached the boundary:{}".format(sigma))
                 sigma  = sp.sqrt(edge) - 1e-2
                 m_Psigma = -1e-8
@@ -496,12 +522,6 @@ def train_fde_sc(dim, p_dim, sample,\
                 logging.info("val_KL= : {}".format(KL))
 
 
-            if n < max_iter  :
-                average_loss = 0
-                average_val_loss = 0
-                average_sigma = 0
-                average_diagA = 0
-
 
         logging.debug( "{}-iter:lr={},scale{}, loss: {}".format(n,lr, scale, new_loss) )
         logging.debug( "sigma: {}".format(sigma))
@@ -533,6 +553,11 @@ def train_fde_sc(dim, p_dim, sample,\
             plt.clf()
             plt.close()
             logging.info("Plotting density...done")
+
+
+    average_loss /= log_step
+    average_sigma /= log_step
+    average_diagA /= log_step
     average_sigma *= normalize_ratio
     average_diagA *= normalize_ratio
     logging.info("result:")
