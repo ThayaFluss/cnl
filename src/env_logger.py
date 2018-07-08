@@ -7,7 +7,7 @@ stream_log.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s
 
 
 #to file
-file_log = logging.FileHandler('log/test_loger.txt', 'w')
+file_log = logging.FileHandler('../log/test_logger.txt', 'w')
 file_log.setLevel(logging.INFO)
 file_log.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
 # root logger

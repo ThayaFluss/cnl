@@ -17,6 +17,7 @@ def haar_unitary(M, COMPLEX=False):
     return U
 
 def random_from_diag(M,N,zero_dim=0, min_singular=0,COMPLEX=False):
+    assert zero_dim <= min(M,N)
     array  = np.random.uniform( min_singular, 1, N)
     for i in range(zero_dim):
         array[i] = 0

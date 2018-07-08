@@ -104,7 +104,7 @@ def test_optimize(\
      zero_dim=16,
      COMPLEX = False
     ):
-    dirname = "./images/{}".format(jobname)
+    dirname = "../images/{}".format(jobname)
     if not os.path.exists(dirname):
         os.makedirs(dirname)
     num_sample =1
@@ -162,7 +162,7 @@ def test_optimize(\
     plt.plot(np.sort(b), label="Result")
     plt.legend()
 
-    dirname = "images/val_train_cw"
+    dirname = "../images/val_train_cw"
     if not os.path.exists(dirname):
             os.makedirs(dirname)
 
@@ -240,7 +240,7 @@ def test_scale_balance():
     jobname = "test_cw"
     now = datetime.now()
     temp_jobname = jobname + '_{0:%m%d%H%M}'.format(now)
-    dirname = "images/{}".format(temp_jobname)
+    dirname = "../images/{}".format(temp_jobname)
     if not os.path.exists(dirname):
         os.makedirs(dirname)
     setting_log = open("{}/setting.txt".format(dirname), "w")

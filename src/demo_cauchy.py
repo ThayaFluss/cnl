@@ -56,7 +56,7 @@ jobname="true_sample_and_model_FDE"):
     #plt.title("hahaha")
 
     plt.legend(loc="upper left")
-    dirname = "images/plot_density"
+    dirname = "../images/plot_density"
     if not os.path.exists(dirname):
         os.makedirs(dirname)
     filename = "images/plot_density/{}.png".format(jobname)

@@ -117,7 +117,7 @@ def KL_divergence(diag_A,sigma, sc_true, num_shot = 20, dim_cauchy_vec=100):
 def train_fde_sc(dim, p_dim, sample,\
  base_scale = 1e-1, dim_cauchy_vec=1, base_lr = 1e-4,minibatch_size=1,\
  max_epoch=120, normalize_sample = False,\
- edge=1.2, reg_coef = 1e-3,\
+ edge=1.2, reg_coef = 0,\
  monitor_validation=True, monitor_KL=False, test_diag_A=-1, test_sigma=-1, \
  list_zero_thres=[1e-5,1e-4,1e-3,1e-2,1e-1], SUBO=True,  stop_for_rank=False):
     update_sigma = True
@@ -288,7 +288,7 @@ def train_fde_sc(dim, p_dim, sample,\
         y_axis_init = sc.density_subordinaiton(x_axis)
         plt.plot(x_axis,y_axis_init, label="Init")
         plt.legend()
-        dirname = "images/train_rnn_sc"
+        dirname = "../images/train_rnn_sc"
         if not os.path.exists(dirname):
             os.makedirs(dirname)
         plt.savefig("{}/plot_density_init.{}".format(dirname,i_ext),dpi=i_dpi)
@@ -705,7 +705,7 @@ def train_fde_cw(dim, p_dim, sample,\
         plt.plot(x_axis,y_axis_truth, label="true $\gamma$-slice", linestyle="--", color="red")
 
         plt.legend()
-        dirname = "images/train_rnn_cw"
+        dirname = "../images/train_rnn_cw"
         if not os.path.exists(dirname):
             os.makedirs(dirname)
         plt.savefig("{}/plot_density_init.{}".format(dirname,i_ext), dpi=i_dpi)

@@ -109,7 +109,7 @@ def test_optimize(\
      zero_dim=16,\
     list_zero_thres=[],
     COMPLEX=False,SUBO=False):
-    dirname = "./images/{}".format(jobname)
+    dirname = "../images/{}".format(jobname)
     if not os.path.exists(dirname):
         os.makedirs(dirname)
 
@@ -156,7 +156,8 @@ def test_optimize(\
     plt.plot(sq_sample, label="Sample")
     plt.plot(r_diag_A, label="Result")
     plt.legend()
-    plt.savefig("images/train_v2/{}.{}".format(jobname, opt.ext),dpi=opt.dpi)
+    dirname = "../images/train_v2"
+    plt.savefig("{}/{}.{}".format(dirname, jobname, opt.ext),dpi=opt.dpi)
     plt.clf()
     plt.close()
     #logging.getLogger().removeHandler(file_log)
@@ -245,7 +246,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
 
     now = datetime.now()
     temp_jobname = jobname + '_{0:%m%d%H%M}'.format(now)
-    dirname = "images/{}".format(temp_jobname)
+    dirname = "../images/{}".format(temp_jobname)
     while(os.path.exists(dirname)):
         dirname = dirname + "0"
     os.makedirs(dirname)
