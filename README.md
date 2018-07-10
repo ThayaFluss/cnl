@@ -40,11 +40,11 @@ python -m unittest tests/*.py
 cd src
 ```
 
-For the probabilistic singular value decomposition;
+For the probabilistic singular value decomposition based on Cauchy noise loss;
 ```python
  X #numpy.array of shape [p,d]
  from psvd import *
- rank, a, sigma = psvd_cnl(X) #estimated rank and parameters  a, sigma.
+ U,D,V = psvd_cnl(X)
 ```
 
 
