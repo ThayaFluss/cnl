@@ -15,7 +15,7 @@ resolution=11,version=1):
     true_A = np.diag(true_diag_A)
     evs_list = []
     for n in range(num_shot):
-        evs= np.linalg.eigh(info_plus_noise(size, true_A,true_sigma, COMPLEX=True))[0]
+        evs= np.linalg.eigh(signal_plus_noise(size, true_A,true_sigma, COMPLEX=True))[0]
         evs_list += evs.tolist()
     #plt.figure()
     #plt.hist(evs_list, bins=100, normed=True, label="empirical eigenvalues")

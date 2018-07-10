@@ -11,7 +11,7 @@ def validate_vbmf_spn(dim, p_dim, sigma, min_singular, zero_dim, COMPLEX=False):
     assert(p_dim >= dim)
 
     A = random_from_diag(p_dim, dim, zero_dim, min_singular, COMPLEX)
-    sample = info_plus_noise(A, sigma,COMPLEX=COMPLEX)
+    sample = signal_plus_noise(A, sigma,COMPLEX=COMPLEX)
     ### Analytic solution
     obj = VBMF2(sample)
     r = obj.get_rank_analytically()

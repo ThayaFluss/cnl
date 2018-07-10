@@ -1,27 +1,26 @@
 # CNL
 
 ### Cauchy Noise Loss
-This is a tool for optimization of two random matrix models; compound Wishart model and information-plus noise model.
+This is a tool for optimization of two random matrix models; compound Wishart model and signal-plus-noise (information-plus-noise) model.
 
 ## Description
 The compound Wishart model is
-####    W = Z^*AZ,
-where Z is a (real or complex) p x d Ginibre random matrix (i.e. whose entries are i.i.d. and distributed with N(0, sqrt(1/d)) ), and A is p x p deterministic self-adjoint matrix.
+$W = Z^TAZ$,
+where $Z$ is a (real or complex) $p \times  d$ Ginibre random matrix (i.e. whose entries are i.i.d. and distributed with $N(0, \sqrt(1/d)))$, and A is $p \times p$ deterministic self-adjoint matrix.
 
 
-We consider an information plus noise random matrices as follows:
-for a given p x d matrix A and a real number v > 0, define a random matrix
-####    Y = A + vZ, W = Y^*Y
+We consider a signal-plus-noise random matrices as follows:
+for a given $p \times  d$  matrix $A$ and a real number $\sigma > 0$, define a random matrix
+$$  Y = A + \sigma Z,\  W = Y^*Y $$
 
-If the size N is large enough, eigenvalue distribution of Y^* Y can be approximated by  deterministic probability distribution on positive real line.
+If $d$ is large enough and  $p= O(d)$, eigenvalue distribution of $Y^* Y$ can be approximated by  deterministic probability distribution on positive real line.
 
-Our argorithm is based on the paper "Cauchy noise loss for stohastic optimization of random matix models via free deterministic equivalents", to apper in arXiv.
+Our algorithm is based on the paper "Cauchy noise loss for stochastic optimization of random matrix models via free deterministic equivalents (https://arxiv.org/abs/1804.03154)".
 
-## DEMO
-In preperation
+
 
 ## Requirement
-python  3, numpy, scipy, matplotlib, tqdm.  We recommend to use a plotform [Anaconda](https://www.continuum.io/downloads).
+python 3, numpy, scipy, matplotlib, tqdm.  We recommend to use the platform [Anaconda](https://www.continuum.io/downloads).
 
 ## Installation
 
@@ -31,15 +30,25 @@ $ git clone https://github.com/ThayaFluss/cnl.git
 ## Setup
 
 ```bash
+cd src
 $ bash cython_setup.bash
+python -m unittest tests/*.py
 ```
 
 ## Usage
-To estimate 
+```bash
+cd src
+```
+
+For the probabilistic singular value decomposition;
+```python
+ X #numpy.array of shape [p,d]
+ from psvd import *
+ rank, a, sigma = psvd_cnl(X) #estimated rank and parameters  a, sigma.
+```
 
 
-
-For the rank estimation of p x d matrix X;
+For the rank estimation of $p \times d$ matrix $X$;
 ```python
  X #numpy.array of shape [p,d]
  from psvd import *
@@ -49,13 +58,14 @@ For the rank estimation of p x d matrix X;
 
 ## Validation
 
-To validate algorithms;
+To validate algorithms as numerical experiments in the paper;
 ```bash
+cd src
 $ python validate_train_sc.py
 $ python validate_train_cw.py
 ```
 
-For the rank estimation of p x d matrix X;
+For the rank estimation of $p \times d$ matrix $X$;
 ```python
  X #numpy.array of shape [p,d]
  from rank_estimation import *
@@ -77,7 +87,7 @@ For example; (https://github.com/ThayaFluss/cnl/blob/master/demo_rank_estimation
  U = haar_unitary(p_dim)
  V = haar_unitary(dim)
  A_true = U @ D @ V ; #random rotation
- X = info_plus_noise(A_true, sigma=0.1) ### sample matrix
+ X = signal_plus_noise(A_true, sigma=0.1) ### sample matrix
  from rank_estimation import *
  rank, a, sigma = rank_estimation(X) ### estimated rank and parameters
  print(rank, true_rank) ### compare with the true_rank !

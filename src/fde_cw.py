@@ -64,7 +64,7 @@ class CompoundWishart(object):
             G = self.cauchy(G, z)
             self.G = G
             rho =  -G.imag/sp.pi
-            #logging.debug( "(density_info_plus_noise)rho(", x, ")= " ,rho
+            #logging.debug( "(density_signal_plus_noise)rho(", x, ")= " ,rho
             rho_list.append(rho)
 
         return np.array(rho_list)

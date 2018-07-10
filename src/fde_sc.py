@@ -174,7 +174,7 @@ class SemiCircular(object):
         evs_list = []
         param_mat = rectangular_diag(self.diag_A, self.p_dim, self.dim)
         for n in range(num_shot):
-            W = info_plus_noise(param_mat, self.sigma, COMPLEX)
+            W = signal_plus_noise(param_mat, self.sigma, COMPLEX)
             evs =  np.linalg.eigh(W)[0]
 
             c_noise =  sp.stats.cauchy.rvs(loc=0, scale=self.scale, size=dim_cauchy_vec)
@@ -193,7 +193,7 @@ class SemiCircular(object):
         evs_list = []
         param_mat = rectangular_diag(self.diag_A, self.p_dim, self.p_dim)
         for n in range(num_shot):
-            W = info_plus_noise_symm(self.p_dim, self.dim, param_mat, self.sigma, COMPLEX)
+            W = signal_plus_noise_symm(self.p_dim, self.dim, param_mat, self.sigma, COMPLEX)
             evs =  np.linalg.eigh(W)[0]
 
             c_noise =  sp.stats.cauchy.rvs(loc=0, scale=self.scale, size=dim_cauchy_vec)
@@ -234,7 +234,7 @@ class SemiCircular(object):
             self.G = G
             G_2 = G / z   ### zG_2(z^2) = G(z)
             rho =  -ntrace(G_2[:dim,:dim]).imag/sp.pi
-            #logging.debug( "(density_info_plus_noise)rho(", x, ")= " ,rho
+            #logging.debug( "(density_signal_plus_noise)rho(", x, ")= " ,rho
             rho_list.append(rho)
 
         return np.array(rho_list)
@@ -243,7 +243,7 @@ class SemiCircular(object):
 
 
 
-    def plot_density_info_plus_noise(self, param_mat,sigma=1, min_x = 0.01, max_x = 500,\
+    def plot_density_signal_plus_noise(self, param_mat,sigma=1, min_x = 0.01, max_x = 500,\
     resolution=0.2, num_sample = 100,bins=100, jobname="plot_density", Subordination=True):
 
         size = param_mat.shape[1]
@@ -252,7 +252,7 @@ class SemiCircular(object):
 
         evs_list =[]
         for i  in range(num_sample):
-            evs= np.linalg.eigh(info_plus_noise(param_mat,sigma, COMPLEX=True))[0]
+            evs= np.linalg.eigh(signal_plus_noise(param_mat,sigma, COMPLEX=True))[0]
             evs_list += evs.tolist()
         plt.figure()
         plt.hist(evs_list, bins=bins, normed=True, label="empirical eigenvalues")
@@ -282,7 +282,7 @@ class SemiCircular(object):
         timer_sub = Timer()
 
         while(x < max_x):
-            logging.info( "(plot_density_info_plus_noise)x={}".format(x))
+            logging.info( "(plot_density_signal_plus_noise)x={}".format(x))
             x_list.append(x)
             z = sp.sqrt(x+1j*self.scale)
 
@@ -296,7 +296,7 @@ class SemiCircular(object):
 
             #print nsubtrace(G, 2, size) - sub
             rho_sub= -ntrace(sub/z).imag/sp.pi
-            logging.info( "(plot_density_info_plus_noise)rho_sub={}".format(rho_sub))
+            logging.info( "(plot_density_signal_plus_noise)rho_sub={}".format(rho_sub))
 
             #assert not rho_sub < 0
             rho_sub_list.append(rho_sub)
@@ -312,7 +312,7 @@ class SemiCircular(object):
 
             rho_list.append(rho)
             timer.toc()
-            logging.info( "(plot_density_info_plus_noise)rho_mai={}".format(rho))
+            logging.info( "(plot_density_signal_plus_noise)rho_mai={}".format(rho))
             """
 
             if x < 0.2:
@@ -326,7 +326,7 @@ class SemiCircular(object):
         print( "sub=", timer_sub.total_time)
         Timer0.toc()
         time = Timer0.total_time
-        logging.info("(plot_density_info_plus_noise)Total {} points, Took {} sec, {} sec/point".format(count, time, time/count ) )
+        logging.info("(plot_density_signal_plus_noise)Total {} points, Took {} sec, {} sec/point".format(count, time, time/count ) )
         #plt.plot(x_list,rho_list, label="theoretical value",color="red", lw = 2)
         plt.plot(x_list,rho_sub_list, label="theoretical value (sub)",color="green", lw = 2)
 

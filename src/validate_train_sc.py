@@ -125,7 +125,7 @@ def test_optimize(\
 
     evs_list =[]
     for i  in range(num_sample):
-        evs= np.linalg.eigh(info_plus_noise(param_mat,sigma, COMPLEX=False))[0]
+        evs= np.linalg.eigh(signal_plus_noise(param_mat,sigma, COMPLEX=False))[0]
         evs_list += evs.tolist()
     if num_sample == 1:
         logging.info( "sqrt(sample)=\n{}".format(sp.sqrt(np.array(evs_list))))
@@ -731,7 +731,7 @@ def rank_recovery_baseline(dirname, list_zero_dim, list_min_singular, list_zero_
                     _, param, _ = np.linalg.svd(param_mat)
                     #logging.info( "truth=\n{}".format(np.sort(param)))
 
-                    evs= np.linalg.eigh(info_plus_noise(param_mat,sigma, COMPLEX=False))[0]
+                    evs= np.linalg.eigh(signal_plus_noise(param_mat,sigma, COMPLEX=False))[0]
                     sq_sample = sp.sqrt(evs)
                     ### count zero
                     list_results.append(  np.where( sq_sample < thres)[0].size )

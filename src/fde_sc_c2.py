@@ -29,12 +29,12 @@ d11eta =  matrix_units[0][0]
 
 J_eta = np.asarray([[d00eta, d01eta], [d10eta, d11eta]])
 
-i_TEST_MODE= False
 
 class SemiCircular(object):
     """Matrix valued SemiCircular."""
     def __init__(self,dim=1,p_dim=-1, scale=1e-1):
         super(SemiCircular, self).__init__()
+        self.TEST_MODE = False
         self.diag_A = np.asarray([0])
         self.sigma = 0
         self.scale= scale
@@ -180,7 +180,7 @@ class SemiCircular(object):
         evs_list = []
         param_mat = rectangular_diag(self.diag_A, self.p_dim, self.dim)
         for n in range(num_shot):
-            W = info_plus_noise(param_mat, self.sigma, COMPLEX)
+            W = signal_plus_noise(param_mat, self.sigma, COMPLEX)
             evs =  np.linalg.eigh(W)[0]
 
             c_noise =  sp.stats.cauchy.rvs(loc=0, scale=self.scale, size=dim_cauchy_vec)
@@ -199,7 +199,7 @@ class SemiCircular(object):
         evs_list = []
         param_mat = rectangular_diag(self.diag_A, self.p_dim, self.p_dim)
         for n in range(num_shot):
-            W = info_plus_noise_symm(self.p_dim, self.dim, param_mat, self.sigma, COMPLEX)
+            W = signal_plus_noise_symm(self.p_dim, self.dim, param_mat, self.sigma, COMPLEX)
             evs =  np.linalg.eigh(W)[0]
 
             c_noise =  sp.stats.cauchy.rvs(loc=0, scale=self.scale, size=dim_cauchy_vec)
@@ -240,7 +240,7 @@ class SemiCircular(object):
             self.G = G
             G_2 = G / z   ### zG_2(z^2) = G(z)
             rho =  -ntrace(G_2).imag/sp.pi
-            #logging.debug( "(density_info_plus_noise)rho(", x, ")= " ,rho
+            #logging.debug( "(density_signal_plus_noise)rho(", x, ")= " ,rho
             rho_list.append(rho)
 
         return np.array(rho_list)
@@ -281,7 +281,7 @@ class SemiCircular(object):
 
 
 
-    def regularization_grad_loss(self, diag_A, sigma,reg_coef, TYPE="L1_trunc"):
+    def regularization_grad_loss(self, diag_A, sigma,reg_coef, TYPE="L1"):
         if TYPE == "L1":
             loss =  np.sum(np.abs(diag_A)) #+ abs(sigma)
             loss *= reg_coef
@@ -307,7 +307,8 @@ class SemiCircular(object):
     ###### Subordinatioin ####
     ##########################
     def cauchy_subordination(self, B, \
-    init_omega,init_G_sc, max_iter=1000,thres=1e-8, TEST_MODE=i_TEST_MODE, CYTHON=True):
+    init_omega,init_G_sc, max_iter=1000,thres=1e-8, CYTHON=True):
+        TEST_MODE = self.TEST_MODE
         if not CYTHON or TEST_MODE:
             des = self.des
             omega = init_omega
@@ -410,7 +411,8 @@ class SemiCircular(object):
 
         return np.array(rho_list)
 
-    def cauchy_2by2(self,Z,  G_init, max_iter=1000, thres=1e-8, CYTHON=True, TEST_MODE=False):
+    def cauchy_2by2(self,Z,  G_init, max_iter=1000, thres=1e-8, CYTHON=True):
+        TEST_MODE = self.TEST_MODE
         if not CYTHON or TEST_MODE:
             G = np.copy(G_init) ### copy to avoid overlapping with cython
             sigma = self.sigma
@@ -459,24 +461,23 @@ class SemiCircular(object):
     def tp_T_eta(self):
         return  np.asarray([[0, 1], [float(self.p_dim)/self.dim, 0]])
 
-    def tp_TG_Ge(self, G, TEST_MODE=i_TEST_MODE):
-        eye2 = np.eye(2,dtype=np.complex128)
-        out = np.empty([2,2], dtype=np.complex128)
-        for i in range(2):
-                out[i] = self.sigma**2*G *self.eta_2by2(eye2[i])*G
-
+    def tp_TG_Ge(self, G):
+        TEST_MODE = self.TEST_MODE
+        out_2 = np.asarray([[0,1], [ self.p_dim/self.dim, 0]],dtype=np.complex128)
+        out_2 *= self.sigma**2*G**2
         if TEST_MODE:
-            out_2 = np.empty([2,2], dtype=np.complex128)
-            out_2[0] = self.sigma**2*G*eye2[1]*G
-            out_2[1] = self.sigma**2*G*(self.p_dim/self.dim)*eye2[0]*G
+            out = np.empty([2,2], dtype=np.complex128)
+            eye2 = np.eye(2,dtype=np.complex128)
+            for i in range(2):
+                out[i] = self.sigma**2*G*self.eta_2by2(eye2[i])*G
             assert np.allclose(out, out_2)
 
-        return out
+        return out_2
 
 
-    def tp_Tz_Ge(self, G, TEST_MODE=i_TEST_MODE):
-        temp= - np.diag(1*G**2)
-        out = temp
+    def tp_Tz_Ge(self, G):
+        TEST_MODE = self.TEST_MODE
+        out = - np.diag(G**2)
         if TEST_MODE:
             Tz_Ge = []
             eye2 = np.eye(2,dtype=np.complex128)
@@ -524,11 +525,11 @@ class SemiCircular(object):
         rho = -np.imag(ntrace(G)/z)/sp.pi
         return rho
 
-    def grad_subordination(self,  z, G_out, omega, omega_sc,\
-     TEST_MODE=i_TEST_MODE):
+    def grad_subordination(self,  z, G_out, omega, omega_sc):
         """ Must be satisfied: """
         """" G_out(B)= G_sc(omega) = G_A(omega_sc) = (omega + omega_sc - B)^{-1} """
         """ F_A = G_A(omega_sc)^{-1} """
+        TEST_MODE = self.TEST_MODE
         #import pdb; pdb.set_trace()
         #print("c2:G_out:", G_out)
         self.G2 = G_out
@@ -567,11 +568,9 @@ class SemiCircular(object):
         tpPah = des.tp_Pa_h(W=omega_sc, F=F_A)
         ### 2x2
         tpS =  np.linalg.inv(np.eye(2,dtype=np.complex128) -  tpThsc  @ tpThA )
-
         ### partial derivation of omega
         tpPAOmega = tpPah @  tpS
         tpPAG =  tpPAOmega @ tpTGsc
-
         tpPsigmaOmega = tpPsigmah @ tpThA @ tpS
         tpPsigmaG =  tpPsigmaOmega @ tpTGsc + tpPsigmaG
 
@@ -750,12 +749,26 @@ class Descrete(object):
         return P.T
 
     ### d x 2
-    def tp_Pa_h(self, W, F):
-        tpPaCT = self.tp_Pa_CT(W)
-        tpPah = np.empty( [self.dim, 2], dtype=np.complex128)
-        for k in range(self.dim):
-                tpPah[k] = -F*tpPaCT[k]*F
-        return tpPah
+    ### F.shape= (2,)
+    ### W.shape= (2,)
+    def tp_Pa_h(self, W, F, DIRECT=True):
+        if DIRECT:
+            temp = 2*self.a/ ( W[0]*W[1] - self.a**2)**2
+            coef = W[::-1]
+            coef[0] /= self.dim
+            coef[1] /= self.p_dim
+            coef *= -F**2
+            out = np.outer(temp,coef)
+            return out
+        else:
+            tpPaCT = self.tp_Pa_CT(W)
+            tpPah = np.empty( [self.dim, 2], dtype=np.complex128)
+            for k in range(self.dim):
+                    tpPah[k] = -F*tpPaCT[k]*F
+            return tpPah
+
+
+
 
 
 class Laplace(object):

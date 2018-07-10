@@ -26,7 +26,7 @@ def random_from_diag(M,N,zero_dim=0, min_singular=0,COMPLEX=False):
     V = haar_unitary(N, COMPLEX)
     return U @ D @ V
 
-def info_plus_noise_symm(p_dim , dim, param_mat, sigma=1, COMPLEX=False):
+def signal_plus_noise_symm(p_dim , dim, param_mat, sigma=1, COMPLEX=False):
     out = np.zeros([2*p_dim, 2*p_dim])
     C = Ginibre(p_dim , dim , COMPLEX)
     for i in range(p_dim):
@@ -38,7 +38,7 @@ def info_plus_noise_symm(p_dim , dim, param_mat, sigma=1, COMPLEX=False):
 
 
 
-def info_plus_noise(param_mat,sigma=1,COMPLEX=False):
+def signal_plus_noise(param_mat,sigma=1,COMPLEX=False):
     p_dim = param_mat.shape[0]
     dim = param_mat.shape[1]
     assert np.allclose(param_mat.shape, [p_dim,dim])
