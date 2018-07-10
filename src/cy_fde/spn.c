@@ -1,6 +1,7 @@
-#include "cython_fde_sc_c2.h"
+#include "spn.h"
 #include <complex.h>
 #include <math.h>
+#include <cblas.h>
 int c_cauchy_2by2(double complex* Z, double complex*  o_G, int max_iter, double thres, double sigma, int p_dim, int dim, long* o_forward_iter){
     int flag = 0;
     double complex sub_x = 0;

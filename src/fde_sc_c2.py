@@ -14,7 +14,7 @@ import time
 import logging
 
 ### To spped up forward iteration.
-from cython_fde_sc_c2 import cy_cauchy_2by2, cy_cauchy_subordination
+from cy_fde_spn import *
 
 E = np.zeros([2,2,2,2])
 for i in range(2):

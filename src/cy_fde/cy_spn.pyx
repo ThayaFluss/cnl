@@ -1,11 +1,11 @@
 cimport numpy as np
 
 
-cdef extern from "cython_fde_sc_c2.h":
+cdef extern from "spn.h":
     int c_cauchy_2by2(double complex* Z, double complex* o_G, int max_iter, float thres, double sigma, int p_dim, int dim, long* o_forward_iter)
 
 
-cdef extern from "cython_fde_sc_c2.h":
+cdef extern from "spn.h":
     int c_cauchy_subordination(double complex* B, double complex* o_omega,double complex* o_G_sc,int max_iter,double thres, \
     double sigma, int p_dim, int dim, long* o_forward_iter,double* a,  double complex* o_omega_sc)
 
