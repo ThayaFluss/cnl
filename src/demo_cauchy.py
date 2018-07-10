@@ -59,7 +59,7 @@ jobname="true_sample_and_model_FDE"):
     dirname = "../images/plot_density"
     if not os.path.exists(dirname):
         os.makedirs(dirname)
-    filename = "images/plot_density/{}.png".format(jobname)
+    filename = "{}/{}.png".format(dirname, jobname)
     print ("output: {}".format(filename))
     plt.savefig(filename,dpi=300)
 

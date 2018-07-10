@@ -28,13 +28,26 @@ python  3, numpy, scipy, matplotlib, tqdm.  We recommend to use a plotform [Anac
 ```bash
 $ git clone https://github.com/ThayaFluss/cnl.git
 ```
-## setup
+## Setup
 
 ```bash
 $ bash cython_setup.bash
 ```
 
 ## Usage
+To estimate 
+
+
+
+For the rank estimation of p x d matrix X;
+```python
+ X #numpy.array of shape [p,d]
+ from psvd import *
+ rank, a, sigma = rank_estimation(X) #estimated rank and parameters  a, sigma.
+```
+
+
+## Validation
 
 To validate algorithms;
 ```bash

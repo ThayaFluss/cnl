@@ -97,7 +97,7 @@ def _mean_and_std(results):
 
 def test_optimize(\
     base_scale ,dim_cauchy_vec, \
-    base_lr=1e-1 ,  minibatch_size=1,  max_epoch=20,\
+    base_lr=1e-4 ,  minibatch_size=1,  max_epoch=20,\
     jobname="test_optimize_cw",\
     min_singular=0,
     dim=i_dim,
@@ -109,7 +109,7 @@ def test_optimize(\
         os.makedirs(dirname)
     num_sample =1
     #to file
-    file_log = logging.FileHandler('log/{}.log'.format(jobname), 'w')
+    file_log = logging.FileHandler('../log/{}.log'.format(jobname), 'w')
     file_log.setLevel(logging.INFO)
     file_log.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
     logging.getLogger().addHandler(file_log)
@@ -146,7 +146,7 @@ def test_optimize(\
 
 
 
-    b, train_loss_array, val_loss_array, forward_iter= train_fde_cw(dim, p_dim,\
+    result= train_fde_cw(dim, p_dim,\
         sample=evs_list,\
         base_scale=base_scale ,\
         dim_cauchy_vec=dim_cauchy_vec,\
@@ -155,6 +155,13 @@ def test_optimize(\
         max_epoch=max_epoch,\
         monitor_validation=True,\
         test_b=param)
+
+    b=result["b"]
+    train_loss_array=result["train_loss"]
+    val_loss_array=result["val_loss"]
+    forward_iter=result["forward_iter"]
+
+
 
     plt.figure()
     plt.plot(np.sort(param), label="Truth")
@@ -190,7 +197,7 @@ def test_scale_balance():
     minibatch_size = opt.minibatch
     ### TODO for paper
     base_scale = 1e-1
-    list_base_scale =[ 0.1*base_scale, base_scale, base_scale*10]
+    list_base_scale =[ 1e-1*base_scale, base_scale, base_scale*10]
     list_dim_cauchy_vec =  [1]
     ### for test
     #list_base_scale =[ 1e-1]

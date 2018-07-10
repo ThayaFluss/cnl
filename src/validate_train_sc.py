@@ -137,8 +137,7 @@ def test_optimize(\
 
     sample = np.asarray(evs_list)
 
-    r_diag_A, r_sigma, train_loss_array, val_loss_array,num_zero_array,  forward_iter\
-    = train_fde_sc(dim, p_dim,  sample,\
+    result= train_fde_sc(dim, p_dim,  sample,\
         base_scale=base_scale ,\
         dim_cauchy_vec=dim_cauchy_vec,\
         base_lr =base_lr ,\
@@ -150,6 +149,14 @@ def test_optimize(\
         test_sigma =sigma,\
         list_zero_thres = list_zero_thres,\
         SUBO=SUBO)
+
+    r_diag_A        =result["diag_A"]
+    r_sigma         =result["sigma"]
+    train_loss_array=result["train_loss"]
+    val_loss_array  =result["val_loss"]
+    num_zero_array  =result["num_zero"]
+    forward_iter    =result["forward_iter"]
+
 
     plt.figure()
     plt.plot(param, label="Truth")

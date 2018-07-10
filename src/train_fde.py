@@ -12,7 +12,7 @@ from tqdm import tqdm, trange
 
 from fde_cw import *
 
-TEST_C2 = False ###Use \C^2-valued subordination
+TEST_C2 = False ###Use \C^2-valued subordination for test
 BASE_C2 =   True ###Use \C^2-valued suborndaiton as BASE
 if TEST_C2:
     import fde_sc_c2
@@ -328,9 +328,6 @@ def train_fde_sc(dim, p_dim, sample,\
         ### for epoch base
         # e_idx = int(n/ iter_per_epoch)
         mini = get_minibatch(sample, minibatch_size, n, scale, dim_cauchy_vec, SAMPLING="CHOICE")
-
-        ### TODO to add sigma to zero thres
-        #list_zero_thres = o_zero_thres + [sigma]
         list_zero_thres = o_zero_thres
         num_zero = np.zeros(len(list_zero_thres))
 
@@ -427,8 +424,6 @@ def train_fde_sc(dim, p_dim, sample,\
         for k in range(dim):
             if abs(diag_A[k]) > edge:
                 logging.info( "diag_A[{}]={} reached the boundary".format(k,diag_A[k]))
-                #import pdb; pdb.set_trace()
-
                 diag_A[k] =edge  -  1e-2
                 m_PA[k] = -1e-8
 
@@ -465,7 +460,7 @@ def train_fde_sc(dim, p_dim, sample,\
         average_sigma += sigma
         average_diagA += np.sort(np.abs(diag_A))
 
-        if n %  log_step == 0:
+        if (n % log_step  + 1 )== log_step:
             ### Count zeros under several thresholds
             num_zero = num_zero_list[-1]
 
@@ -487,8 +482,8 @@ def train_fde_sc(dim, p_dim, sample,\
 
             #average_sigma *= normalize_ratio
             #average_diagA *= normalize_ratio
-            if n % stdout_step == 0:
-                logging.info("{0}/{4}-iter:lr = {1:4.3e}, scale = {2:4.3e}, num_cauchy = {3}".format(n,lr,scale,dim_cauchy_vec,max_iter ))
+            if (n % stdout_step + 1) == stdout_step:
+                logging.info("{0}/{4}-iter:lr = {1:4.3e}, scale = {2:4.3e}, num_cauchy = {3}".format(n+1,lr,scale,dim_cauchy_vec,max_iter ))
                 logging.info("loss= {}".format( average_loss))
 
             if monitor_validation:
@@ -496,10 +491,10 @@ def train_fde_sc(dim, p_dim, sample,\
                 #val_loss_average = np.sum(np.abs(np.sort(np.abs(average_diagA)) - np.sort(np.abs(n_test_diag_A)))) \
                 val_loss_average = np.linalg.norm(np.sort(np.abs(average_diagA)) - np.sort(np.abs(n_test_diag_A)))\
                 +  np.abs(np.abs(average_sigma) - n_test_sigma)
-                if n % stdout_step == 0:
+                if (n % stdout_step + 1) == stdout_step:
                     logging.info("val_loss= {}".format(average_val_loss))
                     logging.debug("val_loss_average= {}".format(val_loss_average))
-            if n % stdout_step == 0:
+            if (n % stdout_step + 1) == stdout_step:
 
                 logging.info("sigma= {}".format(average_sigma))
                 #logging.info("diag_A (sorted)=\n{}  / 10-iter".format(np.sort(average_diagA)))
@@ -522,7 +517,7 @@ def train_fde_sc(dim, p_dim, sample,\
 
 
 
-        logging.debug( "{}-iter:lr={},scale{}, loss: {}".format(n,lr, scale, new_loss) )
+        logging.debug( "{}-iter:lr={},scale{}, loss: {}".format(n+1,lr, scale, new_loss) )
         logging.debug( "sigma: {}".format(sigma))
         #diag_A=np.sort(diag_A)
         if monitor_validation:
@@ -546,17 +541,13 @@ def train_fde_sc(dim, p_dim, sample,\
             #plt.plot(x_axis,y_axis_init, label="Init")
             sc.set_params(diag_A, sigma)
             y_axis = sc.density_subordinaiton(x_axis)
-            plt.plot(x_axis,y_axis, label="{}-iter".format(n), color="blue")
+            plt.plot(x_axis,y_axis, label="{}-iter".format(n+1), color="blue")
             plt.legend()
-            plt.savefig("{}/plot_density_{}-iter".format(dirname, n),dpi=i_dpi)
+            plt.savefig("{}/plot_density_{}-iter".format(dirname, n+1),dpi=i_dpi)
             plt.clf()
             plt.close()
             logging.info("Plotting density...done")
 
-
-    average_loss /= log_step
-    average_sigma /= log_step
-    average_diagA /= log_step
     average_sigma *= normalize_ratio
     average_diagA *= normalize_ratio
     logging.info("result:")
@@ -577,7 +568,13 @@ def train_fde_sc(dim, p_dim, sample,\
     #list_zero_thres = list_zero_thres[:-1]
     if monitor_validation:
         del sc_for_plot
-    return average_diagA, average_sigma, train_loss_array, val_loss_array, num_zero_array, forward_iter
+    result = dict(diag_A = average_diagA,\
+    sigma= average_sigma,
+    train_loss= train_loss_array,
+    val_loss=val_loss_array,
+    num_zero=num_zero_array,
+    forward_iter= forward_iter)
+    return result
 
 
 def train_fde_cw(dim, p_dim, sample,\
@@ -800,12 +797,11 @@ def train_fde_cw(dim, p_dim, sample,\
             average_val_loss += val_loss
         average_loss += new_loss
         average_b += np.sort(b)
-        if n %  log_step == 0:
-            if n > 0:
-                average_loss /= log_step
-                average_val_loss /= log_step
-                average_b /= log_step
-            logging.info("{0}/{4}-iter:lr = {1:4.3e}, scale = {2:4.3e}, num_cauchy = {3}".format(n,lr,scale,dim_cauchy_vec,max_iter ))
+        if (n % log_step + 1 ) == log_step:
+            average_loss /= log_step
+            average_val_loss /= log_step
+            average_b /= log_step
+            logging.info("{0}/{4}-iter:lr = {1:4.3e}, scale = {2:4.3e}, num_cauchy = {3}".format(n+1,lr,scale,dim_cauchy_vec,max_iter ))
             logging.info("loss= {}  / average".format( average_loss))
             if monitor_validation:
                 logging.info("val_loss= {}  / average".format(average_val_loss))
@@ -815,11 +811,11 @@ def train_fde_cw(dim, p_dim, sample,\
             average_val_loss = 0
             average_b = 0
 
-        logging.debug( "{}-iter:lr={},scale{}, loss: {}".format(n,lr, scale, new_loss) )
+        logging.debug( "{}-iter:lr={},scale{}, loss: {}".format(n+1,lr, scale, new_loss) )
         logging.debug( "val_loss: {}".format(val_loss))
 
 
-        if plot_stepsize > 0 and n % plot_stepsize == 0:
+        if (n % plot_stepsize + 1 )== plot_stepsize:
             logging.info("Plotting density...")
             plt.clf()
             plt.close()
@@ -842,7 +838,7 @@ def train_fde_cw(dim, p_dim, sample,\
             #plt.plot(x_axis,y_axis,label="{} iteration".format(n), color="blue")
             plt.plot(x_axis,y_axis, color="blue")
 
-            plt.savefig("{}/plot_density_{}-iter".format(dirname, n),dpi=i_dpi)
+            plt.savefig("{}/plot_density_{}-iter".format(dirname, n+1),dpi=i_dpi)
             plt.clf()
             plt.close()
             logging.info("Plotting density...done")
@@ -854,8 +850,8 @@ def train_fde_cw(dim, p_dim, sample,\
     train_loss_array = np.array(train_loss_list)
     forward_iter = cw.forward_iter/ ( max_iter * minibatch_size)
     del cw
+    result = dict(b= b, train_loss= train_loss_array, forward_iter= forward_iter)
     if monitor_validation:
         val_loss_array = np.array(val_loss_list)
-        return b, train_loss_array, val_loss_array, forward_iter
-    else:
-        return b, train_loss_array, -1, forward_iter
+        result["val_loss"] = val_loss_array
+    return result

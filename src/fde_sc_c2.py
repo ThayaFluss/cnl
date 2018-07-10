@@ -247,211 +247,37 @@ class SemiCircular(object):
 
 
 
-    ### G^{-1} = b - v^2 \eta(G)
-    ### - G^{-1} dG G^{-1} = db -v^2\eta(dG) -dv^2 \eta(G)
-    ### dG = G(-db +   v^2\eta(dG)  + dv^2 \eta(G))G
 
-    #if use_numba:
-    def grad_by_iteration(self, G, sigma, grads_init,  max_iter=500, base_thres = 1e-6, use_numba=False):
-    #    return sc_grad_by_iteration_fast(G, var_mat,sigma, grads_init,  max_iter, base_thres)
-    #else:
-        grads = grads_init
-        ### For multiplication of matrix and diagonal matrix
-        G = np.asarray(G)
-
-        temp_max_iter =  200
-        size = int(G.shape[0]/2)
-        thres = base_thres
-
-        #linalg.init()
-
-        num_coord = size + 1
-
-        monitor_step = 10
-        #diag_nondiag = -sigma**(-2)*var_mat
-        timer = Timer()
-        timer.tic()
-        #E = np.zeros((2*size, 2*size))
-        flag = 1
-
-        #s_gpu = gpuarray.to_gpu(np.asarray(sigma))
-        M = grads.shape[1]
-        half_M = int(M/2)
-        t_out = np.empty(M, dtype=np.complex128)
-        def _eta_array(in_mat):
-                t2 = np.trace(in_mat[half_M:,half_M:])/half_M
-                t1 = np.trace(in_mat[:half_M,:])/half_M
-                #assert t2 + t1 == np.trace(in_mat)/(half_M)
-                for i in range(half_M):
-                    t_out[i]= t2
-                for i in range(half_M, M):
-                    t_out[i]= t1
-                return t_out
-        for i in range(num_coord):
-          if flag == 1:
-            grad = grads[i]
-            E = np.zeros((2*size,2*size),np.complex128)
-            if i < size:
-                E[i][size+i] = 1.
-                E[size+i][i] = 1.
-            else:
-                E= 2*sigma*self.eta(G)
-
-            C = (G @ E) @ G
-
-            #G_gpu = gpuarray.to_gpu(G)
-            #E_gpu = gpuarray.to_gpu(E)
-            #out_gpu = gpuarray.to_gpu(out)
-
-            #C_gpu =  linalg.dot(linalg.dot(G_gpu, E_gpu), G_gpu)
-            if use_numba:
-                grad= iterate_grad(max_iter, C, sigma, grad, G,thres)
-            else:
-                sub_flag = False
-                for n in range(max_iter+1):
-                    ### Broadcast: return the same result as
-                    ### out = C + sigma**2*G @ self.eta(out) @ G
-                    ### Pay attention: Does not work for np.matrix
-                    sub  = -grad + C + sigma**2*(_eta_array(grad)*G ) @ G
-                    #grad = Tau_transform(C, sigma , grad.shape[0], grad, G)
-                    #eta = gpuarray.to_gpu(sigma**2*self.eta(out_gpu.get()))
-                    #out_gpu = C_gpu  + linalg.dot(G_gpu, linalg.dot(eta, G_gpu))
-                    #print (n,np.linalg.norm(sub), np.linalg.norm(grad))
-                    if n > 1 and np.linalg.norm(sub) < thres*np.linalg.norm(grad):
-                        sub_flag = True
-                    grad += sub
-                    if sub_flag:
-                        break
-
-                    ### Moninitoring convergence
-                    """
-                    if n % monitor_step == monitor_step -1:
-                        old_grad = np.copy(grad)
-                        #old_out = out_gpu.get()
-                    elif n % monitor_step == 0 and n >0:
-                        #out = out_gpu.get()
-                        sub = np.linalg.norm(grad- old_grad)
-                        logging.debug("{} grads sub={}".format(n,sub ))
-                        if sub < thres:
-                            #logging.debug( "break grads at {}, sub={}".format(n, sub))
-                            grads[i] = grad
-                            logging.debug("coord {} : break at {}".format(i,n))
-                            break
-                        elif  n > temp_max_iter:
-                            if sub < 1e-1 and temp_max_iter < max_iter:
-                                logging.info("Continue computing grads...at i={}, n={} : sub = {}".format(i,n,sub))
-                                temp_max_iter += 50
-                            else:
-                                logging.error( "::::::error grads is ignored.:::::at i={}, n={} : sub = {}".format(i, n, sub))
-                                grads[i]= np.zeros((2*size,2*size), np.complex128)
-                                flag = -1
-                                break
-                    """
-                timer.toc()
-                logging.debug("grads:time={}, {}-iter".format(timer.total_time, n))
-
-        return grads
-
-
-
-        ###SLow, use only for debug
     def grad_by_inverse(self,G, var_mat,sigma):
-                L = G.shape[0]
-                size = int(L/2)
-                tp_TGe = np.zeros((L,L, L, L),np.complex128)
-                for i in range(L):
-                    for j in range(L):
-                        E = np.zeros((L, L), np.complex128)
-                        E[i][j] = 1.
-                        tp_TGe[i][j] = sigma**2*G @ self.eta(E) @ G
-                tpTGe = tp_TGe.reshape([L**2,L**2])
+        """SLow, use only for debug"""
+        L = G.shape[0]
+        size = int(L/2)
+        tp_TGe = np.zeros((L,L, L, L),np.complex128)
+        for i in range(L):
+            for j in range(L):
+                E = np.zeros((L, L), np.complex128)
+                E[i][j] = 1.
+                tp_TGe[i][j] = sigma**2*G @ self.eta(E) @ G
+        tpTGe = tp_TGe.reshape([L**2,L**2])
 
-                tpS = sp.sparse.linalg.inv(sp.sparse.csc_matrix(np.eye(L**2) - tpTGe))
-                """
-                num = 15
-                temp =  np.eye(L**2, dtype=np.complex128128)
-                out = temp
-                for n in range(num):
-                    temp = temp @ tpTGe
-                    out += temp
-                tpS_Neumann = out
-                norm = np.sum(np.abs(tpS - tpS_Neumann))
-                logging.info("inv -Neumann={}".format(norm))
-                """
-                PAGe = np.zeros((size, L,L), np.complex128)
+        tpS = sp.sparse.linalg.inv(sp.sparse.csc_matrix(np.eye(L**2) - tpTGe))
+        PAGe = np.zeros((size, L,L), np.complex128)
 
-                for d in range(size):
-                    E = np.zeros((L, L), np.complex128)
-                    E[d][size+d] = 1.
-                    E[size+d][d] = 1.
-                    PAGe[d] = G@E@G
-                PAGe= PAGe.reshape([size, L**2])
+        for d in range(size):
+            E = np.zeros((L, L), np.complex128)
+            E[d][size+d] = 1.
+            E[size+d][d] = 1.
+            PAGe[d] = G@E@G
+        PAGe= PAGe.reshape([size, L**2])
 
-                out = PAGe @ tpS
-                out = out.reshape([size,L,L])
-                return out
+        out = PAGe @ tpS
+        out = out.reshape([size,L,L])
+        return out
 
     def loss(self,sample):
         density = self.density(sample)
         loss = -np.average(sp.log(density))
         return loss
-
-
-    def grad_loss(self, param_array, sigma, sample):
-            size = np.shape(param_array)[0]
-            param_mat = np.matrix(np.diag(param_array))
-
-            #e_param_mat = np.zeros(4*size**2, dtype=np.complex128).reshape([2*size, 2*size])
-            #for k in range(size):
-            #    for l in range(size):
-            #        e_param_mat[k][size+l] = param_mat.H[k,l]
-            #        e_param_mat[size+k][l] = param_mat[k,l]
-            #e_param_mat = np.matrix(e_param_mat)
-            e_param_mat = self.diag_nondiag(0, param_mat)
-            num_sample = len(sample)
-            rho_list = []
-            num_coord = size + 1
-            grads = np.zeros(num_coord)
-            G = self.G
-            scale = self.scale
-            for i in range(num_sample):
-                x = sample[i]
-                z = sp.sqrt(x+1j*self.scale)
-                #L = z*np.eye(2*size)
-                #L = Lambda(z,  2*size, -1)
-                #L = np.matrix(L)
-                #var_mat = L - e_param_mat
-                var_mat = z*np.eye(2*size) + e_param_mat
-                G = self.cauchy(self.G, var_mat, sigma)
-                ### Update initial value of G
-                self.G  = G
-
-                G_2 = G / z   ### zG_2(z^2) = G(z)
-                rho =  -ntrace(G_2).imag/sp.pi
-                rho_list.append(rho)
-
-                grads_G = self.grad_by_iteration(G,sigma, grads_init=self.grads)
-                #grads_G = sc_grad_by_iteration_fast(G, var_mat, sigma, self.grads)
-                ### Update initial value of gradients of G
-                self.grads = grads_G
-
-
-                if self.test_grads:
-                    timer=Timer()
-                    timer.tic()
-                    grad_by_inv = self.grad_by_inverse(G,  var_mat, sigma)
-                    timer.toc()
-                    logging.info("grad_by_inver time={}".format(timer.total_time))
-                    norm = np.linalg.norm(grads[:size, :,:] - grad_by_inv)
-                    logging.info("fixed_point - inverse:\n{}".format(norm) )
-
-                ### (-log \rho)' = - \rho' / \rho
-                for n in range(num_coord):
-                    grads[n] += (ntrace(grads_G[n])/z).imag/(sp.pi*rho)
-
-            loss = np.average(-sp.log(rho_list))
-            grads/= num_sample
-            return grads , loss
 
 
 
@@ -464,7 +290,7 @@ class SemiCircular(object):
             grads[-1] = 0#np.sign(sigma)
             grads *= reg_coef
             #logging.info("LASSO: grads={}, loss={}".format(grads,loss))
-            
+
 
         elif TYPE == "L2":
             loss =  np.sum(diag_A**2) #+ sigma**2
@@ -698,68 +524,68 @@ class SemiCircular(object):
         rho = -np.imag(ntrace(G)/z)/sp.pi
         return rho
 
-    ### Requires:
-    ### G_out(B)= G_sc(omega) = G_A(omega_sc) = (omega + omega_sc - B)^{-1}
-    ### F_A = G_A(omega_sc)^{-1} =
     def grad_subordination(self,  z, G_out, omega, omega_sc,\
      TEST_MODE=i_TEST_MODE):
-            #import pdb; pdb.set_trace()
-            #print("c2:G_out:", G_out)
-            self.G2 = G_out
-            self.omega = omega
-            self.omega_sc = omega_sc
-            i_mat = z*np.ones(2,dtype=np.complex128)
-            des = self.des
-            if TEST_MODE:
-                assert (np.allclose( G_out, self.cauchy_2by2(omega, G_init=G_out)))
-                assert (np.allclose( G_out, 1/(omega + omega_sc - i_mat ) ))
-                assert (np.allclose( G_out, des.cauchy_transform(omega_sc)))
+        """ Must be satisfied: """
+        """" G_out(B)= G_sc(omega) = G_A(omega_sc) = (omega + omega_sc - B)^{-1} """
+        """ F_A = G_A(omega_sc)^{-1} """
+        #import pdb; pdb.set_trace()
+        #print("c2:G_out:", G_out)
+        self.G2 = G_out
+        self.omega = omega
+        self.omega_sc = omega_sc
+        i_mat = z*np.ones(2,dtype=np.complex128)
+        des = self.des
+        if TEST_MODE:
+            assert (np.allclose( G_out, self.cauchy_2by2(omega, G_init=G_out)))
+            assert (np.allclose( G_out, 1/(omega + omega_sc - i_mat ) ))
+            assert (np.allclose( G_out, des.cauchy_transform(omega_sc)))
 
-            ### f and h transform of A @ omega_sc
-            F_A = omega + omega_sc - i_mat
-            #assert (np.allclose( 1./des.cauchy_transform(omega_sc), F_A))
-            h_A = F_A - omega_sc
-            #print("omega, omega_sc", omega,omega_sc)
-            #print("c2:F_A", F_A)
-            #import pdb; pdb.set_trace()
+        ### f and h transform of A @ omega_sc
+        F_A = omega + omega_sc - i_mat
+        #assert (np.allclose( 1./des.cauchy_transform(omega_sc), F_A))
+        h_A = F_A - omega_sc
+        #print("omega, omega_sc", omega,omega_sc)
+        #print("c2:F_A", F_A)
+        #import pdb; pdb.set_trace()
 
-            ### transposed derivation of g, h of sc @ omega
-            tpTGsc = self.tp_T_G( G=G_out)
-            tpThsc = self.tp_T_h( G=G_out)
-            tpPsigmah = self.tp_Psigma_h(G=G_out)
-            tpPsigmaG = self.tp_Psigma_G(G=G_out)
-            #print("c2:tpTGsc:", tpTGsc )
-            #print("c2:tpThsc:", tpThsc )
-            #print("c2:tpPsigmaG:", tpPsigmaG )
-            #print("c2:tpPsigmah:", tpPsigmah )
+        ### transposed derivation of g, h of sc @ omega
+        tpTGsc = self.tp_T_G( G=G_out)
+        tpThsc = self.tp_T_h( G=G_out)
+        tpPsigmah = self.tp_Psigma_h(G=G_out)
+        tpPsigmaG = self.tp_Psigma_G(G=G_out)
+        #print("c2:tpTGsc:", tpTGsc )
+        #print("c2:tpThsc:", tpThsc )
+        #print("c2:tpPsigmaG:", tpPsigmaG )
+        #print("c2:tpPsigmah:", tpPsigmah )
 
-            ### transposed derivation of h of A @ omega_sc
-            tpTGA = des.tp_T_G(W=omega_sc)
-            #print("c2:tpTGA:", tpTGA )
+        ### transposed derivation of h of A @ omega_sc
+        tpTGA = des.tp_T_G(W=omega_sc)
+        #print("c2:tpTGA:", tpTGA )
 
-            tpThA  = des.tp_T_h(W=omega_sc, F=F_A)
-            tpPah = des.tp_Pa_h(W=omega_sc, F=F_A)
-            ### 2x2
-            tpS =  np.linalg.inv(np.eye(2,dtype=np.complex128) -  tpThsc  @ tpThA )
+        tpThA  = des.tp_T_h(W=omega_sc, F=F_A)
+        tpPah = des.tp_Pa_h(W=omega_sc, F=F_A)
+        ### 2x2
+        tpS =  np.linalg.inv(np.eye(2,dtype=np.complex128) -  tpThsc  @ tpThA )
 
-            ### partial derivation of omega
-            tpPAOmega = tpPah @  tpS
-            tpPAG =  tpPAOmega @ tpTGsc
+        ### partial derivation of omega
+        tpPAOmega = tpPah @  tpS
+        tpPAG =  tpPAOmega @ tpTGsc
 
-            tpPsigmaOmega = tpPsigmah @ tpThA @ tpS
-            tpPsigmaG =  tpPsigmaOmega @ tpTGsc + tpPsigmaG
+        tpPsigmaOmega = tpPsigmah @ tpThA @ tpS
+        tpPsigmaG =  tpPsigmaOmega @ tpTGsc + tpPsigmaG
 
-            if TEST_MODE:
-                tpS_sc =  np.linalg.inv(np.eye(2,dtype=np.complex128) -  tpThA @ tpThsc  )
-                tpPsigmaOmega_2 = tpPsigmah @  tpS_sc
-                tpPsigmaG_2 =  tpPsigmaOmega_2 @ tpTGA
-                assert (np.allclose(tpPsigmaG_2, tpPsigmaG))
+        if TEST_MODE:
+            tpS_sc =  np.linalg.inv(np.eye(2,dtype=np.complex128) -  tpThA @ tpThsc  )
+            tpPsigmaOmega_2 = tpPsigmah @  tpS_sc
+            tpPsigmaG_2 =  tpPsigmaOmega_2 @ tpTGA
+            assert (np.allclose(tpPsigmaG_2, tpPsigmaG))
 
-            #assert (tpPAG.shape , [self.dim, 2])
-            tpPsigmaG = np.reshape(tpPsigmaG,  [1,2])
-            grad = np.append(tpPAG, tpPsigmaG, axis=0)
+        #assert (tpPAG.shape , [self.dim, 2])
+        tpPsigmaG = np.reshape(tpPsigmaG,  [1,2])
+        grad = np.append(tpPAG, tpPsigmaG, axis=0)
 
-            return grad
+        return grad
 
 
     def grad_loss_subordination(self,  sample):
@@ -846,7 +672,7 @@ class SemiCircular(object):
 
 
 class Descrete(object):
-    """docstring for Descrete."""
+    """For Cauchy transform of a constant matrix"""
     def __init__(self, a, p_dim=-1):
         super(Descrete, self).__init__()
         self.a = a

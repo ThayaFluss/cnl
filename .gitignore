@@ -10,3 +10,4 @@
 .images/
 *.so
 *.o
+.build/
