@@ -137,7 +137,7 @@ def test_optimize(\
 
     sample = np.asarray(evs_list)
 
-    result= train_fde_sc(dim, p_dim,  sample,\
+    result= train_fde_spn(dim, p_dim,  sample,\
         base_scale=base_scale ,\
         dim_cauchy_vec=dim_cauchy_vec,\
         base_lr =base_lr ,\

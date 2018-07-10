@@ -2,7 +2,7 @@
 import unittest
 from timer import *
 import numpy as np
-from cython_fde_sc_c2 import *
+from cython_fde_spn_c2 import *
 
 
 class TestCython(unittest.TestCase):

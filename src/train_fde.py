@@ -10,18 +10,18 @@ import time
 import logging
 from tqdm import tqdm, trange
 
-from fde_cw import *
+from cw import *
 
 TEST_C2 = False ###Use \C^2-valued subordination for test
 BASE_C2 =   True ###Use \C^2-valued suborndaiton as BASE
 if TEST_C2:
-    import fde_sc_c2
-    from fde_sc import *
+    import spn_c2
+    from spn import *
 else:
     if BASE_C2:
-        from fde_sc_c2 import *
+        from spn_c2 import *
     else:
-        from fde_sc import *
+        from spn import *
 
 i_dpi = 120  #Resolution of figures
 i_ext = "png"
@@ -114,7 +114,7 @@ def KL_divergence(diag_A,sigma, sc_true, num_shot = 20, dim_cauchy_vec=100):
     return KL
 
 
-def train_fde_sc(dim, p_dim, sample,\
+def train_fde_spn(dim, p_dim, sample,\
  base_scale = 1e-1, dim_cauchy_vec=1, base_lr = 1e-4,minibatch_size=1,\
  max_epoch=120, normalize_sample = False,\
  edge=1.2, reg_coef = 0,\
@@ -262,7 +262,7 @@ def train_fde_sc(dim, p_dim, sample,\
     sc = SemiCircular(dim=dim,p_dim=p_dim, scale=base_scale)
     sc.set_params(diag_A, sigma)
     if TEST_C2:
-        sc2 = fde_sc_c2.SemiCircular(dim=dim,p_dim=p_dim, scale=base_scale)
+        sc2 = fde_spn_c2.SemiCircular(dim=dim,p_dim=p_dim, scale=base_scale)
         sc2.set_params(diag_A, sigma)
 
 
@@ -577,7 +577,7 @@ def train_fde_sc(dim, p_dim, sample,\
     return result
 
 
-def train_fde_cw(dim, p_dim, sample,\
+def train_cw(dim, p_dim, sample,\
  base_scale = 0.01, dim_cauchy_vec=4, base_lr = 0.1,minibatch_size=1,\
  max_epoch=20,  normalize_sample = False,\
  monitor_validation=True, test_b=-1):

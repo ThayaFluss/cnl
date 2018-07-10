@@ -146,7 +146,7 @@ def test_optimize(\
 
 
 
-    result= train_fde_cw(dim, p_dim,\
+    result= train_cw(dim, p_dim,\
         sample=evs_list,\
         base_scale=base_scale ,\
         dim_cauchy_vec=dim_cauchy_vec,\

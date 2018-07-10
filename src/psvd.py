@@ -1,7 +1,7 @@
 import numpy as np
 
 
-from fde_sc_c2 import *
+from fde_spn_c2 import *
 from argparse import ArgumentParser
 from train_fde import *
 
@@ -25,7 +25,7 @@ def psvd_cnl(sample_mat, reg_coef=0):
     max_epoch = (20000/dim)  * (p_dim/dim)
     max_epoch = int(max_epoch)
 
-    result =  train_fde_sc(dim, p_dim, sample, max_epoch=max_epoch, edge=1.01, reg_coef=reg_coef)
+    result =  train_fde_spn(dim, p_dim, sample, max_epoch=max_epoch, edge=1.01, reg_coef=reg_coef)
 
     diag_A = result["diag_A"]
     sigma = result["sigma"]
@@ -56,7 +56,7 @@ def rank_estimation(sample_mat,\
      _, D, _ = np.linalg.svd(sample_mat)
      sample = D**2 ### eigenvalues of sample_mat.H @ sample_mat
 
-     result = train_fde_sc(
+     result = train_fde_spn(
      p_dim = p_dim, dim=dim, sample = sample,\
       base_scale = base_scale, dim_cauchy_vec=dim_cauchy_vec, base_lr = base_lr,minibatch_size=minibatch_size,\
       max_epoch=max_epoch, normalize_sample = normalize_sample,\
