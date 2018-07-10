@@ -344,6 +344,7 @@ class SemiCircular(object):
             a = np.asarray(self.des.a, dtype=np.float)
             sigma = float(self.sigma)
             cy_omega_sc = np.zeros(2, dtype=np.complex)
+            import pdb; pdb.set_trace()
             result = cy_cauchy_subordination(B, init_omega,init_G_sc,max_iter,thres, \
             sigma, self.p_dim, self.dim, self.forward_iter, a, cy_omega_sc)
             if result == 0:
