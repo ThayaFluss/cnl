@@ -588,6 +588,7 @@ class SemiCircular(object):
 
 
     def grad_loss_subordination(self,  sample):
+            TEST_MODE = self.TEST_MODE
             num_sample = len(sample)
             rho_list = []
             num_coord = self.dim + 1
@@ -624,8 +625,13 @@ class SemiCircular(object):
 
                 self.grads2 = grad_G
                 ### (-log \rho)' = - \rho' / \rho
-                for n in range(num_coord):
-                    grad[n] += (grad_G[n][0]/w).imag/(sp.pi*rho)
+                temp = (grad_G[:,0]/w).imag/(sp.pi*rho)
+                grad += temp
+                if TEST_MODE:
+                    for n in range(num_coord):
+                        t =  (grad_G[n][0]/w).imag/(sp.pi*rho)
+                        assert (np.allclose( temp[n] ,t) )
+                        grad[n] += t
 
 
             loss = np.average(-sp.log(rho_list))
