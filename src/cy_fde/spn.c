@@ -98,21 +98,21 @@ void my_zgemm(void){
   int N = 2;
   int K = 4;
 
-  double *A, *B, *Out;
-  A = malloc(sizeof(double) *M * K);
-  B = malloc(sizeof(double) *K * N);
-  Out = malloc(sizeof(double) *M * N);
-  double alpha  = 1;
-  double beta = 0;
+  complex double *A, *B, *Out;
+  A = malloc(sizeof(complex double) *M * K);
+  B = malloc(sizeof(complex double) *K * N);
+  Out = malloc(sizeof(complex double) *M * N);
+  complex double alpha  = 1;
+  complex double beta = 0;
 
-  memset(A, 0, sizeof(double) * M * K);
-  memset(B, 0, sizeof(double) * K * N);
-  memset(Out, 0, sizeof(double) * M * N);
+  memset(A, 0, sizeof(complex double) * M * K);
+  memset(B, 0, sizeof(complex double) * K * N);
+  memset(Out, 0, sizeof(complex double) * M * N);
 
-  for (size_t i = 0; i < M*K; i++) {
+  for (int i = 0; i < M*K; i++) {
     A[i] = i;
   }
-  for (size_t i = 0; i < K*N; i++) {
+  for (int i = 0; i < K*N; i++) {
     B[i] = i;
   }
 
@@ -120,14 +120,16 @@ void my_zgemm(void){
   for (int m = 0; m < M; m++) {
     for (int n = 0; n < N; n++, Out++) {
       *Out *= beta;
-      double *A_ptr = A + K*m;
-      double *B_ptr = B + n;
-      double sum = 0;
+      complex double *A_ptr = A + K*m;
+      complex double *B_ptr = B + n;
+      complex double sum = 0;
       for (int  k = 0; k < K; k++, A_ptr++, B_ptr+= N) {
         sum+= *A_ptr * ( *B_ptr);
+        /*
         printf("m=%d, n=%d\n",m,n);
-        printf("A;%f\n", *A_ptr - A[K*m + k]);
-        printf("B;%f\n", *B_ptr - B[k*N + n]);
+        printf("A;%f\n", abs(*A_ptr - A[K*m + k] ));
+        printf("B;%f\n", abs(*B_ptr - B[k*N + n] ));
+        */
       }
       *Out += alpha*sum;
     }
