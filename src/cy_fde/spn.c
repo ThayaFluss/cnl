@@ -3,7 +3,8 @@
 #include "spn.h"
 #include <complex.h>
 #include <math.h>
-#include <cblas.h>
+//#include <cblas.h>
+#include "matrix_util.h"
 
 int c_cauchy_2by2(double complex* Z, double complex*  o_G, int max_iter, double thres, double sigma, int p_dim, int dim, long* o_forward_iter){
     int flag = 0;
@@ -32,7 +33,6 @@ int c_cauchy_2by2(double complex* Z, double complex*  o_G, int max_iter, double 
 
 int c_cauchy_subordination(double complex* B, double complex* o_omega,double complex* o_G_sc,int max_iter,double thres, \
 double sigma, int p_dim, int dim, long* o_forward_iter,double* a,  double complex* o_omega_sc){
-    my_zgemm();
     int flag = 0;
     int result = 0;
     for (int n = 0; n< max_iter; ++n){
@@ -67,71 +67,8 @@ double sigma, int p_dim, int dim, long* o_forward_iter,double* a,  double comple
     return result;
 }
 
-int test_blas(void){
-   int  d = 50;
-   int  k = 2;
-   int  l = 3;
-   double *A, *B, *C;
-   A = malloc(sizeof(double) *d * k);
-   B = malloc(sizeof(double) *k * l);
-   C = malloc(sizeof(double) *d * l);
-   double alpha  = 1;
-   double beta = 0;
-
-   memset(A, 0, sizeof(double) * d * k);
-   memset(B, 0, sizeof(double) * k * l);
-   memset(C, 0, sizeof(double) * d * l);
-   cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,
-       d, l, k, alpha, A, d, B, k, beta, C, d);
-
-   return 0;
-
-}
-/*
-* A : M x K
-* B : K x N
-* C : M x N
-*/
-//void my_zgemm(M, N, K, const double complex  *A, const  double complex *B, double complex * Out){
-void my_zgemm(void){
-  int M= 5;
-  int N = 2;
-  int K = 4;
-
-  complex double *A, *B, *Out;
-  A = malloc(sizeof(complex double) *M * K);
-  B = malloc(sizeof(complex double) *K * N);
-  Out = malloc(sizeof(complex double) *M * N);
-  complex double alpha  = 1;
-  complex double beta = 0;
-
-  memset(A, 0, sizeof(complex double) * M * K);
-  memset(B, 0, sizeof(complex double) * K * N);
-  memset(Out, 0, sizeof(complex double) * M * N);
-
-  for (int i = 0; i < M*K; i++) {
-    A[i] = i;
-  }
-  for (int i = 0; i < K*N; i++) {
-    B[i] = i;
-  }
 
 
-  for (int m = 0; m < M; m++) {
-    for (int n = 0; n < N; n++, Out++) {
-      *Out *= beta;
-      complex double *A_ptr = A + K*m;
-      complex double *B_ptr = B + n;
-      complex double sum = 0;
-      for (int  k = 0; k < K; k++, A_ptr++, B_ptr+= N) {
-        sum+= *A_ptr * ( *B_ptr);
-        /*
-        printf("m=%d, n=%d\n",m,n);
-        printf("A;%f\n", abs(*A_ptr - A[K*m + k] ));
-        printf("B;%f\n", abs(*B_ptr - B[k*N + n] ));
-        */
-      }
-      *Out += alpha*sum;
-    }
-  }
+int c_grad(void){
+  return 0;
 }

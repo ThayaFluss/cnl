@@ -2,10 +2,15 @@
 import unittest
 from timer import *
 import numpy as np
-from cython_fde_spn_c2 import *
+from cy_fde_spn import *
 
 
 class TestCython(unittest.TestCase):
+    def test_cy_test_all(self):
+        result = 1
+        result = cy_test_all(result)
+        assert result
+
     def test_cy_cauchy_subordianation(self):
         timer = Timer()
 
