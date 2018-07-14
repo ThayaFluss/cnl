@@ -6,7 +6,7 @@
 //#include <cblas.h>
 #include "matrix_util.h"
 
-int c_cauchy_2by2(double complex* Z, double complex*  o_G, int max_iter, double thres, double sigma, int p_dim, int dim, long* o_forward_iter){
+int cauchy_sc(double complex* Z, double complex*  o_G, int max_iter, double thres, double sigma, int p_dim, int dim, long* o_forward_iter){
     int flag = 0;
     double complex sub_x = 0;
     double complex sub_y = 0;
@@ -31,12 +31,12 @@ int c_cauchy_2by2(double complex* Z, double complex*  o_G, int max_iter, double 
 }
 
 
-int c_cauchy_subordination(double complex* B, double complex* o_omega,double complex* o_G_sc,int max_iter,double thres, \
+int cauchy_spn(double complex* B, double complex* o_omega,double complex* o_G_sc,int max_iter,double thres, \
 double sigma, int p_dim, int dim, long* o_forward_iter,double* a,  double complex* o_omega_sc){
     int flag = 0;
     int result = 0;
     for (int n = 0; n< max_iter; ++n){
-        result |= c_cauchy_2by2(o_omega, o_G_sc, max_iter, thres, sigma,p_dim,dim, o_forward_iter);
+        result |= cauchy_sc(o_omega, o_G_sc, max_iter, thres, sigma,p_dim,dim, o_forward_iter);
         double complex W_x = 0;
         double complex W_y = 0;
         W_x  = 1./o_G_sc[0] - o_omega[0] + B[0];
@@ -61,14 +61,83 @@ double sigma, int p_dim, int dim, long* o_forward_iter,double* a,  double comple
           break;
         }
     }
-    result |= c_cauchy_2by2(o_omega, o_G_sc, max_iter, thres, sigma,p_dim,dim, o_forward_iter);
+    result |= cauchy_sc(o_omega, o_G_sc, max_iter, thres, sigma,p_dim,dim, o_forward_iter);
     o_omega_sc[0] = 1./o_G_sc[0] - o_omega[0] + B[0];
     o_omega_sc[1] = 1./o_G_sc[1] - o_omega[1] + B[1];
     return result;
 }
 
 
+void grad_cauchy_spn(int d, int p, const complex z,  const complex double *a, const complex double sigma, \
+  const complex double *G, const complex double *omega, const complex double *omega_sc,\
+    complex double *o_grad_a, complex double *o_grad_sigma){
+  double complex* i_mat;
+  malloc( sizeof(double complex)*4);
+  i_mat[0] = z;
+  i_mat[1] = 0;
+  i_mat[2] = 0;
+  i_mat[3] = z;
 
-int c_grad(void){
-  return 0;
+  //P_sigma_omega = omega_sc
+
+  //my_zgemm( P_sigma_omega,TG_Sc, P_sigma_G);
+
+}
+
+
+
+void TG_Ge( const int p, const int d, const double sigma, const complex double *G, complex double *o_DGe){
+  // init diagonal matrix
+  o_DGe[0] = 0;
+  o_DGe[1] = sigma*sigma*(((double)p )/d + 0*I);
+  o_DGe[2] = 0;
+  o_DGe[3] = sigma*sigma;
+  my_zdot(4, G, o_DGe);
+  my_zdot(4, G, o_DGe);
+}
+
+
+void DG( const int p, const int d, const double sigma, const complex double *G, complex double *o_DG){
+  TG_Ge( p,d, sigma , G, o_DG);
+  // o_DG = eye -  TG_Ge
+  o_DG[0] = 1 - o_DG[0];
+  o_DG[1] = 0 - o_DG[1];
+  o_DG[2] = 0 - o_DG[2];
+  o_DG[3] = 1 - o_DG[3];
+  // S = ( eye- TG_Ge)^{-1}
+  inv2by2_overwrite(o_DG);
+  // o_DG = Tz_Ge @ S
+  // where Tz_Ge =  - G[0]**2, 0,
+  //                  0, -G[1]**2
+  o_DG[0] *= -G[0]*G[0];
+  o_DG[1] *= -G[0]*G[0];
+  o_DG[2] *= -G[1]*G[1];
+  o_DG[3] *= -G[1]*G[1];
+
+}
+
+void T_eta(const int p, const int d, complex double *o_T_eta){
+  o_T_eta[0] = 0;
+  o_T_eta[1] = 1;
+  o_T_eta[2] = (double)p/d;
+  o_T_eta[3] = 0;
+}
+
+void Dh(const double complex* DG, const double complex *T_eta, const double sigma,double complex *o_Dh){
+  my_zgemm(2,2,2,1, DG, T_eta, 1, o_Dh);
+  int temp = -sigma*sigma;
+  my_zax(4, temp, o_Dh);
+}
+
+
+
+/*
+Derivations of Descrete
+a: d
+o_DG; 2 x 2
+W: 2
+*/
+void des_DG( int p, int d, const double *a, const complex double *W,complex double*o_DG){
+  int haha = 0;
+  return ;
 }

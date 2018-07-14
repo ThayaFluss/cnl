@@ -344,7 +344,6 @@ class SemiCircular(object):
             a = np.asarray(self.des.a, dtype=np.float)
             sigma = float(self.sigma)
             cy_omega_sc = np.zeros(2, dtype=np.complex)
-            import pdb; pdb.set_trace()
             result = cy_cauchy_subordination(B, init_omega,init_G_sc,max_iter,thres, \
             sigma, self.p_dim, self.dim, self.forward_iter, a, cy_omega_sc)
             if result == 0:
@@ -544,16 +543,21 @@ class SemiCircular(object):
             assert (np.allclose( G_out, des.cauchy_transform(omega_sc)))
 
         ### f and h transform of A @ omega_sc
+        import pdb; pdb.set_trace()
+        ### (2,)
         F_A = omega + omega_sc - i_mat
         #assert (np.allclose( 1./des.cauchy_transform(omega_sc), F_A))
+        ### (2,)
         h_A = F_A - omega_sc
         #print("omega, omega_sc", omega,omega_sc)
         #print("c2:F_A", F_A)
         #import pdb; pdb.set_trace()
 
         ### transposed derivation of g, h of sc @ omega
+        ### (2,2)
         tpTGsc = self.tp_T_G( G=G_out)
         tpThsc = self.tp_T_h( G=G_out)
+        ### (2,)
         tpPsigmah = self.tp_Psigma_h(G=G_out)
         tpPsigmaG = self.tp_Psigma_G(G=G_out)
         #print("c2:tpTGsc:", tpTGsc )
@@ -562,16 +566,20 @@ class SemiCircular(object):
         #print("c2:tpPsigmah:", tpPsigmah )
 
         ### transposed derivation of h of A @ omega_sc
+        ### (2,2)
         tpTGA = des.tp_T_G(W=omega_sc)
         #print("c2:tpTGA:", tpTGA )
-
+        ### (2,2)
         tpThA  = des.tp_T_h(W=omega_sc, F=F_A)
+        ### (dim,2)
         tpPah = des.tp_Pa_h(W=omega_sc, F=F_A)
-        ### 2x2
+        ### (2,2)
         tpS =  np.linalg.inv(np.eye(2,dtype=np.complex128) -  tpThsc  @ tpThA )
         ### partial derivation of omega
+        ### (50,2)
         tpPAOmega = tpPah @  tpS
         tpPAG =  tpPAOmega @ tpTGsc
+        ### (2,)
         tpPsigmaOmega = tpPsigmah @ tpThA @ tpS
         tpPsigmaG =  tpPsigmaOmega @ tpTGsc + tpPsigmaG
 
@@ -582,7 +590,9 @@ class SemiCircular(object):
             assert (np.allclose(tpPsigmaG_2, tpPsigmaG))
 
         #assert (tpPAG.shape , [self.dim, 2])
+        ### (2,)
         tpPsigmaG = np.reshape(tpPsigmaG,  [1,2])
+        ### (dim + 1, 2)
         grad = np.append(tpPAG, tpPsigmaG, axis=0)
 
         return grad
@@ -722,14 +732,15 @@ class Descrete(object):
         d = self.dim
         p = self.p_dim
         invdet = 1./ (W[1]*W[0] - a*a)
-        ones = np.ones(self.dim,dtype=np.complex128)
-
-        alpha  = np.sum(invdet**2)
+        temp1 = invdet**2
+        alpha1 = np.sum(temp1)
+        temp2 = temp1**a**2
+        alpha2 = -np.sum(temp2)
 
         out  = [ \
-        [  (1./d)*(-W[1]**2)*alpha,\
-         (1./p)*np.sum(-a**2*invdet**2)],\
-        [ (1./d)*np.sum(-a**2*invdet**2),\
+        [  (1./d)*(-W[1]**2)*alpha1,\
+         (1./p)*alpha2],\
+        [ (1./d)*alpha2,\
          (1./p)*(-W[0]**2*alpha - (p-d)/W[1]**2)]\
         ]
         out = np.asarray(out).reshape([2,2])
