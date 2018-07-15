@@ -5,7 +5,10 @@
 #include <complex.h>
 
 // matrix product
-void my_zgemm(const int M, const int N, const int K, const double complex alpha, const double complex  *A, const  double complex *B, const complex double beta, double complex * Out);
+void my_zgemm(const int M, const int N, const int K,\
+   const double complex alpha, const double complex  *A, \
+   const  double complex *B, \
+   const complex double beta, double complex * Out);
 
 // inverse of 2-dim matrix
 void inv2by2(const double complex *A, double complex *o_inv);

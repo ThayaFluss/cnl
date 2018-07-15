@@ -1,10 +1,4 @@
-#include <stdlib.h>
-#include <string.h>
-#include <complex.h>
-#include <cblas.h>
-
-#include "test_matrix_util.h"
-
+#include "test_all.h"
 
 int test_all(int result){
   result |= test_blas(result);

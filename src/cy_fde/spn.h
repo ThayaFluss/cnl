@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <complex.h>
+#include <math.h>
 #include "matrix_util.h"
 //#include <cblas.h>
 int cauchy_sc(double complex*, double complex*, int, double, double, int, int, long*);
@@ -25,20 +26,23 @@ void DGe( const int p, const int d, const double sigma, const complex double *G,
 // transpose of derivation of cauchy_sc
 // G: 2
 // DG: 2 x 2
-void DG( const int p, const int d, const double sigma, const complex double *G, complex double *o_DG);
+void DG(const complex double *G,  const  complex double *DGe,  complex double *o_DG);
 
 void T_eta(const int p, const int d, complex double *o_T_eta);
 
 void Dh(const double complex* DG, const double complex *T_eta, const double sigma,double complex *o_Dh);
 
+void Psigma_G(const int p,const int d, const double sigma, const complex double *G, const complex double *DGe, complex double *o_Psigma_G);
 
+void Psigma_h(const int p, const int d, const double sigma, const complex double * G, const complex double* P_sigma_G, const double complex *T_eta,\
+complex double* o_Psigma_h);
 
 //// Descrete
 
 void des_DG( int p, int d, const double *a, const complex double *W,complex double*o_DG);
 
 
-void des_Dh( const complex double *DG, const complex double *F,c complex double*o_Dh);
+void des_Dh( const complex double *DG, const complex double *F,complex double*o_Dh);
 
 
 void des_Pa_h( int p, int d, const double *a, const complex double *W, complex double *F, complex double *Pa_h);

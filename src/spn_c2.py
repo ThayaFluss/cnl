@@ -514,7 +514,8 @@ class SemiCircular(object):
     def tp_Psigma_h(self,G):
         tpPsigmaG = self.tp_Psigma_G(G)
         D = -2*self.sigma*self.eta_2by2(G) \
-        - self.sigma**2*tpPsigmaG @ self.tp_T_eta()
+        - self.sigma**2*tpPsigmaG @ self.tp_T_eta() #  2 @ 2x2
+        import pdb; pdb.set_trace()
         #print("c2_tp_Psigma_h:", D)
         return D
 

@@ -1,6 +1,3 @@
-#include <stdlib.h>
-#include <string.h>
-#include <complex.h>
 #include "matrix_util.h"
 
 /*
@@ -12,8 +9,8 @@ void my_zgemm(const int M, const int N, const int K, const double complex alpha,
   for (int m = 0; m < M; m++) {
     for (int n = 0; n < N; n++, Out++){
       *Out *= beta;
-      complex double *A_ptr = A + K*m;
-      complex double *B_ptr = B + n;
+      const complex double *A_ptr = A + K*m;
+      const complex double *B_ptr = B + n;
       complex double sum = 0;
       for (int  k = 0; k < K; k++, A_ptr++, B_ptr+= N) {
         sum+= *A_ptr * ( *B_ptr);
@@ -69,7 +66,7 @@ void inv2by2_overwrite(double complex *o_A){
 
 void outer(const int dim, const double complex * v , const double complex  *w , double complex *o_mat){
   for (int m = 0; m < dim; m++, v++) {
-    double complex *w_ptr = w;
+    const double complex *w_ptr = w;
     for (int n = 0; n < dim; n++, w_ptr++, o_mat++) {
       *o_mat = *v * conj(*w);
     }

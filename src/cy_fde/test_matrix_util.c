@@ -1,25 +1,25 @@
-#include <stdlib.h>
-#include <string.h>
-#include <complex.h>
-#include <assert.h>
-#include <cblas.h>
+#include "test_matrix_util.h"
 
 int test_blas(int result){
-   int  d = 50;
-   int  k = 2;
-   int  l = 3;
+   int  d = 5;
+   int  k = 6;
+   int  l = 5;
    double *A, *B, *C;
    A = malloc(sizeof(double) *d * k);
    B = malloc(sizeof(double) *k * l);
    C = malloc(sizeof(double) *d * l);
-   double alpha  = 1;
-   double beta = 0;
+   double alpha  = 5.;
+   double beta = 1;
 
-   memset(A, 0, sizeof(double) * d * k);
-   memset(B, 0, sizeof(double) * k * l);
-   memset(C, 0, sizeof(double) * d * l);
+   memset(A, 2., sizeof(double) * d * k);
+   memset(B, 3., sizeof(double) * k * l);
+   memset(C, 7, sizeof(double) * d * l);
    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,
-       d, l, k, alpha, A, d, B, k, beta, C, d);
+       d, l, k, alpha, A, k, B, l, beta, C, l);
+
+  for (int i = 0; i < d*l; i++) {
+    assert(C[i] == (5*2*3 + 7.));
+  }
 
    return result;
 
@@ -42,13 +42,18 @@ int test_my_zgemm(int result){
     memset(Out, 0, sizeof(complex double) * M * N);
 
     for (int i = 0; i < M*K; i++) {
-      A[i] = i;
+      A[i] = i + i*I;
     }
     for (int i = 0; i < K*N; i++) {
       B[i] = i;
     }
     my_zgemm(M,N,K,alpha, A ,B,beta, Out);
 
+    complex double sum = 0;
+    for (size_t k = 0; k < K; k++) {
+      sum += A[k] + B[k*N];
+    }
+    assert (C[0] == sum);
     return result;
 }
 
