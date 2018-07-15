@@ -486,7 +486,7 @@ class SemiCircular(object):
                     Tz_Ge.append(di)
             Tz_Ge =  np.asarray(Tz_Ge)
             #import pdb; pdb.set_trace()
-            assert np.allclose(temp, Tz_Ge)
+            assert np.allclose(out, Tz_Ge)
 
         return out
 
@@ -515,7 +515,6 @@ class SemiCircular(object):
         tpPsigmaG = self.tp_Psigma_G(G)
         D = -2*self.sigma*self.eta_2by2(G) \
         - self.sigma**2*tpPsigmaG @ self.tp_T_eta() #  2 @ 2x2
-        import pdb; pdb.set_trace()
         #print("c2_tp_Psigma_h:", D)
         return D
 
@@ -526,11 +525,12 @@ class SemiCircular(object):
         rho = -np.imag(ntrace(G)/z)/sp.pi
         return rho
 
-    def grad_subordination(self,  z, G_out, omega, omega_sc):
+    def grad_subordination(self,  z, G_out, omega, omega_sc, CYTHON=True):
         """ Must be satisfied: """
         """" G_out(B)= G_sc(omega) = G_A(omega_sc) = (omega + omega_sc - B)^{-1} """
         """ F_A = G_A(omega_sc)^{-1} """
         TEST_MODE = self.TEST_MODE
+        TEST_MODE = True
         #import pdb; pdb.set_trace()
         #print("c2:G_out:", G_out)
         self.G2 = G_out
@@ -543,60 +543,91 @@ class SemiCircular(object):
             assert (np.allclose( G_out, 1/(omega + omega_sc - i_mat ) ))
             assert (np.allclose( G_out, des.cauchy_transform(omega_sc)))
 
-        ### f and h transform of A @ omega_sc
-        ### (2,)
-        F_A = omega + omega_sc - i_mat
-        #assert (np.allclose( 1./des.cauchy_transform(omega_sc), F_A))
-        ### (2,)
-        h_A = F_A - omega_sc
-        #print("omega, omega_sc", omega,omega_sc)
-        #print("c2:F_A", F_A)
-        #import pdb; pdb.set_trace()
+        if (not CYTHON) or TEST_MODE:
+            ### to prevent omega_sc from being destroyed
+            temp_omega_sc = np.copy(omega_sc)
+            ### f and h transform of A @ omega_sc
+            ### (2,)
+            F_A = omega + temp_omega_sc - i_mat
 
-        ### transposed derivation of g, h of sc @ omega
-        ### (2,2)
-        tpTGsc = self.tp_T_G( G=G_out)
-        tpThsc = self.tp_T_h( tpTG=tpTGsc)
-        ### (2,)
-        tpPsigmah = self.tp_Psigma_h(G=G_out)
-        tpPsigmaG = self.tp_Psigma_G(G=G_out)
-        #print("c2:tpTGsc:", tpTGsc )
-        #print("c2:tpThsc:", tpThsc )
-        #print("c2:tpPsigmaG:", tpPsigmaG )
-        #print("c2:tpPsigmah:", tpPsigmah )
+            #assert (np.allclose( 1./des.cauchy_transform(omega_sc), F_A))
+            ### (2,)
+            h_A = F_A - temp_omega_sc
+            #print("omega, omega_sc", omega,omega_sc)
+            #print("c2:F_A", F_A)
+            #import pdb; pdb.set_trace()
 
-        ### transposed derivation of h of A @ omega_sc
-        ### (2,2)
-        tpTGA = des.tp_T_G(W=omega_sc)
-        #print("c2:tpTGA:", tpTGA )
-        ### (2,2)
-        tpThA  = des.tp_T_h(tpTG=tpTGA, F=F_A)
-        ### (dim,2)
-        tpPah = des.tp_Pa_h(W=omega_sc, F=F_A)
-        ### (2,2)
-        tpS =  np.linalg.inv(np.eye(2,dtype=np.complex128) -  tpThsc  @ tpThA )
-        ### partial derivation of omega
-        ### (50,2)
-        tpPAOmega = tpPah @  tpS
-        tpPAG =  tpPAOmega @ tpTGsc
-        ### (2,)
-        tpPsigmaOmega = tpPsigmah @ tpThA @ tpS
-        tpPsigmaG =  tpPsigmaOmega @ tpTGsc + tpPsigmaG
+            ### transposed derivation of g, h of sc @ omega
+            ### (2,2)
+            tpTGsc = self.tp_T_G( G=G_out)
+            tpThsc = self.tp_T_h( tpTG=tpTGsc)
+            ### (2,)
+            tpPsigmah = self.tp_Psigma_h(G=G_out)
+            tpPsigmaG = self.tp_Psigma_G(G=G_out)
+            #print("c2:tpTGsc:", tpTGsc )
+            #print("c2:tpThsc:", tpThsc )
+            #print("c2:tpPsigmaG:", tpPsigmaG )
+            #print("c2:tpPsigmah:", tpPsigmah )
 
-        if TEST_MODE:
-            tpS_sc =  np.linalg.inv(np.eye(2,dtype=np.complex128) -  tpThA @ tpThsc  )
-            tpPsigmaOmega_2 = tpPsigmah @  tpS_sc
-            tpPsigmaG_2 =  tpPsigmaOmega_2 @ tpTGA
-            assert (np.allclose(tpPsigmaG_2, tpPsigmaG))
+            ### transposed derivation of h of A @ omega_sc
+            ### (2,2)
+            tpTGA = des.tp_T_G(W=temp_omega_sc)
+            #print("c2:tpTGA:", tpTGA )
+            ### (2,2)
+            tpThA  = des.tp_T_h(tpTG=tpTGA, F=F_A)
+            ### (dim,2)
+            tpPah = des.tp_Pa_h(W=temp_omega_sc, F=F_A)
+            ### (2,2)
+            tpS =  np.linalg.inv(np.eye(2,dtype=np.complex128) -  tpThsc  @ tpThA )
+            ### partial derivation of omega
+            ### (50,2)
+            tpPAOmega = tpPah @  tpS
+            tpPAG =  tpPAOmega @ tpTGsc
+            ### (2,)
+            tpPsigmaOmega = tpPsigmah @ tpThA @ tpS
+            tpPsigmaG =  tpPsigmaOmega @ tpTGsc + tpPsigmaG
 
-        #assert (tpPAG.shape , [self.dim, 2])
-        ### (2,)
-        tpPsigmaG = np.reshape(tpPsigmaG,  [1,2])
-        ### (dim + 1, 2)
-        grad = np.append(tpPAG, tpPsigmaG, axis=0)
+            if TEST_MODE:
+                tpS_sc =  np.linalg.inv(np.eye(2,dtype=np.complex128) -  tpThA @ tpThsc  )
+                tpPsigmaOmega_2 = tpPsigmah @  tpS_sc
+                tpPsigmaG_2 =  tpPsigmaOmega_2 @ tpTGA
+                assert (np.allclose(tpPsigmaG_2, tpPsigmaG))
 
-        return grad
+            #assert (tpPAG.shape , [self.dim, 2])
+            ### (2,)
+            tpPsigmaG = np.reshape(tpPsigmaG,  [1,2])
+            ### (dim + 1, 2)
+            grad = np.append(tpPAG, tpPsigmaG, axis=0)
 
+
+        if CYTHON:
+            cy_G = np.copy(G_out)
+            cy_omega = np.copy(omega)
+            cy_omega_sc = np.copy(omega_sc)
+            dim = self.dim
+            o_grad_a = np.zeros(dim*2, dtype=np.complex128);
+            o_grad_sigma = np.zeros(2, dtype=np.complex128);
+
+            a = np.asarray(self.des.a, dtype=np.float64)
+            cy_a = np.copy(a)
+            sigma = float(self.sigma)
+
+            cy_grad_cauchy_spn(self.p_dim,dim,\
+            z, a, sigma,cy_G, cy_omega, cy_omega_sc, o_grad_a, o_grad_sigma)
+
+            o_grad_a = o_grad_a.reshape([dim,2])
+            o_grad_sigma = o_grad_sigma.reshape([1,2])
+
+            cy_grad = np.append(o_grad_a, o_grad_sigma,axis=0)
+
+        if CYTHON and TEST_MODE:
+            if not np.allclose(grad, cy_grad):
+                import pdb; pdb.set_trace()
+
+        if CYTHON:
+            return cy_grad
+        else:
+            return grad
 
     def grad_loss_subordination(self,  sample):
             TEST_MODE = self.TEST_MODE

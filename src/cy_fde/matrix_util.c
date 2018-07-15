@@ -5,13 +5,13 @@
 * B : K x N
 * C : M x N
 */
-void my_zgemm(const int M, const int N, const int K, const double complex alpha, const double complex  *A, const  double complex *B, const double complex beta, double complex * Out){
+void my_zgemm(const int M, const int N, const int K, const DCOMPLEX alpha, const DCOMPLEX  *A, const  DCOMPLEX *B, const DCOMPLEX beta, DCOMPLEX * Out){
   for (int m = 0; m < M; m++) {
     for (int n = 0; n < N; n++, Out++){
       *Out *= beta;
-      const complex double *A_ptr = A + K*m;
-      const complex double *B_ptr = B + n;
-      complex double sum = 0;
+      const DCOMPLEX *A_ptr = A + K*m;
+      const DCOMPLEX *B_ptr = B + n;
+      DCOMPLEX sum = 0;
       for (int  k = 0; k < K; k++, A_ptr++, B_ptr+= N) {
         sum+= *A_ptr * ( *B_ptr);
         /*
@@ -23,18 +23,20 @@ void my_zgemm(const int M, const int N, const int K, const double complex alpha,
       *Out += alpha*sum;
     }
   }
+  z_isnan(M*N, Out);
 }
 
 
-void my_zax(const int dim, const double complex alpha, double complex * o_vec){
+void my_zax(const int dim, const DCOMPLEX alpha, DCOMPLEX * o_vec){
 for (int i = 0; i < dim; i++, o_vec++) {
   *o_vec *= alpha;
   }
+  z_isnan(dim, o_vec);
 }
 
 
 
-void inv_ow(const int dim,  double complex *o_vec){
+void inv_ow(const int dim,  DCOMPLEX *o_vec){
   for (int i = 0; i < dim; i++, o_vec++) {
     *o_vec = 1./ *o_vec;
     }
@@ -42,9 +44,10 @@ void inv_ow(const int dim,  double complex *o_vec){
 
 
 
-void inv2by2(const double complex *A, double complex *o_inv){
-  double complex  det = 0;
+void inv2by2(const DCOMPLEX *A, DCOMPLEX *o_inv){
+  DCOMPLEX  det = 0;
   det = A[3]*A[0] - A[1]*A[2];
+  assert (det != 0);
   o_inv[0] = A[3]/det;
   o_inv[1] = - A[1]/det;
   o_inv[2] = - A[2]/det;
@@ -53,20 +56,20 @@ void inv2by2(const double complex *A, double complex *o_inv){
 
 
 
-void inv2by2_overwrite(double complex *o_A){
-  double complex  det = 0;
-  det = o_A[3]*o_A[0] - o_A[1]*o_A[2];
-  double complex temp = o_A[0]/det;
+void inv2by2_overwrite(DCOMPLEX *o_A){
+  DCOMPLEX  det =  o_A[3]*o_A[0] - o_A[1]*o_A[2];
+  assert (det != 0);
+  DCOMPLEX temp = o_A[0]/det;
   o_A[0] = o_A[3]/det;
-  o_A[1] *= - 1./det;
-  o_A[2] *= - 1./det;
-  o_A[3] *= temp;
+  o_A[1] = - o_A[1]/det;
+  o_A[2] = - o_A[2]/det;
+  o_A[3] = temp;
 }
 
 
-void outer(const int dim, const double complex * v , const double complex  *w , double complex *o_mat){
+void outer(const int dim, const DCOMPLEX * v , const DCOMPLEX  *w , DCOMPLEX *o_mat){
   for (int m = 0; m < dim; m++, v++) {
-    const double complex *w_ptr = w;
+    const DCOMPLEX *w_ptr = w;
     for (int n = 0; n < dim; n++, w_ptr++, o_mat++) {
       *o_mat = *v * conj(*w);
     }
@@ -75,14 +78,24 @@ void outer(const int dim, const double complex * v , const double complex  *w , 
 
 
 
-void my_zaxpy(const int dim, const double complex alpha, const double complex * v, double complex *o_vec){
+void my_zaxpy(const int dim, const DCOMPLEX alpha, const DCOMPLEX * v, DCOMPLEX *o_vec){
   for (int i = 0; i < dim; i++, v++, o_vec++) {
     *o_vec +=  alpha*(*v);
   }
 }
 
-void my_zdot(const int dim, const double complex *v , double complex* o_vec){
+void my_zdot(const int dim, const DCOMPLEX *v , DCOMPLEX* o_vec){
   for (int i = 0; i < dim; i++, v++, o_vec++) {
     *o_vec *=  *v;
   }
+}
+
+
+void z_isnan(const int dim, const DCOMPLEX *v){
+for (int i = 0; i < dim; i++) {
+  if ( isnan(creal(v[i])) ||  isnan(cimag(v[i]) ) ){
+  printf("(z_isnan)Nan Error at i = %i\n", i);
+  assert(false);
+  }
+}
 }

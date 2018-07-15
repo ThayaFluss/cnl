@@ -30,16 +30,16 @@ int test_my_zgemm(int result){
     int N = 2;
     int K = 4;
 
-    complex double *A, *B, *Out;
-    A = malloc(sizeof(complex double) *M * K);
-    B = malloc(sizeof(complex double) *K * N);
-    Out = malloc(sizeof(complex double) *M * N);
-    complex double alpha  = 1;
-    complex double beta = 0;
+    DCOMPLEX *A, *B, *Out;
+    A = malloc(sizeof(DCOMPLEX) *M * K);
+    B = malloc(sizeof(DCOMPLEX) *K * N);
+    Out = malloc(sizeof(DCOMPLEX) *M * N);
+    DCOMPLEX alpha  = 1;
+    DCOMPLEX beta = 0;
 
-    memset(A, 0, sizeof(complex double) * M * K);
-    memset(B, 0, sizeof(complex double) * K * N);
-    memset(Out, 0, sizeof(complex double) * M * N);
+    memset(A, 0, sizeof(DCOMPLEX) * M * K);
+    memset(B, 0, sizeof(DCOMPLEX) * K * N);
+    memset(Out, 0, sizeof(DCOMPLEX) * M * N);
 
     for (int i = 0; i < M*K; i++) {
       A[i] = i + i*I;
@@ -49,8 +49,8 @@ int test_my_zgemm(int result){
     }
     my_zgemm(M,N,K,alpha, A ,B,beta, Out);
 
-    complex double sum = 0;
-    for (size_t k = 0; k < K; k++) {
+    DCOMPLEX sum = 0;
+    for (int k = 0; k < K; k++) {
       sum += A[k] + B[k*N];
     }
     assert (C[0] == sum);
@@ -59,10 +59,10 @@ int test_my_zgemm(int result){
 
 
 int test_inv2by2(int result){
-    complex double * A, *inv, *temp;
-    A = malloc(sizeof(complex double) *4);
-    inv = malloc(sizeof(complex double) *4);
-    temp = malloc(sizeof(complex double) *4);
+    DCOMPLEX * A, *inv, *temp;
+    A = malloc(sizeof(DCOMPLEX) *4);
+    inv = malloc(sizeof(DCOMPLEX) *4);
+    temp = malloc(sizeof(DCOMPLEX) *4);
 
     A[0] = 1;
     A[1] = 2;
@@ -78,13 +78,38 @@ int test_inv2by2(int result){
     return result;
 }
 
+int test_inv2by2inv2by2_overwrite(int result){
+    DCOMPLEX * A, *temp_A, *temp;
+    A = malloc(sizeof(DCOMPLEX) *4);
+    temp = malloc(sizeof(DCOMPLEX) *4);
+    temp_A = malloc(sizeof(DCOMPLEX) *4);
+
+    A[0] = 1;
+    A[1] = 2;
+    A[2] = 3;
+    A[3] = 4;
+    temp_A[0] = 1;
+    temp_A[1] = 2;
+    temp_A[2] = 3;
+    temp_A[3] = 4;
+
+    inv2by2_overwrite(A);
+    my_zgemm(2,2,2, 1.0, A, temp_A, 0, temp);
+    assert(temp[0] == 1);
+    assert(temp[1] == 0);
+    assert(temp[2] == 0);
+    assert(temp[3] == 1);
+
+    return result;
+}
+
 
 int test_outer(int result){
   int dim = 2;
-  complex double *v, *w, *mat;
-  v = malloc(sizeof(complex double) *dim);
-  w = malloc(sizeof(complex double) *dim);
-  mat = malloc(sizeof(complex double) *dim*dim);
+  DCOMPLEX *v, *w, *mat;
+  v = malloc(sizeof(DCOMPLEX) *dim);
+  w = malloc(sizeof(DCOMPLEX) *dim);
+  mat = malloc(sizeof(DCOMPLEX) *dim*dim);
   v[0] = 1;
   v[1] = 0;
   w[0] = 0;
@@ -101,10 +126,10 @@ int test_outer(int result){
 
 int test_my_zaxpy(int result){
   int dim = 2;
-  complex double alpha = 3;
-  complex double *v, *w;
-  v = malloc(sizeof(complex double) *dim);
-  w = malloc(sizeof(complex double) *dim);
+  DCOMPLEX alpha = 3;
+  DCOMPLEX *v, *w;
+  v = malloc(sizeof(DCOMPLEX) *dim);
+  w = malloc(sizeof(DCOMPLEX) *dim);
   v[0] = 1;
   v[1] = 0;
   w[0] = 0;
@@ -120,9 +145,9 @@ int test_my_zaxpy(int result){
 
 int test_my_zdot(int result){
   int dim = 2;
-  complex double *v, *w;
-  v = malloc(sizeof(complex double) *dim);
-  w = malloc(sizeof(complex double) *dim);
+  DCOMPLEX *v, *w;
+  v = malloc(sizeof(DCOMPLEX) *dim);
+  w = malloc(sizeof(DCOMPLEX) *dim);
   v[0] = 1;
   v[1] = 2;
   w[0] = 0;

@@ -276,7 +276,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
 
 
     ###base_line
-    rank_recovery_baseline(dirname, list_zero_dim, list_min_singular, list_zero_thres, sigma=0.1)
+    #rank_recovery_baseline(dirname, list_zero_dim, list_min_singular, list_zero_thres, sigma=0.1)
 
     linestyles = ["-", "--", "-.", ":"]
 

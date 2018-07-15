@@ -21,7 +21,8 @@ BLAS_PATH =  "/opt/OpenBLAS/include/"
 ext_modules = [
 Extension("cy_fde_spn",
 sourcefiles,
-include_dirs=[np.get_include(), BLAS_PATH] )]
+include_dirs=[np.get_include(), BLAS_PATH],
+gdb_debug=True )]
 
 
 

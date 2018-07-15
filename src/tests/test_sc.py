@@ -11,8 +11,8 @@ import time
 import logging
 from tqdm import tqdm, trange
 
-from fde_spn import *
-import fde_spn_c2
+from spn import *
+import spn_c2
 
 import unittest
 
@@ -45,7 +45,7 @@ class TestSC(unittest.TestCase):
             sc = SemiCircular(dim, p_dim,scale)
             sc.set_params(diag_A, sigma)
 
-            sc2 = fde_spn_c2.SemiCircular(dim, p_dim,scale)
+            sc2 = spn_c2.SemiCircular(dim, p_dim,scale)
             sc2.set_params(diag_A, sigma)
 
             z = x + 1j*scale
