@@ -138,6 +138,53 @@ o_DG; 2 x 2
 W: 2
 */
 void des_DG( int p, int d, const double *a, const complex double *W,complex double*o_DG){
-  int haha = 0;
-  return ;
+  complex double sum1 = 0;
+  complex double sum2 = 0;
+  for (int i = 0; i < d; i++, a++) {
+    complex double inv;
+    inv = 1./(W[1]*W[0] - *a* (*a));
+    sum1 -= inv*inv;
+    sum2 -= inv*inv*(*a)*(*a);
+  }
+  o_DG[0] = (1./d)*W[1]*W[1]*sum1;
+  o_DG[1] = (1./p)*sum2;
+  o_DG[2] = (1./d)*sum2;
+  o_DG[3] = (1./p)*( W[0]*W[0]*sum1 - (double)(p-d)/W[1]**2 ) ;
+}
+
+
+//
+// 2 x 2
+//
+//
+void des_Dh( const complex double *DG, const complex double *F,complex double*o_Dh){
+  for (int m = 0; m < 2; m++) {
+    for (int n = 0; n < 2; n++, o_Dh++, tpTG++) {
+      *o_Dh  = - F[n]* (*tpTG)*F[n];
+      if (m == n ){
+      *o_Dh -= 1.;
+      }
+    }
+  }
+}
+
+/*
+partial differencial of Descrete
+a: d
+o_DG; 2 x 2
+W: 2
+F: 2
+Pa_h : d x 2
+*/
+
+void des_Pa_h( int p, int d, const double *a, const complex double *W, complex double *F, complex double *Pa_h){
+  for (int m = 0; m < d; m++, a++, out++) {
+    complex double inv = 1./ ( W[0]*W[1]- (*a)*(*a) );
+    complex double temp = 2*(*a)*inv*inv;
+    // out[m][0]
+    *out = - temp*F[0]*F[0]*W[1]/d;
+    // out[m][1]
+    out += 1;
+    *out = - temp*F[1]*F[1]*W[0]/p;
+  }
 }

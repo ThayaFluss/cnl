@@ -497,8 +497,8 @@ class SemiCircular(object):
         return T
 
 
-    def tp_T_h( self,G):
-        T= - self.sigma**2*self.tp_T_G(G) @ self.tp_T_eta()
+    def tp_T_h( self,tpTG):
+        T= - self.sigma**2*tpTG @ self.tp_T_eta()
         return T
 
     ######## Derivations by parameters
@@ -543,7 +543,6 @@ class SemiCircular(object):
             assert (np.allclose( G_out, des.cauchy_transform(omega_sc)))
 
         ### f and h transform of A @ omega_sc
-        import pdb; pdb.set_trace()
         ### (2,)
         F_A = omega + omega_sc - i_mat
         #assert (np.allclose( 1./des.cauchy_transform(omega_sc), F_A))
@@ -556,7 +555,7 @@ class SemiCircular(object):
         ### transposed derivation of g, h of sc @ omega
         ### (2,2)
         tpTGsc = self.tp_T_G( G=G_out)
-        tpThsc = self.tp_T_h( G=G_out)
+        tpThsc = self.tp_T_h( tpTG=tpTGsc)
         ### (2,)
         tpPsigmah = self.tp_Psigma_h(G=G_out)
         tpPsigmaG = self.tp_Psigma_G(G=G_out)
@@ -570,7 +569,7 @@ class SemiCircular(object):
         tpTGA = des.tp_T_G(W=omega_sc)
         #print("c2:tpTGA:", tpTGA )
         ### (2,2)
-        tpThA  = des.tp_T_h(W=omega_sc, F=F_A)
+        tpThA  = des.tp_T_h(tpTG=tpTGA, F=F_A)
         ### (dim,2)
         tpPah = des.tp_Pa_h(W=omega_sc, F=F_A)
         ### (2,2)
@@ -734,29 +733,28 @@ class Descrete(object):
         invdet = 1./ (W[1]*W[0] - a*a)
         temp1 = invdet**2
         alpha1 = np.sum(temp1)
-        temp2 = temp1**a**2
+        temp2 = temp1* a**2
         alpha2 = -np.sum(temp2)
 
         out  = [ \
         [  (1./d)*(-W[1]**2)*alpha1,\
          (1./p)*alpha2],\
         [ (1./d)*alpha2,\
-         (1./p)*(-W[0]**2*alpha - (p-d)/W[1]**2)]\
+         (1./p)*(-W[0]**2*alpha1 - (p-d)/W[1]**2)]\
         ]
         out = np.asarray(out).reshape([2,2])
         #print("c2:tp_T_G", out)
         return out
 
     ### 2 x 2
-    def tp_T_h(self, W,  F):
-        t_G = self.tp_T_G(W)
+    def tp_T_h(self, tpTG,  F):
         T_h = np.empty([2,2], dtype=np.complex128)
         eye2 = np.eye(2,dtype=np.complex128)
         for i in range(2):
-            T_h[i] = - F * t_G[i] * F - eye2[i]
+            T_h[i] = - F * tpTG[i] * F - eye2[i]
         return T_h
 
-
+    ### duplicated
     ### d  x 2
     def tp_Pa_CT(self, W):
         a  = self.a

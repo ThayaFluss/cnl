@@ -32,6 +32,15 @@ void T_eta(const int p, const int d, complex double *o_T_eta);
 void Dh(const double complex* DG, const double complex *T_eta, const double sigma,double complex *o_Dh);
 
 
+
+//// Descrete
+
 void des_DG( int p, int d, const double *a, const complex double *W,complex double*o_DG);
+
+
+void des_Dh( const complex double *DG, const complex double *F,c complex double*o_Dh);
+
+
+void des_Pa_h( int p, int d, const double *a, const complex double *W, complex double *F, complex double *Pa_h);
 
 #endif
