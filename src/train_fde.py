@@ -226,7 +226,7 @@ def train_fde_spn(dim, p_dim, sample,\
     diag_A = sq_sample
     diag_A = abs(diag_A)
     diag_A = np.sort(diag_A)
-    diag_A = np.array(diag_A, dtype=np.complex128)
+    diag_A = np.array(diag_A, dtype=np.float64)
 
 
 

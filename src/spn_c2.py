@@ -341,9 +341,9 @@ class SemiCircular(object):
 
 
         if CYTHON:
-            a = np.asarray(self.des.a, dtype=np.float)
+            a = np.asarray(self.des.a, dtype=np.float64)
             sigma = float(self.sigma)
-            cy_omega_sc = np.zeros(2, dtype=np.complex)
+            cy_omega_sc = np.zeros(2, dtype=np.complex128)
             result = cy_cauchy_subordination(B, init_omega,init_G_sc,max_iter,thres, \
             sigma, self.p_dim, self.dim, self.forward_iter, a, cy_omega_sc)
             if result == 0:
@@ -525,12 +525,12 @@ class SemiCircular(object):
         rho = -np.imag(ntrace(G)/z)/sp.pi
         return rho
 
-    def grad_subordination(self,  z, G_out, omega, omega_sc, CYTHON=True):
+    def grad_subordination(self,  z, G_out, omega, omega_sc, CYTHON=False):
         """ Must be satisfied: """
         """" G_out(B)= G_sc(omega) = G_A(omega_sc) = (omega + omega_sc - B)^{-1} """
         """ F_A = G_A(omega_sc)^{-1} """
         TEST_MODE = self.TEST_MODE
-        TEST_MODE = True
+        TEST_MODE = False
         #import pdb; pdb.set_trace()
         #print("c2:G_out:", G_out)
         self.G2 = G_out
@@ -682,7 +682,7 @@ class SemiCircular(object):
             logging.debug("Forward: {} sec".format(timerF.total_time))
             logging.debug("Backward: {} sec".format(timerB.total_time))
 
-            return grad, loss
+            return grad.real, loss
 
 
 
