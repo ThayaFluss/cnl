@@ -1,6 +1,10 @@
 #ifndef MATRIX_UTIL
 #define MATRIX_UTIL
 #include "init_cy_fde.h"
+
+
+//MEM_RESULT create_dcomplex(MEM_RESULT ret, const int dim, const DCOMPLEX init_value, DCOMPLEX* o_vec);
+
 // matrix product
 void my_zgemm(const int M, const int N, const int K,\
    const DCOMPLEX alpha, const DCOMPLEX  *A, \
@@ -39,6 +43,9 @@ void my_zdot(const int dim, const DCOMPLEX *v , DCOMPLEX* o_vec);
 void inv_ow(const int dim,  DCOMPLEX *o_vec);
 
 
+#define isnanz( v) (isnan(creal(v)) ||  isnan(cimag(v) ))
+
 void z_isnan(const int dim, const DCOMPLEX *v);
 
+DCOMPLEX* create_zvec(const int dim, const DCOMPLEX* init_value);
 #endif

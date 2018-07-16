@@ -525,12 +525,11 @@ class SemiCircular(object):
         rho = -np.imag(ntrace(G)/z)/sp.pi
         return rho
 
-    def grad_subordination(self,  z, G_out, omega, omega_sc, CYTHON=False):
+    def grad_subordination(self,  z, G_out, omega, omega_sc, CYTHON=True):
         """ Must be satisfied: """
         """" G_out(B)= G_sc(omega) = G_A(omega_sc) = (omega + omega_sc - B)^{-1} """
         """ F_A = G_A(omega_sc)^{-1} """
         TEST_MODE = self.TEST_MODE
-        TEST_MODE = False
         #import pdb; pdb.set_trace()
         #print("c2:G_out:", G_out)
         self.G2 = G_out
