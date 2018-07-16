@@ -628,8 +628,9 @@ class SemiCircular(object):
         else:
             return grad
 
-    def grad_loss_subordination(self,  sample, CYTHON=False):
+    def grad_loss_subordination(self,  sample, CYTHON=True):
             TEST_MODE = self.TEST_MODE
+            TEST_MODE = False
             num_sample = len(sample)
 
             if CYTHON:
@@ -642,7 +643,6 @@ class SemiCircular(object):
                 cy_grad_loss_cauchy_spn( self.p_dim, self.dim, cy_a, self.sigma, self.scale,\
                 num_sample, sample, \
                 cy_grad_a, cy_grad_sigma, cy_loss)
-
             if not CYTHON or TEST_MODE:
                 scale = self.scale
                 rho_list = []
@@ -668,7 +668,9 @@ class SemiCircular(object):
                     timerF.toc()
                     self.G2  = G
                     G_out = G[0]/w  ### zG_2(z^2) = G(z)
-                    rho =  - G_out.imag/sp.pi
+                    den = -G_out.imag
+                    rho =  den/sp.pi
+
                     if rho < 0:
                         import pdb; pdb.set_trace()
                     assert rho > 0
@@ -677,15 +679,11 @@ class SemiCircular(object):
                     grad_G = self.grad_subordination(w, G, omega, omega_sc)
                     timerB.toc()
 
+                    logging.debug("py:grad_sigma : {}".format(grad_G[-1]))
                     self.grads2 = grad_G
                     ### (-log \rho)' = - \rho' / \rho
-                    temp = (grad_G[:,0]/w).imag/(sp.pi*rho)
+                    temp = (grad_G[:,0]/w).imag/den
                     grad += temp
-                    if TEST_MODE:
-                        for n in range(num_coord):
-                            t =  (grad_G[n][0]/w).imag/(sp.pi*rho)
-                            assert (np.allclose( temp[n] ,t) )
-                            grad[n] += t
 
 
                 loss = np.average(-sp.log(rho_list))
@@ -698,14 +696,17 @@ class SemiCircular(object):
 
 
             if CYTHON and TEST_MODE:
-                if not np.allclose(grad[:self.dim], cy_grad_a):
-                    import pdb; pdb.set_trace()
                 assert(np.allclose(grad[:self.dim], cy_grad_a) )
+
                 assert(np.allclose(grad[-1], cy_grad_sigma))
+                if abs(cy_loss - loss)>1e-8:
+                    import pdb; pdb.set_trace()
+                assert ( abs(cy_loss - loss) < 1e-8)
 
             if CYTHON:
+                self.forward_iter[0] = cy_forward_iter
                 cy_grad = np.append(cy_grad_a ,cy_grad_sigma)
-                return cy_grad, cy_loss
+                return cy_grad, cy_loss[0]
             else:
                 return grad,loss
 

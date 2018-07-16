@@ -187,8 +187,8 @@ def train_fde_spn(dim, p_dim, sample,\
         sys.exit("lr_policy is inv, step or fix")
 
     ### tf_summary, logging and  plot
-    log_step = iter_per_epoch
-    stdout_step = log_step*10
+    log_step = 50
+    stdout_step = 1000
     KL_log_step = 10*dim
     plot_stepsize = stdout_step
     plot_stepsize = -1
