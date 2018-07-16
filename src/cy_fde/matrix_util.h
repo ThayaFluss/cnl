@@ -33,6 +33,7 @@ void my_zaxpy(const int dim, const DCOMPLEX alpha, const DCOMPLEX * v,  DCOMPLEX
 // overwrite
 void my_zax(const int dim, const DCOMPLEX alpha, DCOMPLEX * o_vec);
 
+void my_dax(const int dim, double alpha, double * o_vec);
 
 // entriewise product
 // overwrite second vector

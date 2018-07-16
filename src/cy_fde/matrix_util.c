@@ -32,8 +32,8 @@ void my_zgemm(const int M, const int N, const int K, const DCOMPLEX alpha, const
         sum+= *A_ptr * ( *B_ptr);
         /*
         printf("m=%d, n=%d\n",m,n);
-        printf("A;%f\n", abs(*A_ptr - A[K*m + k] ));
-        printf("B;%f\n", abs(*B_ptr - B[k*N + n] ));
+        printf("A;%e\n", abs(*A_ptr - A[K*m + k] ));
+        printf("B;%e\n", abs(*B_ptr - B[k*N + n] ));
         */
       }
       *Out += alpha*sum;
@@ -45,6 +45,11 @@ void my_zgemm(const int M, const int N, const int K, const DCOMPLEX alpha, const
 
 
 void my_zax(const int dim, const DCOMPLEX alpha, DCOMPLEX * o_vec){
+for (int i = 0; i < dim; ++i, ++o_vec) {
+  *o_vec *= alpha;
+  }
+}
+void my_dax(const int dim, double alpha, double * o_vec){
 for (int i = 0; i < dim; ++i, ++o_vec) {
   *o_vec *= alpha;
   }

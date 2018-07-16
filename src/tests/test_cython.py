@@ -22,11 +22,11 @@ class TestCython(unittest.TestCase):
         p_dim = 50
         dim = 50
         sigma = 0.1
-        o_forward_iter = np.asarray( [0], dtype=np.int)
         timer.tic()
-        result = cy_cauchy_2by2(Z, o_G,max_iter,thres, sigma, p_dim, dim,o_forward_iter)
+        o_forward_iter = cy_cauchy_2by2( p_dim, dim,  sigma, Z, \
+        max_iter,thres,\
+        o_G)
         timer.toc()
-        print("result={}".format(result))
         print("forward_iter={}".format(o_forward_iter))
         print("o_G={}".format(o_G))
         print("{} sec".format(timer.total_time))
@@ -42,15 +42,16 @@ class TestCython(unittest.TestCase):
         p_dim = 50
         dim = 50
         sigma = 0.1
-        o_forward_iter = np.asarray( [0], dtype=np.int)
+        o_forward_iter = 0
         a = 0.2*np.ones(dim)
         a = np.asarray(a, dtype=float)
 
         timer.tic()
-        result = cy_cauchy_subordination(B, o_omega,o_G_sc,max_iter,thres, \
-        sigma, p_dim, dim, o_forward_iter, a,  o_omega_sc)
+        o_forward_iter = cy_cauchy_subordination(p_dim, dim,a,sigma,\
+        B, \
+        max_iter,thres,\
+        o_G_sc,o_omega, o_omega_sc)
         timer.toc()
-        print("result={}".format(result))
         print("forward_iter={}".format(o_forward_iter))
         print("o_G_sc={}".format(o_G_sc))
         print("{} [sec]".format(timer.total_time))
@@ -71,12 +72,14 @@ class TestCython(unittest.TestCase):
         p_dim = 50
         dim = 50
         sigma = 0.1
-        o_forward_iter = np.asarray( [0], dtype=np.int)
         a = 0.2*np.ones(dim)
         a = np.asarray(a, dtype=float)
 
-        result = cy_cauchy_subordination(B, o_omega,o_G_sc,max_iter,thres, \
-        sigma, p_dim, dim, o_forward_iter, a,  o_omega_sc)
+        o_forward_iter = cy_cauchy_subordination(\
+        p_dim, dim, a, sigma , \
+        B,\
+        max_iter,thres, \
+        o_G_sc, o_omega, o_omega_sc)
 
 
         o_grad_sigma = np.zeros(2, dtype=np.complex128)
@@ -85,8 +88,8 @@ class TestCython(unittest.TestCase):
         z = Z[0]
         cy_timer = Timer()
         cy_timer.tic()
-        cy_grad_cauchy_spn(p_dim ,dim,\
-         z, a, sigma, o_G_sc, o_omega, o_omega_sc, o_grad_a, o_grad_sigma)
+        cy_grad_cauchy_spn(p_dim ,dim, a, sigma,\
+         z,o_G_sc, o_omega, o_omega_sc, o_grad_a, o_grad_sigma)
         cy_timer.toc()
         print("c:Backward= {} sec".format(cy_timer.total_time))
 
@@ -109,3 +112,38 @@ class TestCython(unittest.TestCase):
 
         sc.TEST_MODE = True
         py_grad = sc.grad_subordination(z, o_G_sc, o_omega, o_omega_sc, CYTHON=True)
+
+    """
+    def test_cy_grad_cauchy_spn(self):
+
+        num_sample = 2
+        sample = np.asarray([0.1, 0.2], dtype=np.float64)
+        p=50
+        d=50
+        scale = 1e-1
+        a = np.random.uniform(0, 1, d)
+        a = np.asarray(a, dtype=np.float64)
+        sigma = 0.2
+        cy_grad_a = np.zeros(d, dtype=np.float64)
+        cy_grad_sigma = np.zeros(1, dtype=np.float64)
+        cy_loss = np.zeros(1, dtype=np.float64)
+
+        cy_forward_iter=\
+        cy_grad_loss_cauchy_spn( p, d, a, sigma, scale,\
+        num_sample, sample, \
+        cy_grad_a, cy_grad_sigma, cy_loss)
+
+        import pdb; pdb.set_trace()
+
+
+        sc = SemiCircular(dim=d, p_dim=p)
+        sc.set_params(a,sigma)
+        sc.TEST_MODE = False
+        sc.scale = scale
+
+
+        grad, loss =sc.grad_loss_subordination( sample, False)
+
+        assert( np.allclose(grad[:d], cy_grad_a ))
+        assert( np.allclose(grad[-1], cy_grad_sigma ))
+    """

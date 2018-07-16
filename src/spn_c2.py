@@ -343,11 +343,12 @@ class SemiCircular(object):
         if CYTHON:
             a = np.asarray(self.des.a, dtype=np.float64)
             sigma = float(self.sigma)
-            cy_omega_sc = np.zeros(2, dtype=np.complex128)
-            result = cy_cauchy_subordination(B, init_omega,init_G_sc,max_iter,thres, \
-            sigma, self.p_dim, self.dim, self.forward_iter, a, cy_omega_sc)
-            if result == 0:
-                logging.info("cy_cauchy_subordination: reached max iter")
+            cy_omega_sc = np.asarray([1j,1j], dtype=np.complex128)
+            self.forward_iter += cy_cauchy_subordination(\
+            self.p_dim, self.dim, a ,sigma,\
+            B, \
+            max_iter,thres, \
+            init_G_sc, init_omega,cy_omega_sc)
             if TEST_MODE:
                 cy_G1 = init_G_sc
                 cy_G2 = des.cauchy_transform(cy_omega_sc)
@@ -436,9 +437,11 @@ class SemiCircular(object):
                 return G
         if CYTHON:
             sigma = float(self.sigma)
-            result = cy_cauchy_2by2(Z, G_init,max_iter,thres, sigma, self.p_dim, self.dim,self.forward_iter)
-            if result == 0:
-                loggin.info("cy_cauchy_2by2: reahed max_iter")
+            self.forward_iter += cy_cauchy_2by2(\
+            self.p_dim, self.dim, sigma,\
+            Z, \
+            max_iter,thres,\
+            G_init)
 
             G_cy = G_init
             if TEST_MODE:
@@ -600,19 +603,16 @@ class SemiCircular(object):
 
 
         if CYTHON:
-            cy_G = np.copy(G_out)
-            cy_omega = np.copy(omega)
-            cy_omega_sc = np.copy(omega_sc)
             dim = self.dim
             o_grad_a = np.zeros(dim*2, dtype=np.complex128);
             o_grad_sigma = np.zeros(2, dtype=np.complex128);
 
             a = np.asarray(self.des.a, dtype=np.float64)
-            cy_a = np.copy(a)
             sigma = float(self.sigma)
 
-            cy_grad_cauchy_spn(self.p_dim,dim,\
-            z, a, sigma,cy_G, cy_omega, cy_omega_sc, o_grad_a, o_grad_sigma)
+            cy_grad_cauchy_spn(self.p_dim,dim,a, sigma,\
+            z,\
+            G_out, omega, omega_sc, o_grad_a, o_grad_sigma)
 
             o_grad_a = o_grad_a.reshape([dim,2])
             o_grad_sigma = o_grad_sigma.reshape([1,2])
@@ -628,62 +628,86 @@ class SemiCircular(object):
         else:
             return grad
 
-    def grad_loss_subordination(self,  sample):
+    def grad_loss_subordination(self,  sample, CYTHON=False):
             TEST_MODE = self.TEST_MODE
             num_sample = len(sample)
-            rho_list = []
-            num_coord = self.dim + 1
-            grad = np.zeros(num_coord)
-            scale = self.scale
-            omega = 1j*np.ones(2)
-            G = -1j*np.ones(2)
+
+            if CYTHON:
+                cy_grad_a = np.zeros(self.dim, dtype=np.float64)
+                cy_grad_sigma = np.zeros(1, dtype=np.float64)
+                cy_loss = np.zeros(1, dtype=np.float64)
+                cy_a = np.asarray(self.des.a, dtype=np.float64)
+                cy_sample = np.asarray(sample, dtype=np.float64)
+                cy_forward_iter=\
+                cy_grad_loss_cauchy_spn( self.p_dim, self.dim, cy_a, self.sigma, self.scale,\
+                num_sample, sample, \
+                cy_grad_a, cy_grad_sigma, cy_loss)
+
+            if not CYTHON or TEST_MODE:
+                scale = self.scale
+                rho_list = []
+                num_coord = self.dim + 1
+                grad = np.zeros(num_coord)
+                omega = 1j*np.ones(2)
+                G = -1j*np.ones(2)
+
+                timer =Timer()
+                timerF = Timer()
+                timerB = Timer()
+
+                timer.tic()
+                for i in range(num_sample):
+                    x = sample[i]
+                    z = x+1j*self.scale
+                    w = sp.sqrt(z)
+                    timerF.tic()
+                    L = w*np.ones(2)
+                    G, omega, omega_sc =  self.cauchy_subordination(\
+                    B=L, init_omega = omega, init_G_sc=G)
+                    ### Update initial value of G
+                    timerF.toc()
+                    self.G2  = G
+                    G_out = G[0]/w  ### zG_2(z^2) = G(z)
+                    rho =  - G_out.imag/sp.pi
+                    if rho < 0:
+                        import pdb; pdb.set_trace()
+                    assert rho > 0
+                    rho_list.append(rho)
+                    timerB.tic()
+                    grad_G = self.grad_subordination(w, G, omega, omega_sc)
+                    timerB.toc()
+
+                    self.grads2 = grad_G
+                    ### (-log \rho)' = - \rho' / \rho
+                    temp = (grad_G[:,0]/w).imag/(sp.pi*rho)
+                    grad += temp
+                    if TEST_MODE:
+                        for n in range(num_coord):
+                            t =  (grad_G[n][0]/w).imag/(sp.pi*rho)
+                            assert (np.allclose( temp[n] ,t) )
+                            grad[n] += t
 
 
-            timerF = Timer()
-            timerB = Timer()
+                loss = np.average(-sp.log(rho_list))
+                grad = grad.real
+                grad/= num_sample
+                timer.toc()
+                logging.debug("Forward: {} sec".format(timerF.total_time))
+                logging.debug("Backward: {} sec".format(timerB.total_time))
+                logging.debug("total: {} sec".format(timer.total_time))
 
 
-            for i in range(num_sample):
-                x = sample[i]
-                z = x+1j*self.scale
-                w = sp.sqrt(z)
-                timerF.tic()
-                L = w*np.ones(2)
-                G, omega, omega_sc =  self.cauchy_subordination(\
-                B=L, init_omega = omega, init_G_sc=G)
-                ### Update initial value of G
-                timerF.toc()
-                self.G2  = G
-                G_out = G[0]/w  ### zG_2(z^2) = G(z)
-                rho =  - G_out.imag/sp.pi
-                if rho < 0:
+            if CYTHON and TEST_MODE:
+                if not np.allclose(grad[:self.dim], cy_grad_a):
                     import pdb; pdb.set_trace()
-                assert rho > 0
-                rho_list.append(rho)
-                timerB.tic()
-                grad_G = self.grad_subordination(w, G, omega, omega_sc)
-                timerB.toc()
+                assert(np.allclose(grad[:self.dim], cy_grad_a) )
+                assert(np.allclose(grad[-1], cy_grad_sigma))
 
-                self.grads2 = grad_G
-                ### (-log \rho)' = - \rho' / \rho
-                temp = (grad_G[:,0]/w).imag/(sp.pi*rho)
-                grad += temp
-                if TEST_MODE:
-                    for n in range(num_coord):
-                        t =  (grad_G[n][0]/w).imag/(sp.pi*rho)
-                        assert (np.allclose( temp[n] ,t) )
-                        grad[n] += t
-
-
-            loss = np.average(-sp.log(rho_list))
-            grad/= num_sample
-
-            logging.debug("Forward: {} sec".format(timerF.total_time))
-            logging.debug("Backward: {} sec".format(timerB.total_time))
-
-            return grad.real, loss
-
-
+            if CYTHON:
+                cy_grad = np.append(cy_grad_a ,cy_grad_sigma)
+                return cy_grad, cy_loss
+            else:
+                return grad,loss
 
     def loss_subordination(self,  sample):
             num_sample = len(sample)

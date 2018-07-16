@@ -1,7 +1,20 @@
 #include "spn.h"
 
-int cauchy_sc(DCOMPLEX* Z, DCOMPLEX*  o_G, int max_iter, double thres, double sigma, int p_dim, int dim, long* o_forward_iter){
+int
+cauchy_sc(int p_dim, int dim, double sigma, \
+  DCOMPLEX* Z, \
+  int max_iter, double thres,\
+  DCOMPLEX*  o_G){
+    if ( !(thres> 0 )){
+      printf("(cauchy_sc)ERROR:Must be thres > 0\n");
+      exit(EXIT_FAILURE);
+    }
+    if (cimag(Z[0]) < 0 || cimag(Z[1]) < 0){
+       printf("(cauchy_sc)ERROR:Must be Im Z > 0 \n");
+       exit(EXIT_FAILURE);
+     }
     int flag = 0;
+    int num_iter = 0;
     DCOMPLEX sub_x = 0;
     DCOMPLEX sub_y = 0;
     for(int n = 0; n < max_iter; ++n){
@@ -15,22 +28,33 @@ int cauchy_sc(DCOMPLEX* Z, DCOMPLEX*  o_G, int max_iter, double thres, double si
       o_G[0] += sub_x;
       o_G[1] += sub_y;
       if(flag == 1){
-        o_forward_iter[0] +=n;
-        //printf("iter = %d \n", n);
-        return 1;
+        num_iter =n;
+        break;
       }
-      }
-    o_forward_iter[0] +=max_iter;
-    return 0;
+    }
+    if (flag == 0){
+      num_iter = max_iter;
+      printf("(cauchy_sc)reached max_iter.\n");
+    }
+    return num_iter;
 }
 
 
-int cauchy_spn(DCOMPLEX* B, DCOMPLEX* o_omega,DCOMPLEX* o_G_sc,int max_iter,double thres, \
-double sigma, int p_dim, int dim, long* o_forward_iter,double* a,  DCOMPLEX* o_omega_sc){
+int
+cauchy_spn(int p_dim, int dim, double* a,double sigma,\
+  DCOMPLEX* B,\
+  int max_iter,double thres, \
+  DCOMPLEX* o_G_sc, DCOMPLEX* o_omega, DCOMPLEX* o_omega_sc){
     int flag = 0;
-    int result = 0;
+    int num_total_iter = 0;
+    if ( !(thres > 0)){
+      printf("(cauchy_spn)ERROR: Must be thres > 0 : %e\n" , thres);
+      exit(EXIT_FAILURE);
+    }
     for (int n = 0; n< max_iter; ++n){
-        result |= cauchy_sc(o_omega, o_G_sc, max_iter, thres, sigma,p_dim,dim, o_forward_iter);
+        num_total_iter += cauchy_sc(p_dim,dim, sigma, o_omega,\
+           max_iter, thres,\
+          o_G_sc);
         DCOMPLEX W_x = 0;
         DCOMPLEX W_y = 0;
         W_x  = 1./o_G_sc[0] - o_omega[0] + B[0];
@@ -55,16 +79,21 @@ double sigma, int p_dim, int dim, long* o_forward_iter,double* a,  DCOMPLEX* o_o
           break;
         }
     }
-    result |= cauchy_sc(o_omega, o_G_sc, max_iter, thres, sigma,p_dim,dim, o_forward_iter);
+    num_total_iter += cauchy_sc(p_dim,dim, sigma,o_omega, \
+      max_iter, thres, \
+      o_G_sc);
     o_omega_sc[0] = 1./o_G_sc[0] - o_omega[0] + B[0];
     o_omega_sc[1] = 1./o_G_sc[1] - o_omega[1] + B[1];
-    return result;
+    return num_total_iter;
 }
 
 
-void grad_cauchy_spn(int p, int d, const complex z,  const double  *a, const double  sigma, \
-  const DCOMPLEX *G, const DCOMPLEX *omega, const DCOMPLEX *omega_sc,\
-    DCOMPLEX *o_grad_a, DCOMPLEX *o_grad_sigma){
+
+
+void
+grad_cauchy_spn(int p, int d, double  *a,  double  sigma, \
+  DCOMPLEX z,DCOMPLEX *G, DCOMPLEX *omega, DCOMPLEX *omega_sc,\
+  DCOMPLEX *o_grad_a, DCOMPLEX *o_grad_sigma){
 
   MEM_RESULT ret = MEM_OK;
   /// init ///
@@ -129,61 +158,61 @@ void grad_cauchy_spn(int p, int d, const complex z,  const double  *a, const dou
   h_A[0] = omega[0] -z;
   h_A[1] = omega[1] -z;
 
-  //printf("F_A=%f\n", cabs(F_A[0]));
-  //printf("F_A=%f\n", cabs(F_A[1]));
+  //printf("F_A=%e\n", cabs(F_A[0]));
+  //printf("F_A=%e\n", cabs(F_A[1]));
 
-  //printf("G=%f\n", cabs(G[0]));
-  //printf("G=%f\n", cabs(G[1]));
+  //printf("G=%e\n", cabs(G[0]));
+  //printf("G=%e\n", cabs(G[1]));
   TG_Ge(p,d,sigma,G, TG_Ge_sc);
 
-  //printf("abs TG_Ge_sc=%f\n", cabs(TG_Ge_sc[0]));
-  //printf("abs TG_Ge_sc=%f\n", cabs(TG_Ge_sc[1]));
-  //printf("abs TG_Ge_sc=%f\n", cabs(TG_Ge_sc[2]));
-  //printf("abs TG_Ge_sc=%f\n", cabs(TG_Ge_sc[3]));
+  //printf("abs TG_Ge_sc=%e\n", cabs(TG_Ge_sc[0]));
+  //printf("abs TG_Ge_sc=%e\n", cabs(TG_Ge_sc[1]));
+  //printf("abs TG_Ge_sc=%e\n", cabs(TG_Ge_sc[2]));
+  //printf("abs TG_Ge_sc=%e\n", cabs(TG_Ge_sc[3]));
   DG(G, TG_Ge_sc, DG_sc);
-  //printf(" DG_sc= %f \n", cabs(DG_sc[0]));
-  //printf(" DG_sc= %f \n", cabs(DG_sc[1]));
-  //printf(" DG_sc= %f \n", cabs(DG_sc[2]));
-  //printf(" DG_sc= %f \n", cabs(DG_sc[3]));
+  //printf(" DG_sc= %e \n", cabs(DG_sc[0]));
+  //printf(" DG_sc= %e \n", cabs(DG_sc[1]));
+  //printf(" DG_sc= %e \n", cabs(DG_sc[2]));
+  //printf(" DG_sc= %e \n", cabs(DG_sc[3]));
   T_eta(p,d,temp_T_eta);
-  //printf("T_eta=%f\n", cabs(temp_T_eta[0]));
-  //printf("T_eta=%f\n", cabs(temp_T_eta[1]));
-  //printf("T_eta=%f\n", cabs(temp_T_eta[2]));
+  //printf("T_eta=%e\n", cabs(temp_T_eta[0]));
+  //printf("T_eta=%e\n", cabs(temp_T_eta[1]));
+  //printf("T_eta=%e\n", cabs(temp_T_eta[2]));
 
   Dh(DG_sc, temp_T_eta, sigma, Dh_sc);
-  //printf("Dh_sc=%f\n", cabs(Dh_sc[0]));
-  //printf("Dh_sc=%f\n", cabs(Dh_sc[1]));
-  //printf("Dh_sc=%f\n", cabs(Dh_sc[2]));
-  //printf("Dh_sc=%f\n", cabs(Dh_sc[3]));
+  //printf("Dh_sc=%e\n", cabs(Dh_sc[0]));
+  //printf("Dh_sc=%e\n", cabs(Dh_sc[1]));
+  //printf("Dh_sc=%e\n", cabs(Dh_sc[2]));
+  //printf("Dh_sc=%e\n", cabs(Dh_sc[3]));
 
   Psigma_G(p,d,sigma, G, TG_Ge_sc, Psigma_G_sc);
 
-  //printf("P_sigma_G_sc=%f\n", cabs(Psigma_G_sc[0]));
+  //printf("P_sigma_G_sc=%e\n", cabs(Psigma_G_sc[0]));
 
 
   Psigma_h(p, d, sigma,G, Psigma_G_sc, temp_T_eta,\
   Psigma_h_sc);
 
-  //printf("abs Psigma_h %f\n", cabs(Psigma_h_sc[0]));
-  //printf("abs Psigma_h %f\n", cabs(Psigma_h_sc[1]));
+  //printf("abs Psigma_h %e\n", cabs(Psigma_h_sc[0]));
+  //printf("abs Psigma_h %e\n", cabs(Psigma_h_sc[1]));
 
   des_DG(p, d, a, omega_sc, DG_A);
 
-  //printf("abs  DG_A=%f\n", cabs(DG_A[0]));
-  //printf("abs  DG_A=%f\n", cabs(DG_A[1]));
-  //printf("abs  DG_A=%f\n", cabs(DG_A[2]));
-  //printf("abs  DG_A=%f\n", cabs(DG_A[3]));
+  //printf("abs  DG_A=%e\n", cabs(DG_A[0]));
+  //printf("abs  DG_A=%e\n", cabs(DG_A[1]));
+  //printf("abs  DG_A=%e\n", cabs(DG_A[2]));
+  //printf("abs  DG_A=%e\n", cabs(DG_A[3]));
   des_Dh(DG_A, F_A,  Dh_A);
 
-  //printf("abs  dha=%f\n", cabs(Dh_A[0]));
-  //printf("abs  dha=%f\n", cabs(Dh_A[1]));
-  //printf("abs  dha=%f\n", cabs(Dh_A[2]));
-  //printf("abs  dha=%f\n", cabs(Dh_A[3]));
+  //printf("abs  dha=%e\n", cabs(Dh_A[0]));
+  //printf("abs  dha=%e\n", cabs(Dh_A[1]));
+  //printf("abs  dha=%e\n", cabs(Dh_A[2]));
+  //printf("abs  dha=%e\n", cabs(Dh_A[3]));
 
   des_Pa_h(p, d,  a,  omega_sc, F_A,  Pa_h_A);
   /*
   for (int i = 0; i < d*2; i++) {
-  printf("abs  Pa_h_A=%f\n", cabs(Pa_h_A[i]));
+  printf("abs  Pa_h_A=%e\n", cabs(Pa_h_A[i]));
   }
   */
   ////tpS =  np.linalg.inv(np.eye(2,dtype=np.complex128) -  tpThsc  @ tpThA
@@ -194,25 +223,25 @@ void grad_cauchy_spn(int p, int d, const complex z,  const double  *a, const dou
   S[3] = 1.;
   my_zgemm(2,2,2 , -1.0, Dh_sc, Dh_A, 1.0, S );
   /*
-  printf("pre:abs  S=%f\n", cabs(S[0]));
-  printf("abs  S=%f\n", cabs(S[1]));
-  printf("abs  S=%f\n", cabs(S[2]));
-  printf("abs  S=%f\n", cabs(S[3]));
+  printf("pre:abs  S=%e\n", cabs(S[0]));
+  printf("abs  S=%e\n", cabs(S[1]));
+  printf("abs  S=%e\n", cabs(S[2]));
+  printf("abs  S=%e\n", cabs(S[3]));
   */
   inv2by2_overwrite(S);
   /*
-  printf("inv:abs  S=%f\n", cabs(S[0]));
-  printf("abs  S=%f\n", cabs(S[1]));
-  printf("abs  S=%f\n", cabs(S[2]));
-  printf("abs  S=%f\n", cabs(S[3]));
+  printf("inv:abs  S=%e\n", cabs(S[0]));
+  printf("abs  S=%e\n", cabs(S[1]));
+  printf("abs  S=%e\n", cabs(S[2]));
+  printf("abs  S=%e\n", cabs(S[3]));
   */
   my_zgemm(d,2,2 , 1.0, Pa_h_A, S, 0, Pa_omega );
   z_isnan(d*2, Pa_omega);
   /*
-  printf("abs  Pa_omega=%f\n", cabs(Pa_omega[0]));
-  printf("abs  Pa_omega=%f\n", cabs(Pa_omega[1]));
-  printf("abs  Pa_omega=%f\n", cabs(Pa_omega[2]));
-  printf("abs  Pa_omega=%f\n", cabs(Pa_omega[3]));
+  printf("abs  Pa_omega=%e\n", cabs(Pa_omega[0]));
+  printf("abs  Pa_omega=%e\n", cabs(Pa_omega[1]));
+  printf("abs  Pa_omega=%e\n", cabs(Pa_omega[2]));
+  printf("abs  Pa_omega=%e\n", cabs(Pa_omega[3]));
   */
   my_zgemm(d,2,2 , 1.0, Pa_omega, DG_sc, 0,  o_grad_a);
 
@@ -220,54 +249,64 @@ void grad_cauchy_spn(int p, int d, const complex z,  const double  *a, const dou
 
   my_zgemm(2,2,2, 1.0, Dh_A, S, 0, temp_mat);
 
-  //printf("abs  temp_mat=%f\n", cabs(temp_mat[0]));
-  //printf("abs  temp_mat=%f\n", cabs(temp_mat[1]));
+  //printf("abs  temp_mat=%e\n", cabs(temp_mat[0]));
+  //printf("abs  temp_mat=%e\n", cabs(temp_mat[1]));
 
 
   my_zgemm(1,2,2, 1.0, Psigma_h_sc, temp_mat, 0, Psigma_omega);
 
-  //printf("abs  Psigma_omega=%f\n", cabs(Psigma_omega[0]));
-  //printf("abs  Psigma_omega=%f\n", cabs(Psigma_omega[1]));
+  //printf("abs  Psigma_omega=%e\n", cabs(Psigma_omega[0]));
+  //printf("abs  Psigma_omega=%e\n", cabs(Psigma_omega[1]));
 
   // tpPsigmaG =  tpPsigmaOmega @ tpTGsc + tpPsigmaG
   my_zgemm(1,2,2, 1.0, Psigma_omega, DG_sc, 1.0, Psigma_G_sc);
 
   /*
-  printf("abs  Psigma_G_sc=%f\n", cabs(Psigma_G_sc[0]));
-  printf("abs  Psigma_G_sc=%f\n", cabs(Psigma_G_sc[1]));
+  printf("abs  Psigma_G_sc=%e\n", cabs(Psigma_G_sc[0]));
+  printf("abs  Psigma_G_sc=%e\n", cabs(Psigma_G_sc[1]));
 
-  printf("abs  o_grad_sigma=%f\n", cabs(o_grad_sigma[0]));
-  printf("abs  o_grad_sigma=%f\n", cabs(o_grad_sigma[1]));
+  printf("abs  o_grad_sigma=%e\n", cabs(o_grad_sigma[0]));
+  printf("abs  o_grad_sigma=%e\n", cabs(o_grad_sigma[1]));
   */
   z_isnan(2, o_grad_sigma);
 
 
 
-  // destroye
+  // destroy
   free(F_A);
+  F_A =NULL;
   free(h_A);
+  h_A =NULL;
 
   free(TG_Ge_sc);
+  TG_Ge_sc =NULL;
   free(DG_sc);
+  DG_sc =NULL;
 
   free(temp_T_eta);
+  temp_T_eta =NULL;
   free(Dh_sc);
+  Dh_sc=NULL;
 
   free(Psigma_h_sc);
-
+  Psigma_h_sc=NULL;
 
   free(DG_A);
+  DG_A =NULL;
   free(Dh_A);
-  free( Pa_h_A);
-
+  Dh_A =NULL;
+  free(Pa_h_A);
+  Pa_h_A=NULL;
   free( S);
+  S=NULL;
 
   free( Pa_omega);
-
+  Pa_omega =NULL;
   free( temp_mat);
+  temp_mat =NULL;
 
   free( Psigma_omega);
-
+  Psigma_omega =NULL;
 }
 
 
@@ -335,6 +374,8 @@ void Psigma_G(const int p,const int d, const double sigma, const DCOMPLEX *G, co
 
   free(S);
   free(Psigma_Ge);
+  S =NULL;
+  Psigma_Ge = NULL;
 }
 
 // o_Psigma_h ; 1 x 2
@@ -412,4 +453,100 @@ void des_Pa_h( int p, int d, const double *a, const DCOMPLEX *W, DCOMPLEX *F, DC
     o_Pa_h += 1;
     *o_Pa_h = - temp*F[1]*F[1]*W[0]/p;
   }
+}
+
+
+
+int
+grad_loss_cauchy_spn(  int p, int d, \
+  double  *a, double  sigma, double scale,\
+  int  num_sample, double *sample, \
+  double *o_grad_a, double *o_grad_sigma, double *o_loss){
+    printf("begin\n" );
+
+    assert(num_sample > 0);
+
+
+    DCOMPLEX*omega;
+    omega = malloc(sizeof(DCOMPLEX)*2);
+    omega[0] = I;
+    omega[1] = I;
+
+
+    DCOMPLEX*omega_sc;
+    omega_sc = malloc(sizeof(DCOMPLEX)*2);
+    omega_sc[0] = I;
+    omega_sc[1] = I;
+
+    DCOMPLEX*G;
+    G = malloc(sizeof(DCOMPLEX)*2);
+    G[0] = -I;
+    G[1] = -I;
+
+    int total_f_iter = 0;
+    const int max_iter = 1000;
+    const double thres = 1e-8;
+
+    printf("before for loop\n" );
+    for (int n = 0; n < num_sample; n++) {
+
+      DCOMPLEX z = sample[n] + scale*I;
+      DCOMPLEX w = sqrt(z);
+      DCOMPLEX*B;
+      B = malloc(sizeof(DCOMPLEX)*2);
+      B[0] = w;
+      B[1] = w;
+
+
+
+      total_f_iter += cauchy_spn(p, d,a,sigma,\
+        B, \
+        max_iter,thres, \
+        G,omega, omega_sc);
+      printf("after cauchy_spn\n" );
+
+
+      double den = -cimag(G[0]/w);
+      double rho = den/M_PI;
+      if (!(rho>0)){
+        printf("(grad_loss_cauchy_spn)Must rho > 0: %e\n",rho );
+        exit(EXIT_FAILURE);
+      }
+      assert(rho > 0);
+      *o_loss -= log(rho);
+
+      DCOMPLEX*t_grad_a;
+      t_grad_a = malloc(sizeof(DCOMPLEX)*d*2);
+      memset(t_grad_a, 0, d*2);
+      DCOMPLEX*t_grad_sigma;
+      t_grad_sigma = malloc(sizeof(DCOMPLEX)*2);
+      memset(t_grad_sigma, 0, 2);
+
+      grad_cauchy_spn(p, d, a,sigma, \
+          w, G, omega,  omega_sc,\
+          t_grad_a, t_grad_sigma);
+
+      printf("after grad_cauchy\n" );
+      for (int i = 0; i < d; i++) {
+        o_grad_a[i] += cimag(t_grad_a[2*i]/w)/den;
+      }
+      o_grad_sigma[0] += cimag(t_grad_sigma[0]/w)/den;
+
+      free(B);
+      free(t_grad_a);
+      free(t_grad_sigma);
+
+    }
+
+    my_dax(d*2, 1./num_sample,  o_grad_a);
+    my_dax(2, 1./num_sample,  o_grad_sigma);
+    *o_loss /=  num_sample;
+
+    printf("before free\n" );
+
+    free(omega);
+    free(omega_sc);
+    free(G);
+
+    return total_f_iter;
 }
