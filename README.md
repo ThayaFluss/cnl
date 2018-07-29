@@ -31,7 +31,7 @@ $ git clone https://github.com/ThayaFluss/cnl.git
 
 ```bash
 cd src
-$ bash cython_setup.bash
+$ bash setup.bash
 python -m unittest tests/*.py
 ```
 
