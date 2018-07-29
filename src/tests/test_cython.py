@@ -162,7 +162,7 @@ class TestCython(unittest.TestCase):
 
 
         grad, loss =sc.grad_loss_subordination( sample, False)
-        import pdb; pdb.set_trace()
+        #import pdb; pdb.set_trace()
 
         assert( np.allclose(grad[:d], cy_grad_a ))
         assert( np.allclose(grad[-1], cy_grad_sigma ))

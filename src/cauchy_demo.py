@@ -2,9 +2,10 @@ import numpy as np
 import scipy as sp
 import matplotlib.pyplot as plt
 import seaborn as sns
-from cauchy import *
+#from cauchy import *
 
-
+from cw import *
+from spn_c2 import *
 
 def draw_loss_heatmap(size = 32, num_shot = 1, true_a=5, true_sigma=1,\
 min_var = 0.9, max_var = 1.1, min_a = 4, max_a=6,\

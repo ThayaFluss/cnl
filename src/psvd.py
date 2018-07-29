@@ -1,7 +1,7 @@
 import numpy as np
 
 
-from fde_spn_c2 import *
+from spn_c2 import *
 from argparse import ArgumentParser
 from train_fde import *
 

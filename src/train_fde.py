@@ -262,7 +262,7 @@ def train_fde_spn(dim, p_dim, sample,\
     sc = SemiCircular(dim=dim,p_dim=p_dim, scale=base_scale)
     sc.set_params(diag_A, sigma)
     if TEST_C2:
-        sc2 = fde_spn_c2.SemiCircular(dim=dim,p_dim=p_dim, scale=base_scale)
+        sc2 = spn_c2.SemiCircular(dim=dim,p_dim=p_dim, scale=base_scale)
         sc2.set_params(diag_A, sigma)
 
 
@@ -321,7 +321,8 @@ def train_fde_spn(dim, p_dim, sample,\
         var_adam = np.zeros(dim + 1)
 
 
-    old_forward_iter = np.zeros(1)
+    average_forward_iter = np.zeros(1)
+    total_average_forwad_iter = np.zeros(1)
     stop_count = 0
     ### SGD
     for n in trange(max_iter):
@@ -361,8 +362,10 @@ def train_fde_spn(dim, p_dim, sample,\
             r_grads, r_loss =  sc.regularization_grad_loss(diag_A, sigma,reg_coef=reg_coef, TYPE=REG_TYPE)
             new_grads += r_grads
             new_loss += r_loss
+        ### for output ###
         train_loss_list.append(new_loss)
-
+        average_forward_iter[0] += sc.forward_iter[0]
+        sc.forward_iter[0] = 0
 
 
         if optimizer == "momentum":
@@ -449,6 +452,7 @@ def train_fde_spn(dim, p_dim, sample,\
         if monitor_validation:
             #val_loss=np.sum(np.abs(np.sort(np.abs(diag_A)) - np.sort(np.abs(n_test_diag_A)))) +  np.abs(np.abs(sigma) - n_test_sigma)
             val_loss=np.linalg.norm(np.sort(np.abs(diag_A)) - np.sort(np.abs(n_test_diag_A))) +  np.abs(np.abs(sigma) - n_test_sigma)
+            ### for output ###
             val_loss_list.append(val_loss)
             average_val_loss += val_loss
 
@@ -468,6 +472,8 @@ def train_fde_spn(dim, p_dim, sample,\
                 average_loss /= log_step
                 average_sigma /= log_step
                 average_diagA /= log_step
+                average_forward_iter /= log_step
+                total_average_forwad_iter += average_forward_iter
                 if monitor_validation:
                     average_val_loss /= log_step
                 if stop_for_rank:
@@ -480,52 +486,38 @@ def train_fde_spn(dim, p_dim, sample,\
                         import pdb; pdb.set_trace()
                         break
 
-            #average_sigma *= normalize_ratio
-            #average_diagA *= normalize_ratio
-            if (n % stdout_step + 1) == stdout_step:
-                logging.info("{0}/{4}-iter:lr = {1:4.3e}, scale = {2:4.3e}, num_cauchy = {3}".format(n+1,lr,scale,dim_cauchy_vec,max_iter ))
-                logging.info("loss= {}".format( average_loss))
 
-            if monitor_validation:
-
-                #val_loss_average = np.sum(np.abs(np.sort(np.abs(average_diagA)) - np.sort(np.abs(n_test_diag_A)))) \
-                val_loss_average = np.linalg.norm(np.sort(np.abs(average_diagA)) - np.sort(np.abs(n_test_diag_A)))\
-                +  np.abs(np.abs(average_sigma) - n_test_sigma)
+                #average_sigma *= normalize_ratio
+                #average_diagA *= normalize_ratio
                 if (n % stdout_step + 1) == stdout_step:
-                    logging.info("val_loss= {}".format(average_val_loss))
-                    logging.debug("val_loss_average= {}".format(val_loss_average))
-            if (n % stdout_step + 1) == stdout_step:
+                    logging.info("{0}/{4}-iter:lr = {1:4.3e}, scale = {2:4.3e}, num_cauchy = {3}".format(n+1,lr,scale,dim_cauchy_vec,max_iter ))
+                    logging.info("loss= {}".format( average_loss))
 
-                logging.info("sigma= {}".format(average_sigma))
-                #logging.info("diag_A (sorted)=\n{}  / 10-iter".format(np.sort(average_diagA)))
-                #logging.info( "diag_A (raw) =\n{}".format(diag_A))
-                logging.info("num_zero={} / thres={}".format(num_zero,list_zero_thres))
-                logging.debug("average-sorted-abs(diag_A) =\n{}".format(average_diagA))
-                #logging.info("diag_A/ average: min, mean, max= \n {}, {}, {} ".format(np.min(average_diagA), np.average(average_diagA), np.max(average_diagA)))
-                forward_iter = sc.forward_iter
-                diff_forward_iter = forward_iter - old_forward_iter
-                diff_forward_iter = diff_forward_iter/ stdout_step
-                logging.info("forward_iter={}".format(diff_forward_iter))
-                old_forward_iter[0] = forward_iter[0]
-            if monitor_KL and n % (KL_log_step) == 0:
-                logging.info("Computing KL divergence from truth ...")
-                sc.diag_A = average_diagA
-                sc.sigma = average_sigma
-                cross_entropy = sc.loss(sc.ESD(num_shot=num_shot_for_KL, dim_cauchy_vec=dim_cauchy_vec_for_KL))
-                KL = cross_entropy - entropy
-                logging.info("val_KL= : {}".format(KL))
+                if monitor_validation:
+
+                    #val_loss_average = np.sum(np.abs(np.sort(np.abs(average_diagA)) - np.sort(np.abs(n_test_diag_A)))) \
+                    val_loss_average = np.linalg.norm(np.sort(np.abs(average_diagA)) - np.sort(np.abs(n_test_diag_A)))\
+                    +  np.abs(np.abs(average_sigma) - n_test_sigma)
+                    if (n % stdout_step + 1) == stdout_step:
+                        logging.info("val_loss= {}".format(average_val_loss))
+                        logging.debug("val_loss_average= {}".format(val_loss_average))
+                if (n % stdout_step + 1) == stdout_step:
+
+                    logging.info("sigma= {}".format(average_sigma))
+                    #logging.info("diag_A (sorted)=\n{}  / 10-iter".format(np.sort(average_diagA)))
+                    #logging.info( "diag_A (raw) =\n{}".format(diag_A))
+                    logging.info("num_zero={} / thres={}".format(num_zero,list_zero_thres))
+                    logging.debug("average-sorted-abs(diag_A) =\n{}".format(average_diagA))
+                    #logging.info("diag_A/ average: min, mean, max= \n {}, {}, {} ".format(np.min(average_diagA), np.average(average_diagA), np.max(average_diagA)))
+                    logging.info("forward_iter={}".format(average_forward_iter))
 
 
-
-        logging.debug( "{}-iter:lr={},scale{}, loss: {}".format(n+1,lr, scale, new_loss) )
-        logging.debug( "sigma: {}".format(sigma))
-        #diag_A=np.sort(diag_A)
-        if monitor_validation:
-            logging.debug( "val_loss: {}".format(val_loss))
-
-
-        logging.debug( "mean_of_diagA: {}, var_of_A={}".format(np.average(diag_A), np.var(diag_A) ))
-        logging.debug( "diag_A (raw) =\n{}".format(diag_A))
+                average_loss = 0
+                average_sigma *= 0
+                average_diagA *=0
+                average_forward_iter[0] = 0
+                if monitor_validation:
+                    average_val_loss = 0
 
 
 
@@ -551,8 +543,8 @@ def train_fde_spn(dim, p_dim, sample,\
     average_sigma *= normalize_ratio
     average_diagA *= normalize_ratio
     logging.info("result:")
-    logging.info("sigma:".format(average_sigma))
-    logging.info("diag_A:\\{}".format(average_diagA))
+    logging.info("sigma:".format(sigma))
+    logging.info("diag_A:\\{}".format(diag_A))
     train_loss_array = np.array(train_loss_list)
     if monitor_validation:
         val_loss_array = np.array(val_loss_list)
@@ -561,15 +553,14 @@ def train_fde_spn(dim, p_dim, sample,\
         val_loss_array = -1
 
     num_zero_array = np.asarray(num_zero_list)
-    forward_iter = sc.forward_iter/ (max_iter*minibatch_size)
-
+    forward_iter = total_average_forwad_iter/  (max_iter/log_step)
     del sc
     ### TODO for sigma
     #list_zero_thres = list_zero_thres[:-1]
     if monitor_validation:
         del sc_for_plot
-    result = dict(diag_A = average_diagA,\
-    sigma= average_sigma,
+    result = dict(diag_A = diag_A,\
+    sigma= sigma,
     train_loss= train_loss_array,
     val_loss=val_loss_array,
     num_zero=num_zero_array,

@@ -1,7 +1,7 @@
-from cauchy import CompoundWishart as CW
+from cw import CompoundWishart as CW
 import numpy as np
 import matplotlib.pyplot as plt
-
+import unittest
 
 class TestCW(unittest.TestCase):
     def test_cw(self):

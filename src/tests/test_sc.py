@@ -51,7 +51,7 @@ class TestSC(unittest.TestCase):
             z = x + 1j*scale
             G, omega,omega_sc = sc.cauchy_subordination(z*np.eye(2, dtype=np.complex128), init_omega=1j*np.eye(2,dtype=np.complex128), init_G_sc=-1j*np.eye(2,dtype=np.complex128))
             G2, omega2, omega_sc2 = sc2.cauchy_subordination(z*np.ones(2, dtype=np.complex128),  init_omega=1j*np.ones(2,dtype=np.complex128), init_G_sc=-1j*np.ones(2,dtype=np.complex128))
-            print (g, G[0][0], G2[0])
+            #print (g, G[0][0], G2[0])
 
             assert( np.allclose(g, G[0][0]) )
             assert(np.allclose(g, G2[0]))
@@ -62,9 +62,12 @@ class TestSC(unittest.TestCase):
 
             ps_g1 = ps_G[-1][0][0]
             ps_g2 = ps_G2[-1][0]
-            print("raw:", ps_g)
-            print("sc:",ps_g1)
-            print("sc2:", ps_g2)
+            np.allclose(ps_g, ps_g1)
+            np.allclose(ps_g, ps_g2)
+
+            #print("raw:", ps_g)
+            #print("sc:",ps_g1)
+            #print("sc2:", ps_g2)
 
         scales = np.random.uniform(low = 1e-3, high=2, size = 10)
         for x in np.linspace(0,1,10):

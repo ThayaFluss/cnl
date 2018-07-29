@@ -12,7 +12,7 @@ import time
 import logging
 
 #from cauchy import SemiCircular as SC
-from fde_spn_c2 import SemiCircular as SC ###for rectanglar
+from spn_c2 import SemiCircular as SC ###for rectanglar
 
 
 def plot_true_sample_and_model_FDE(min_x, max_x, dim, p_dim, scale, dim_cauchy_vec, max_sigma=0.1,
