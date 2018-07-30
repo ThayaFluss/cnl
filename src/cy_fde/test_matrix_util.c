@@ -1,5 +1,5 @@
 #include "test_matrix_util.h"
-
+/*
 int test_blas(int result){
    int  d = 5;
    int  k = 6;
@@ -24,7 +24,7 @@ int test_blas(int result){
    return result;
 
 }
-
+*/
 int test_my_zgemm(int result){
     int M= 5;
     int N = 2;
