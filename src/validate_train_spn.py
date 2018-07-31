@@ -75,14 +75,20 @@ def options(logger=None):
                         type     = int,
                         dest     = 'dpi',
                         required = False,
-                        default  =  300,
+                        default  =  150,
                         help     = "Resolution of figures (default: %(default)s)")
     parser.add_argument('-ext', '--ext',
                         type     = str,
                         dest     = 'ext',
                         required = False,
-                        default  =  "pdf",
+                        default  =  "png",
                         help     = "image (default: %(default)s)")
+    parser.add_argument('-tex', '--usetex',
+                        type     = int,
+                        dest     = 'usetex',
+                        required = False,
+                        default  =  1,
+                        help     = "Usetex for plotting graphs. Set 0 if latex error occurs(default: %(default)s)")
 
     return parser.parse_args()
 
@@ -303,7 +309,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         for i in range(num_zero_dim):
             plt.figure()
             plt.style.use("seaborn-paper")
-            plt.rc('text', usetex=True)
+            plt.rc('text', usetex=opt.usetex)
             plt.rc('font', family="sans-serif", serif='Helvetica')
             plt.rcParams["font.size"] = 8*2
 
@@ -320,7 +326,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         ### concated plot
         plt.figure()
         plt.style.use("seaborn-paper")
-        plt.rc('text', usetex=True)
+        plt.rc('text', usetex=opt.usetex)
         plt.rc('font', family='sans-serif', serif='Helvetica')
         plt.rcParams["font.size"] = 8*2
 
@@ -416,7 +422,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         plt.close()
         plt.figure(figsize=(6,4))
         plt.style.use("seaborn-paper")
-        plt.rc('text', usetex=True)
+        plt.rc('text', usetex=opt.usetex)
 
         n = 0
         linestyles = ["-", "--", "-.", ":"]
@@ -602,7 +608,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         for i in range(num_zero_dim):
             plt.figure()
             plt.style.use("seaborn-paper")
-            plt.rc('text', usetex=True)
+            plt.rc('text', usetex=opt.usetex)
             plt.rc('font', family="sans-serif", serif='Helvetica')
             plt.rcParams["font.size"] = 8*2
 
@@ -638,7 +644,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         for k in range(num_thres):
             plt.figure()
             plt.style.use("seaborn-paper")
-            plt.rc('text', usetex=True)
+            plt.rc('text', usetex=opt.usetex)
             plt.rc('font', family="sans-serif", serif='Helvetica')
             plt.rcParams["font.size"] = 8*2
             thres = list_zero_thres[k]
@@ -671,7 +677,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         for k in range(num_thres):
             plt.figure()
             plt.style.use("seaborn-paper")
-            plt.rc('text', usetex=True)
+            plt.rc('text', usetex=opt.usetex)
             plt.rc('font', family="sans-serif", serif='Helvetica')
             plt.rcParams["font.size"] = 8*2
             thres = list_zero_thres[k]
@@ -710,7 +716,7 @@ def rank_recovery_baseline(dirname, list_zero_dim, list_min_singular, list_zero_
     COMPLEX = False
     for thres in list_zero_thres:
         plt.figure()
-        plt.rc('text', usetex=True)
+        plt.rc('text', usetex=opt.usetex)
         plt.style.use("seaborn-paper")
         #plt.rc('font', family="sans-serif", serif='Helvetica')
         #plt.rcParams["font.size"] = 8*2
