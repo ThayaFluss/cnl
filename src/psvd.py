@@ -56,12 +56,13 @@ def rank_estimation(sample_mat,\
      _, D, _ = np.linalg.svd(sample_mat)
      sample = D**2 ### eigenvalues of sample_mat.H @ sample_mat
 
+     list_zero_thres = [reg_coef]
      result = train_fde_spn(
      p_dim = p_dim, dim=dim, sample = sample,\
       base_scale = base_scale, dim_cauchy_vec=dim_cauchy_vec, base_lr = base_lr,minibatch_size=minibatch_size,\
       max_epoch=max_epoch, normalize_sample = normalize_sample,\
       reg_coef = reg_coef,\
-      list_zero_thres= [reg_coef] )
+      list_zero_thres= list_zero_thres )
 
      diag_A = result["diag_A"]
      sigma = result["sigma"]
@@ -70,4 +71,4 @@ def rank_estimation(sample_mat,\
      logging.info("list_zero_thres= {}".format( list_zero_thres))
      estimaed_ranks = dim - num_zero_array[-1]
 
-     return estimaed_ranks
+     return estimaed_ranks, diag_A, sigma
