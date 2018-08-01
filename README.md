@@ -56,21 +56,7 @@ For the rank estimation of $p \times d$ matrix $X$;
 ```
 
 
-## Validation
 
-To validate algorithms as numerical experiments in the paper;
-```bash
-cd src
-$ python validate_train_sc.py
-$ python validate_train_cw.py
-```
-
-For the rank estimation of $p \times d$ matrix $X$;
-```python
- X #numpy.array of shape [p,d]
- from rank_estimation import *
- rank, a, sigma = rank_estimation(X) #estimated rank and parameters  a, sigma.
-```
 For example; (https://github.com/ThayaFluss/cnl/blob/master/demo_rank_estimation.py)
 ```python
  p_dim = 100
@@ -88,10 +74,22 @@ For example; (https://github.com/ThayaFluss/cnl/blob/master/demo_rank_estimation
  V = haar_unitary(dim)
  A_true = U @ D @ V ; #random rotation
  X = signal_plus_noise(A_true, sigma=0.1) ### sample matrix
- from rank_estimation import *
+ from psvd import *
  rank, a, sigma = rank_estimation(X) ### estimated rank and parameters
  print(rank, true_rank) ### compare with the true_rank !
  ```
+
+
+
+
+## Validation
+
+To validate algorithms in the same way as the numerical experiments in the paper;
+```bash
+cd src
+$ python validate_train_sc.py
+$ python validate_train_cw.py
+```
 
 
 ## License
