@@ -13,5 +13,5 @@ class TestPSVD(unittest.TestCase):
         sample_mat = random_from_diag(p,d,zero_dim, min_singular)
         sample_mat += sigma*Ginibre(p,d)
         sample_mat *= 2
-        U,D, V = psvd_cnl(sample_mat)
+        U,D, V, sigma = psvd_cnl(sample_mat)
         #import pdb; pdb.set_trace()

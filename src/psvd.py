@@ -34,7 +34,7 @@ def psvd_cnl(sample_mat, reg_coef=0, minibatch_size=1):
 
     out_D = norm*np.sort(diag_A)[::-1]
     out_sigma = sigma*norm
-    return U, out_D, V
+    return U, out_D, V, out_sigma
 
 
 
