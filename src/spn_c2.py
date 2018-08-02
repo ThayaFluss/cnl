@@ -46,8 +46,8 @@ class SemiCircular(object):
             self.p_dim = p_dim
         else:
             self.p_dim = dim
-        self.G= np.eye(2*self.dim)*(1-1j)
-        self.grads = np.zeros( (self.dim+1, 2*self.dim, 2*self.dim), dtype=np.complex128)
+        #self.G= np.eye(2*self.dim)*(1-1j)
+        #self.grads = np.zeros( (self.dim+1, 2*self.dim, 2*self.dim), dtype=np.complex128)
 
         ### for subordination
         self.des = Descrete(self.diag_A)

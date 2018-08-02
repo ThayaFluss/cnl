@@ -2,11 +2,11 @@ import numpy as np
 
 
 from spn_c2 import *
-from argparse import ArgumentParser
+#from argparse import ArgumentParser
 from train_fde import *
 
 
-def psvd_cnl(sample_mat, reg_coef=0):
+def psvd_cnl(sample_mat, reg_coef=0, minibatch_size=1):
     """ probabilistic singular value decomposition """
     """ by Cauchy Noise Loss """
     p_dim = sample_mat.shape[0]
@@ -25,7 +25,8 @@ def psvd_cnl(sample_mat, reg_coef=0):
     max_epoch = (20000/dim)  * (p_dim/dim)
     max_epoch = int(max_epoch)
 
-    result =  train_fde_spn(dim, p_dim, sample, max_epoch=max_epoch, edge=1.01, reg_coef=reg_coef)
+    result =  train_fde_spn(dim, p_dim, sample, max_epoch=max_epoch, edge=1.01, reg_coef=reg_coef,\
+    dim_cauchy_vec=minibatch_size)
 
     diag_A = result["diag_A"]
     sigma = result["sigma"]
