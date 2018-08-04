@@ -6,7 +6,7 @@ from spn_c2 import *
 from train_fde import *
 
 
-def psvd_cnl(sample_mat, reg_coef=0, minibatch_size=1):
+def psvd_cnl(sample_mat, reg_coef=0, minibatch_size=1, NORMALIZE=True):
     """ probabilistic singular value decomposition """
     """ by Cauchy Noise Loss """
     p_dim = sample_mat.shape[0]
@@ -18,56 +18,80 @@ def psvd_cnl(sample_mat, reg_coef=0, minibatch_size=1):
 
     U, D, V = np.linalg.svd(sample_mat)
     norm = max(D)
-    D /= norm
+    if NORMALIZE:
+        D /= norm
 
     sample = D**2
 
     max_epoch = (20000/dim)  * (p_dim/dim)
     max_epoch = int(max_epoch)
 
-    result =  train_fde_spn(dim, p_dim, sample, max_epoch=max_epoch, edge=1.01, reg_coef=reg_coef,\
+    if NORMALIZE:
+        edge = 1.01
+    else:
+        edge = norm*1.01
+
+    result =  train_fde_spn(dim, p_dim, sample, max_epoch=max_epoch, edge=edge, reg_coef=reg_coef,\
     dim_cauchy_vec=minibatch_size)
 
     diag_A = result["diag_A"]
     sigma = result["sigma"]
 
+    out_D = np.sort(diag_A)[::-1]
+    out_sigma = sigma
 
-    out_D = norm*np.sort(diag_A)[::-1]
-    out_sigma = sigma*norm
+    if NORMALIZE:
+        out_D *= norm
+        out_sigma *= norm
+
+
     return U, out_D, V, out_sigma
 
 
 
-def rank_estimation(sample_mat,reg_coef=1e-3, minibatch_size=1):
-
+def rank_estimation(sample_mat,reg_coef=1e-3, minibatch_size=1, NORMALIZE=True):
     p_dim = sample_mat.shape[0]
     dim = sample_mat.shape[1]
     if p_dim < dim:
-     sample_mat = sample_mat.T
-     p_dim = sample_mat.shape[0]
-     dim = sample_mat.shape[1]
+        sample_mat = sample_mat.T
+        p_dim = sample_mat.shape[0]
+        dim = sample_mat.shape[1]
 
     U, D, V = np.linalg.svd(sample_mat)
     norm = max(D)
-    D /= norm
+    if NORMALIZE:
+        D /= norm
 
     sample = D**2
 
     max_epoch = (20000/dim)  * (p_dim/dim)
     max_epoch = int(max_epoch)
 
+    if NORMALIZE:
+        edge = 1.01
+    else:
+        edge = norm*1.01
+
     list_zero_thres = [reg_coef]
-    result =  train_fde_spn(dim, p_dim, sample, max_epoch=max_epoch, edge=1.01, reg_coef=reg_coef,\
+    result =  train_fde_spn(dim, p_dim, sample, max_epoch=max_epoch, edge=edge, reg_coef=reg_coef,\
     dim_cauchy_vec=minibatch_size, list_zero_thres=list_zero_thres)
 
     diag_A = result["diag_A"]
     sigma = result["sigma"]
     num_zero_array = result["num_zero"]
 
+    out_D = np.sort(diag_A)[::-1]
+    out_sigma = sigma
+
+    if NORMALIZE:
+        out_D *= norm
+        out_sigma *= norm
+
+
     logging.info("list_zero_thres= {}".format( list_zero_thres))
     estimaed_ranks = dim - num_zero_array[-1]
 
-    return estimaed_ranks, diag_A, sigma
+    return estimaed_ranks, out_D, out_sigma
 
 
 
