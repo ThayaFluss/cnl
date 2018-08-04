@@ -97,7 +97,6 @@ opt =options()
 
 i_dim = min(opt.dim, opt.p_dim)
 i_p_dim = max(opt.dim, opt.p_dim)
-i_minibatch_size = opt.minibatch
 jobname = opt.jobname
 i_vbmf = opt.vbmf
 
@@ -107,7 +106,7 @@ if not jobname in ["min_singular" , "scale_balance"]:
 
 def test_optimize(\
     base_scale ,dim_cauchy_vec, \
-    base_lr=1e-1 ,  minibatch_size=i_minibatch_size,  max_epoch=20,\
+    base_lr=1e-1 ,   max_epoch=20,\
     reg_coef=0,\
     jobname="train_v2",\
     min_singular=0,
@@ -147,7 +146,7 @@ def test_optimize(\
         base_scale=base_scale ,\
         dim_cauchy_vec=dim_cauchy_vec,\
         base_lr =base_lr ,\
-        minibatch_size=minibatch_size,\
+        minibatch_size=opt.minibatch,\
         max_epoch=max_epoch,\
         reg_coef=reg_coef,\
         monitor_validation=True,\
@@ -176,7 +175,7 @@ def test_optimize(\
     #logging.getLogger().removeHandler(file_log)
 
 
-    epoch = int(dim/minibatch_size)
+    epoch = int(dim/opt.minibatch)
     train_loss_array = train_loss_array.reshape([-1, epoch]).mean(axis=1)
     val_loss_array = val_loss_array.reshape([-1,epoch]).mean(axis=1)
     num_zero_array = num_zero_array.reshape([-1,epoch, len(list_zero_thres)]).mean(axis=1)
@@ -267,7 +266,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
     setting_log.write("jobname:{}\n".format(temp_jobname))
     setting_log.write("dim:{}\n".format(i_dim))
     setting_log.write("p_dim:{}\n".format(i_p_dim))
-    setting_log.write("minibatch:{}\n".format(i_minibatch_size))
+    setting_log.write("minibatch:{}\n".format(opt.minibatch))
     setting_log.write("num_test:{}\n".format(num_test))
     setting_log.write("max_epoch:{}\n".format(max_epoch         ))
     setting_log.write("base_lr:{}\n".format(base_lr           ))

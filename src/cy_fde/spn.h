@@ -135,7 +135,7 @@ void des_Pa_h( int p, int d, const double *a, const DCOMPLEX *W, DCOMPLEX *F, DC
 */
 int
 grad_loss_cauchy_spn(  int p, int d, double  *a, double  sigma, double scale, \
-  int  num_sample, double *sample, \
+  int  batch_size, double *batch, \
   double *o_grad_a, double *o_grad_sigma, double *o_loss);
 
 

@@ -30,7 +30,7 @@ void SCN_init_forward(SCN* self){
 
 void SCN_init_backward(SCN* self) {
   memset(self->Pa_h_A,          0,2*self->d);
-  memset(self->Pa_omega,        0, 2*self->d);
+  memset(self->Pa_omega,        0,2*self->d);
 
   set_zval(self->F_A,           0,2);
   set_zval(self->h_A,           0,2);
@@ -463,9 +463,9 @@ void des_Pa_h( int p, int d, const double *a, const DCOMPLEX *W, DCOMPLEX *F, DC
 int
 grad_loss_cauchy_spn(  int p, int d, \
   double  *a, double  sigma, double scale,\
-  int  num_sample, double *sample, \
+  int  batch_size, double *batch, \
   double *o_grad_a, double *o_grad_sigma, double *o_loss){
-    assert(num_sample > 0);
+    assert(batch_size > 0);
     SCN *net = (SCN*)malloc(sizeof(SCN));
     SCN_construct(net,p,d);
 
@@ -487,8 +487,8 @@ grad_loss_cauchy_spn(  int p, int d, \
 
 
 
-    for (int n = 0; n < num_sample; n++) {
-      DCOMPLEX z = sample[n] + scale*I;
+    for (int n = 0; n < batch_size; n++) {
+      DCOMPLEX z = batch[n] + scale*I;
       DCOMPLEX w = csqrt(z);
       B[0] = w;
       B[1] = w;
@@ -514,6 +514,7 @@ grad_loss_cauchy_spn(  int p, int d, \
       t_grad_sigma[0] = 0;
       t_grad_sigma[1] = 0;
 
+      SCN_init_backward(net);
       SCN_grad(net,p,d, a,sigma, \
               w, G, omega,  omega_sc,\
               t_grad_a, t_grad_sigma);
@@ -529,9 +530,9 @@ grad_loss_cauchy_spn(  int p, int d, \
     }
 
 
-    my_dax(d, 1./num_sample,  o_grad_a);
-    *o_grad_sigma /= num_sample;
-    *o_loss /=  num_sample;
+    my_dax(d, 1./batch_size,  o_grad_a);
+    *o_grad_sigma /= batch_size;
+    *o_loss /=  batch_size;
 
     SCN_destroy(net);
     free(net);
