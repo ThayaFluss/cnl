@@ -299,6 +299,7 @@ def train_fde_spn(dim, p_dim, sample,\
         sc.scale= scale
         if SUBO:
             sc.update_params(diag_A, sigma)
+            #import pdb; pdb.set_trace()
             new_grads, new_loss = sc.grad_loss_subordination(mini)
 
             if TEST_C2:

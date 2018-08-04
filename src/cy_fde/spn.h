@@ -1,8 +1,70 @@
-#ifndef SPN
-#define SPN
+#ifndef SPN_H
+#define SPN_H
 #include "init_cy_fde.h"
 #include "matrix_util.h"
 //#include <cblas.h>
+
+
+
+typedef struct SemiCircularNet{
+  int p;
+  int d;
+  DCOMPLEX *Pa_h_A;         // d
+  DCOMPLEX *Pa_omega;       // 2*d
+
+
+  DCOMPLEX F_A[2];         //
+  DCOMPLEX h_A[2];         //
+
+  DCOMPLEX TG_Ge_sc[4] ;   //
+  DCOMPLEX DG_sc[4];       //
+
+  DCOMPLEX temp_T_eta[4];  //
+  DCOMPLEX Dh_sc[4];       //
+
+
+  DCOMPLEX Psigma_G_sc[2]; //
+
+  DCOMPLEX Psigma_h_sc[2] ;//
+
+
+  DCOMPLEX DG_A[4];        //
+  DCOMPLEX Dh_A[4];        //
+
+  DCOMPLEX S[4];           //
+
+  DCOMPLEX temp_mat[4];    //
+
+  DCOMPLEX Psigma_omega[2];//
+
+
+}SCN;
+
+void
+SCN_construct(SCN* self, int p , int d);
+
+void
+SCN_init(SCN* self);
+
+void
+SCN_init_forward(SCN* self);
+void
+SCN_init_backward(SCN* self);
+
+
+void
+SCN_destroy(SCN* self);
+
+
+int
+SCN_cauchy(SCN* self);
+
+void
+SCN_grad(SCN* self,  int p, int d, double  *a,  double  sigma, \
+  DCOMPLEX z,DCOMPLEX *G, DCOMPLEX *omega, DCOMPLEX *omega_sc,\
+  DCOMPLEX *o_grad_a, DCOMPLEX *o_grad_sigma);
+
+
 
 /** Compute Cauchy transform of SemiCircular( returns total iterations)
 * @param Z : input matrix
@@ -25,12 +87,14 @@ cauchy_spn(int p_dim, int dim, double* a, double sigma,\
      int max_iter,double thres, \
      DCOMPLEX* o_G_sc, DCOMPLEX* o_omega, DCOMPLEX* o_omega_sc);
 
+
+/*
+Only for debug
+*/
 void
 grad_cauchy_spn(int p, int d,  double  *a, double  sigma, \
   DCOMPLEX z, DCOMPLEX *G, DCOMPLEX *omega, DCOMPLEX *omega_sc,\
   DCOMPLEX *o_grad_a, DCOMPLEX *o_grad_sigma);
-
-
 
 // transpose of derivation of Ge
 // G : 2

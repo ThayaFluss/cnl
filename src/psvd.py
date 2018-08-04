@@ -24,6 +24,8 @@ def psvd_cnl(sample_mat, reg_coef=0, minibatch_size=1, NORMALIZE=True):
     sample = D**2
 
     max_epoch = (20000/dim)  * (p_dim/dim)
+    assert(minibatch_size >= 1)
+    max_epoch /=  minibatch_size
     max_epoch = int(max_epoch)
 
     if NORMALIZE:
@@ -73,6 +75,8 @@ def rank_estimation(sample_mat,reg_coef=1e-3, minibatch_size=1, NORMALIZE=True):
     sample = D**2
 
     max_epoch = (20000/dim)  * (p_dim/dim)
+    assert(minibatch_size >= 1)
+    max_epoch /=  minibatch_size
     max_epoch = int(max_epoch)
 
     if NORMALIZE:
