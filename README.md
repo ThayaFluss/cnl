@@ -30,8 +30,8 @@ $ git clone https://github.com/ThayaFluss/cnl.git
 ## Setup
 
 ```bash
-cd src
 $ bash setup.bash
+cd src
 python -m unittest tests/*.py
 ```
 

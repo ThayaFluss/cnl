@@ -88,36 +88,11 @@ def get_learning_rate(idx, base_lr, lr_policy,  **kwards):
 
 
 
-def KL_divergence(diag_A,sigma, sc_true, num_shot = 20, dim_cauchy_vec=100):
-    sc = SemiCircular(dim = np.shape(diag_A)[0], scale = sc_true.scale)
-    sc.diag_A = diag_A
-    sc.sigma = sigma
-    #sc_true = SemiCircular(diag_A = a_true, sigma=sigma_true)
-    num_shot = 10
-    dim_cauchy_vec = 10
-    #sample = sc.ESD(num_shot, dim_cauchy_vec)
-    sample_true = sc_true.ESD(num_shot=num_shot, dim_cauchy_vec=dim_cauchy_vec)
-    timer = Timer()
-    timer.tic()
-    entropy = sc_true.loss_subordination(sample_true)
-    timer.toc()
-
-    logging.info("entropy= {}, time= {}".format(entropy, timer.total_time))
-
-    timer = Timer()
-    timer.tic()
-    cross_entropy = sc.loss_subordination(sample_true)
-    timer.toc()
-    logging.info("cross_entropy= {}, time= {}".format(cross_entropy, timer.total_time))
-
-    KL = cross_entropy - entropy
-    return KL
-
 
 def train_fde_spn(dim, p_dim, sample,\
  base_scale = 1e-1, dim_cauchy_vec=1, base_lr = 1e-4,minibatch_size=1,\
- max_epoch=120, normalize_sample = False,\
- edge=1.2, reg_coef = 0,\
+ max_epoch=400, normalize_sample = False,\
+ edge=1.01, reg_coef = 0,\
  monitor_validation=True,  test_diag_A=-1, test_sigma=-1, \
  list_zero_thres=[1e-5,1e-4,1e-3,1e-2,1e-1], SUBO=True):
     update_sigma = True
@@ -138,9 +113,11 @@ def train_fde_spn(dim, p_dim, sample,\
     max_iter = max_epoch*iter_per_epoch
     stepsize = -1 #iter_per_epoch
 
+
+    REG_TYPE = "L1"
+    ### TODO Deprecated
     ### for online L1 -regularization
     ### LLZ, Sparse Online Learning via Truncated Gradient
-    ### Depricated now
     use_truncated_grad = False
     truncate_step = 1
 
@@ -169,7 +146,6 @@ def train_fde_spn(dim, p_dim, sample,\
         lr_mult_sigma = 0.
 
 
-    REG_TYPE = "L1"
     lr_policy = "inv"
     if lr_policy == "inv":
         lr_kwards = {
@@ -210,13 +186,9 @@ def train_fde_spn(dim, p_dim, sample,\
 
     ### Cutting off too large parameter
     edge = max_sq_sample*1.01
+    ### clip large grad
     clip_grad = -1
 
-    ### initialization of weights
-    ### TODO find nice value
-    init_mean_diag_A =np.average(sq_sample)/2
-    #init_mean_diag_A = 0.5
-    #sigma =  0.1*init_mean_diag_A
     if monitor_validation and not update_sigma:
         sigma = test_sigma
     else:
@@ -532,6 +504,34 @@ def train_fde_spn(dim, p_dim, sample,\
     num_zero=num_zero_array,
     forward_iter= forward_iter)
     return result
+
+
+def KL_divergence(diag_A,sigma, sc_true, num_shot = 20, dim_cauchy_vec=100):
+    sc = SemiCircular(dim = np.shape(diag_A)[0], scale = sc_true.scale)
+    sc.diag_A = diag_A
+    sc.sigma = sigma
+    #sc_true = SemiCircular(diag_A = a_true, sigma=sigma_true)
+    num_shot = 10
+    dim_cauchy_vec = 10
+    #sample = sc.ESD(num_shot, dim_cauchy_vec)
+    sample_true = sc_true.ESD(num_shot=num_shot, dim_cauchy_vec=dim_cauchy_vec)
+    timer = Timer()
+    timer.tic()
+    entropy = sc_true.loss_subordination(sample_true)
+    timer.toc()
+
+    logging.info("entropy= {}, time= {}".format(entropy, timer.total_time))
+
+    timer = Timer()
+    timer.tic()
+    cross_entropy = sc.loss_subordination(sample_true)
+    timer.toc()
+    logging.info("cross_entropy= {}, time= {}".format(cross_entropy, timer.total_time))
+
+    KL = cross_entropy - entropy
+    return KL
+
+
 
 
 def train_cw(dim, p_dim, sample,\

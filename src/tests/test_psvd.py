@@ -26,10 +26,10 @@ class TestPSVD(unittest.TestCase):
 
         ranks, a, s = rank_estimation(sample_mat)
 
-    def test_z_value(self):
+    def test_z_value_spn(self):
         p = 50
         d = 25
         sigma = 0.2
         sample_mat = sigma*Ginibre(p,d)
         a = np.zeros(d)
-        z  = z_value(sample_mat, a, sigma)
+        z  = z_value_spn(sample_mat, a, sigma)

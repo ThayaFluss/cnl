@@ -40,16 +40,24 @@ def psvd_cnl(sample_mat, reg_coef=0, minibatch_size=1, NORMALIZE=True):
     out_D = np.sort(diag_A)[::-1]
     out_sigma = sigma
 
+
+
     if NORMALIZE:
         out_D *= norm
         out_sigma *= norm
 
+
+    z = z_value_spn(sample_mat, out_D, out_sigma)
+    logging.info("z_value = {}".format(z))
 
     return U, out_D, V, out_sigma
 
 
 
 def rank_estimation(sample_mat,reg_coef=1e-3, minibatch_size=1, NORMALIZE=True):
+    """
+    Rank esitmation by CNL with L1-regularization
+    """
     p_dim = sample_mat.shape[0]
     dim = sample_mat.shape[1]
     if p_dim < dim:
@@ -95,7 +103,7 @@ def rank_estimation(sample_mat,reg_coef=1e-3, minibatch_size=1, NORMALIZE=True):
 
 
 
-def z_value(sample_mat, a, s):
+def z_value_spn(sample_mat, a, s):
     assert s != 0
     U, singular, V = np.linalg.svd(sample_mat)
     p = sample_mat.shape[0]
