@@ -192,8 +192,8 @@ def train_fde_spn(dim, p_dim, sample,\
     if monitor_validation and not update_sigma:
         sigma = test_sigma
     else:
-        lam = 1 + sp.sqrt(p_dim/dim)
-        sigma = 0.2
+        lam_plus = 1 + sp.sqrt(p_dim/dim)
+        sigma = min(0.2, max_sq_sample/lam_plus)
     sigma = abs(sigma)
 
     diag_A = sq_sample
