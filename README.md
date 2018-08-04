@@ -86,6 +86,7 @@ For example; (https://github.com/ThayaFluss/cnl/blob/master/demo_rank_estimation
 
 To validate algorithms in the same way as the numerical experiments in the paper;
 ```bash
+git checkout arXiv1804
 cd src
 $ python validate_train_sc.py
 $ python validate_train_cw.py
