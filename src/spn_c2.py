@@ -842,7 +842,6 @@ class Descrete(object):
 
 
 
-
 class Laplace(object):
     """docstring for Laplace."""
     def __init__(self, arg):

@@ -118,8 +118,8 @@ def train_fde_spn(dim, p_dim, sample,\
  base_scale = 1e-1, dim_cauchy_vec=1, base_lr = 1e-4,minibatch_size=1,\
  max_epoch=120, normalize_sample = False,\
  edge=1.2, reg_coef = 0,\
- monitor_validation=True, monitor_KL=False, test_diag_A=-1, test_sigma=-1, \
- list_zero_thres=[1e-5,1e-4,1e-3,1e-2,1e-1], SUBO=True,  stop_for_rank=False):
+ monitor_validation=True,  test_diag_A=-1, test_sigma=-1, \
+ list_zero_thres=[1e-5,1e-4,1e-3,1e-2,1e-1], SUBO=True):
     update_sigma = True
 
     if np.allclose(test_diag_A, -1) or np.allclose(test_sigma, -1):
@@ -209,8 +209,8 @@ def train_fde_spn(dim, p_dim, sample,\
     sample_var = np.var(sq_sample)
 
     ### Cutting off too large parameter
-    #edge = max_sq_sample*1.1
-    clip_grad = 100
+    edge = max_sq_sample*1.01
+    clip_grad = -1
 
     ### initialization of weights
     ### TODO find nice value
@@ -220,6 +220,7 @@ def train_fde_spn(dim, p_dim, sample,\
     if monitor_validation and not update_sigma:
         sigma = test_sigma
     else:
+        lam = 1 + sp.sqrt(p_dim/dim)
         sigma = 0.2
     sigma = abs(sigma)
 
@@ -246,16 +247,6 @@ def train_fde_spn(dim, p_dim, sample,\
         sc_for_plot = SemiCircular(dim=dim,p_dim=p_dim, scale=base_scale)
         sc_for_plot.set_params(n_test_diag_A, n_test_sigma)
 
-        if monitor_KL:
-            num_shot_for_KL = 10
-            dim_cauchy_vec_for_KL = 50
-            logging.info("computing entropy ...")
-            timer = Timer()
-            timer.tic()
-            temp_sample =sc_for_plot.ESD(num_shot=num_shot_for_KL, dim_cauchy_vec=dim_cauchy_vec_for_KL)
-            entropy = sc_for_plot.loss(temp_sample)
-            timer.toc()
-            logging.info("entropy of true= {}, time= {} sec".format(entropy, timer.total_time))
 
 
 
@@ -421,13 +412,10 @@ def train_fde_spn(dim, p_dim, sample,\
                         diag_A[k] = min(0, ak + lrk*reg_coef*truncate_step)
 
 
-
-
-
         for k in range(dim):
             if abs(diag_A[k]) > edge:
                 logging.info( "diag_A[{}]={} reached the boundary".format(k,diag_A[k]))
-                diag_A[k] =edge  -  1e-2
+                diag_A[k] =edge*0.98
                 m_PA[k] = -1e-8
 
 
@@ -437,7 +425,7 @@ def train_fde_spn(dim, p_dim, sample,\
                 sigma -= m_Psigma
             if abs(sigma) > edge:
                 logging.info("sigma reached the boundary:{}".format(sigma))
-                sigma  = sp.sqrt(edge) - 1e-2
+                sigma  = edge*0.98
                 m_Psigma = -1e-8
 
 
@@ -461,8 +449,6 @@ def train_fde_spn(dim, p_dim, sample,\
         for l in range(len(list_zero_thres))])
 
         average_loss += new_loss
-        average_sigma += sigma
-        average_diagA += np.sort(np.abs(diag_A))
 
         if (n % log_step  + 1 )== log_step:
             ### Count zeros under several thresholds
@@ -470,51 +456,29 @@ def train_fde_spn(dim, p_dim, sample,\
 
             if n > 0:
                 average_loss /= log_step
-                average_sigma /= log_step
-                average_diagA /= log_step
                 average_forward_iter /= log_step
                 total_average_forwad_iter += average_forward_iter
                 if monitor_validation:
                     average_val_loss /= log_step
-                if stop_for_rank:
-                    num_zero_old = num_zero_list[-log_step]
-                    if np.allclose(num_zero,num_zero_old) and not np.allclose(num_zero, 0):
-                            stop_count += 1
-                    else:
-                        stop_count = 0
-                    if stop_count == stop_count_thres:
-                        import pdb; pdb.set_trace()
-                        break
-
-
-                #average_sigma *= normalize_ratio
-                #average_diagA *= normalize_ratio
                 if (n % stdout_step + 1) == stdout_step:
                     logging.info("{0}/{4}-iter:lr = {1:4.3e}, scale = {2:4.3e}, num_cauchy = {3}".format(n+1,lr,scale,dim_cauchy_vec,max_iter ))
                     logging.info("loss= {}".format( average_loss))
 
                 if monitor_validation:
 
-                    #val_loss_average = np.sum(np.abs(np.sort(np.abs(average_diagA)) - np.sort(np.abs(n_test_diag_A)))) \
-                    val_loss_average = np.linalg.norm(np.sort(np.abs(average_diagA)) - np.sort(np.abs(n_test_diag_A)))\
-                    +  np.abs(np.abs(average_sigma) - n_test_sigma)
                     if (n % stdout_step + 1) == stdout_step:
                         logging.info("val_loss= {}".format(average_val_loss))
-                        logging.debug("val_loss_average= {}".format(val_loss_average))
                 if (n % stdout_step + 1) == stdout_step:
 
-                    logging.info("sigma= {}".format(average_sigma))
-                    #logging.info("diag_A (sorted)=\n{}  / 10-iter".format(np.sort(average_diagA)))
+                    logging.info("sigma= {}".format(sigma))
+                    #logging.info("diag_A (sorted)=\n{}  / 10-iter".format(np.sort(diagA)))
                     #logging.info( "diag_A (raw) =\n{}".format(diag_A))
                     logging.info("num_zero={} / thres={}".format(num_zero,list_zero_thres))
-                    logging.debug("average-sorted-abs(diag_A) =\n{}".format(average_diagA))
                     #logging.info("diag_A/ average: min, mean, max= \n {}, {}, {} ".format(np.min(average_diagA), np.average(average_diagA), np.max(average_diagA)))
                     logging.info("forward_iter={}".format(average_forward_iter))
 
 
                 average_loss = 0
-                average_sigma *= 0
-                average_diagA *=0
                 average_forward_iter[0] = 0
                 if monitor_validation:
                     average_val_loss = 0
@@ -540,8 +504,6 @@ def train_fde_spn(dim, p_dim, sample,\
             plt.close()
             logging.info("Plotting density...done")
 
-    average_sigma *= normalize_ratio
-    average_diagA *= normalize_ratio
     logging.info("result:")
     logging.info("sigma:".format(sigma))
     logging.info("diag_A:\\{}".format(diag_A))
@@ -559,6 +521,10 @@ def train_fde_spn(dim, p_dim, sample,\
     #list_zero_thres = list_zero_thres[:-1]
     if monitor_validation:
         del sc_for_plot
+    if normalize_sample:
+        sigma *= normalize_ratio
+        diag_A *= normalize_ratio
+
     result = dict(diag_A = diag_A,\
     sigma= sigma,
     train_loss= train_loss_array,
@@ -582,7 +548,7 @@ def train_cw(dim, p_dim, sample,\
 
     stepsize = -1 #iter_per_epoch
     momentum = 0#0.9
-    clip_grad = 100
+    clip_grad = -1
 
     optimizer = "Adam"
     if optimizer == "momentum":
