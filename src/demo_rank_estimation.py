@@ -16,4 +16,4 @@ sigma_true = 0.1
 X = A_true + sigma_true*Ginibre(p_dim, dim) ### sample matrix
 from psvd import *
 rank, a, sigma = rank_estimation(X) ### estimated rank and parameters
-print("estimaed_rank =", rank[0], "true_rank=", true_rank) ### compare with the true_rank !
+print("estimaed_rank =", rank, "true_rank=", true_rank) ### compare with the true_rank !

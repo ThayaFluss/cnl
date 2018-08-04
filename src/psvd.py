@@ -99,11 +99,15 @@ def rank_estimation(sample_mat,reg_coef=1e-3, minibatch_size=1, NORMALIZE=True):
     logging.info("list_zero_thres= {}".format( list_zero_thres))
     estimaed_ranks = dim - num_zero_array[-1]
 
-    return estimaed_ranks, out_D, out_sigma
+    return estimaed_ranks[0], out_D, out_sigma
 
 
 
 def z_value_spn(sample_mat, a, s):
+    """
+    z_test with the assumption that entries of  the noise part
+    are independently distributed with N(0, 1/d).
+    """
     assert s != 0
     U, singular, V = np.linalg.svd(sample_mat)
     p = sample_mat.shape[0]
