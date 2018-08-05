@@ -44,7 +44,7 @@ For the probabilistic singular value decomposition based on Cauchy noise loss;
 ```python
  X #numpy.array of shape [p,d]
  from psvd import *
- U,D,V = psvd_cnl(X)
+ U,D,V, sigma = psvd_cnl(X)
 ```
 
 
