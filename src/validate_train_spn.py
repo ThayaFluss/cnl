@@ -97,12 +97,14 @@ opt =options()
 
 i_dim = min(opt.dim, opt.p_dim)
 i_p_dim = max(opt.dim, opt.p_dim)
-jobname = opt.jobname
 i_vbmf = opt.vbmf
 
-
-if not jobname in ["min_singular" , "scale_balance"]:
+if opt.jobname in ["m", "min", "ms", "min_singular"]:
     jobname = "min_singular"
+elif opt.jobname in ["s", "scale", "sb", "scale_balance"]:
+    jobname = "scale_balance"
+else:
+    jobname = "scale_balance"
 
 def test_optimize(\
     base_scale ,dim_cauchy_vec, \

@@ -7,8 +7,15 @@ from train_fde import *
 
 
 def psvd_cnl(sample_mat, reg_coef=0, minibatch_size=1, NORMALIZE=True):
-    """ probabilistic singular value decomposition """
-    """ by Cauchy Noise Loss """
+    """
+        Probabilistic Singular Value Decomposition
+        by Cauchy Noise Loss
+        @param  minibatch_size: the number of singular values used at once
+                                in estimaing the signal part
+                                of one sample matrix.
+        @param normalize:       if True, normalize sample matrix so that
+                                its operator norm becomes less than 1.
+    """
     p_dim = sample_mat.shape[0]
     dim = sample_mat.shape[1]
     if p_dim < dim:
@@ -18,6 +25,7 @@ def psvd_cnl(sample_mat, reg_coef=0, minibatch_size=1, NORMALIZE=True):
 
     U, D, V = np.linalg.svd(sample_mat)
     norm = max(D)
+    NORMALIZE = (NORMALIZE and norm > 1)
     if NORMALIZE:
         D /= norm
 
@@ -25,7 +33,7 @@ def psvd_cnl(sample_mat, reg_coef=0, minibatch_size=1, NORMALIZE=True):
 
     max_epoch = (20000/dim)  * (p_dim/dim)
     assert(minibatch_size >= 1)
-    max_epoch /=  minibatch_size
+    max_epoch /= minibatch_size
     max_epoch = int(max_epoch)
 
     if NORMALIZE:
@@ -33,7 +41,8 @@ def psvd_cnl(sample_mat, reg_coef=0, minibatch_size=1, NORMALIZE=True):
     else:
         edge = norm*1.01
 
-    result =  train_fde_spn(dim, p_dim, sample, max_epoch=max_epoch, edge=edge, reg_coef=reg_coef,\
+    result =  train_fde_spn(dim, p_dim, sample,\
+    max_epoch=max_epoch, edge=edge, reg_coef=reg_coef,\
     dim_cauchy_vec=minibatch_size)
 
     diag_A = result["diag_A"]
@@ -41,7 +50,6 @@ def psvd_cnl(sample_mat, reg_coef=0, minibatch_size=1, NORMALIZE=True):
 
     out_D = np.sort(diag_A)[::-1]
     out_sigma = sigma
-
 
 
     if NORMALIZE:
@@ -75,8 +83,6 @@ def rank_estimation(sample_mat,reg_coef=1e-3, minibatch_size=1, NORMALIZE=True):
     sample = D**2
 
     max_epoch = (20000/dim)  * (p_dim/dim)
-    assert(minibatch_size >= 1)
-    max_epoch /=  minibatch_size
     max_epoch = int(max_epoch)
 
     if NORMALIZE:
