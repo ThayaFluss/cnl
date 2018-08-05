@@ -33,7 +33,6 @@ def psvd_cnl(sample_mat, reg_coef=0, minibatch_size=1, NORMALIZE=True):
 
     max_epoch = (20000/dim)  * (p_dim/dim)
     assert(minibatch_size >= 1)
-    max_epoch /= minibatch_size
     max_epoch = int(max_epoch)
 
     if NORMALIZE:

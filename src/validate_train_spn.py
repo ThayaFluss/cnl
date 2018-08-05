@@ -208,7 +208,6 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
 
     #jobname = "scale_balance"
     if jobname == "scale_balance":
-        #list_base_scale =[ 0.5*1e-1,1e-1, 2*1e-1 ]
         reg_coef = 0 ###no regularization
         list_dim_cauchy_vec =  [1]
         list_base_scale = [ base_scale/10, base_scale,base_scale*10]
@@ -218,7 +217,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         list_zero_thres = [0.]
 
         ###for debug
-        #list_base_scale = [base_scale]
+        list_base_scale = [base_scale]
     elif jobname == "min_singular":
         ### for paper
         reg_coef = 1e-3
@@ -235,7 +234,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         list_min_singular =[0.05,0.1,0.15,0.2,0.3,0.4]
         list_base_scale = [base_scale]
         list_dim_cauchy_vec = [1] ### set 2 for version 1
-        list_zero_thres = [1e-3, 1e-1]
+        list_zero_thres = [reg_coef, 1e-1]
 
 
         ### for debug
@@ -342,7 +341,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
 
         plt.title("EVBMF")
         plt.xlabel("$\lambda_{min}$")
-        plt.ylim(-i_dim, 30)
+        ##plt.ylim(-i_dim, 30)
         plt.ylabel("Estimated Rank $-$ True Rank")
         plt.legend()
         filename = "{}/rank-recovery-evbmf.{}".format(dirname, opt.ext)
@@ -440,7 +439,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         plt.xlabel("Epoch")
         plt.ylabel("Validation Loss")
         ### TODO modify here
-        plt.ylim(0., 0.3)
+        #plt.ylim(0., 0.3)
         plt.legend()
         filename = "{}/test_scale_val.{}".format(dirname, opt.ext)
         logging.info(filename)
@@ -488,7 +487,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         #plt.title("SPN")
         plt.xlabel("Epoch")
         plt.ylabel("Validation loss")
-        plt.ylim(0, 0.7)
+        #plt.ylim(0, 0.7)
 
         plt.legend()
         plt.savefig("{}/test_ms_low_val.{}".format(dirname,opt.ext),dpi=opt.dpi)
@@ -504,7 +503,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         #plt.title("SPN")
         plt.xlabel("Epoch")
         plt.ylabel("Validation loss")
-        plt.ylim(0, 0.7)
+        #plt.ylim(0, 0.7)
 
         plt.legend()
         plt.savefig("{}/test_ms_high_val.{}".format(dirname, opt.ext),dpi=opt.dpi)
@@ -530,7 +529,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
             #plt.title("Validation loss")
             plt.xlabel("Epoch")
             plt.ylabel("Estimated rank")
-            plt.ylim(0,i_dim)
+            #plt.ylim(0,i_dim)
 
             plt.legend()
             name = "{}/test_ms_low_zeros_thres-{}.{}".format(dirname, list_zero_thres[k],opt.ext)
@@ -550,7 +549,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
             plt.title("Estimated rank")
             plt.xlabel("Epoch")
             plt.ylabel("Estimated rank")
-            plt.ylim(0,i_dim)
+            #plt.ylim(0,i_dim)
             #plt.yticks( np.arange(5, i_dim+1))
             plt.legend()
             name = "{}/test_ms_high_zeros_thres-{}.{}".format(dirname, list_zero_thres[k], opt.ext)
@@ -633,7 +632,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
 
             plt.title("True rank = {}".format(true_rank))
             plt.xlabel("$\lambda_{min}$")
-            plt.ylim(0,i_dim)
+            #plt.ylim(0,i_dim)
             plt.ylabel("Estimated rank")
             plt.legend()
             plt.savefig("{}/true_ranks-{}.{}".format(dirname, true_rank ,opt.ext),dpi=opt.dpi)
@@ -660,7 +659,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
 
             plt.xlabel("$\lambda_{min}$")
             plt.title("CNL")
-            plt.ylim(-i_dim, 30)
+            #plt.ylim(-i_dim, 30)
 
             plt.ylabel("Estimated Rank $-$ True Rank")
             plt.legend()
@@ -693,7 +692,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
             plt.xlabel("$\lambda_{min}$")
             plt.title(r"$\xi =$ {0}".format(reg_coef))
             #plt.yticks([2.0, -1.5, -1.0, -0.5, 0, 0.5, 1.0, 1.5,2.0])
-            plt.ylim(-10, 10)
+            #plt.ylim(-10, 10)
 
             plt.ylabel("Estimated Rank $-$ True Rank")
             plt.legend()
@@ -755,7 +754,7 @@ def rank_recovery_baseline(dirname, list_zero_dim, list_min_singular, list_zero_
 
         plt.xlabel("$\lambda_{min}$")
         #TODO modify here
-        plt.ylim(-dim, 30)
+        #plt.ylim(-dim, 30)
         plt.ylabel("Estimated Rank $-$ True Rank")
         plt.legend()
         filename = "{0}/rank-recovery-baseline-{1:1.0e}.{2}".format(dirname,thres,opt.ext)
