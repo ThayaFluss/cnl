@@ -98,14 +98,15 @@ def train_fde_spn(dim, p_dim, sample,\
  base_scale = 1e-1, dim_cauchy_vec=1, base_lr = 1e-4,minibatch_size=1,\
  max_epoch=400, normalize_sample = False,\
  edge=1.01, reg_coef = 0,\
+ SUBO=True,\
  monitor_validation=True,\
  test_diag_A=-1, test_sigma=-1, \
- test_U= -1, test_V= -1,\
- list_zero_thres=[1e-5,1e-4,1e-3,1e-2,1e-1], SUBO=True):
+ test_U= -1, test_V= -1, Z_FLAG= False,\
+ list_zero_thres=[1e-5,1e-4,1e-3,1e-2,1e-1]):
     update_sigma = True
 
-    if np.allclose(test_diag_A, -1) or np.allclose(test_sigma, -1):
-        monitor_validation = False
+    if Z_FLAG:
+        assert (len(sample) == dim )
     ### param cauchy noise
     #base_scale = 0.01
     #dim_cauchy_vec = 4
@@ -445,7 +446,7 @@ def train_fde_spn(dim, p_dim, sample,\
                 if (n % stdout_step + 1) == stdout_step:
                     logging.info("{0}/{4}-iter:lr = {1:4.3e}, scale = {2:4.3e}, cauchy = {3}, mini = {5}".format(n+1,lr,scale,dim_cauchy_vec,max_iter, minibatch_size ))
                     logging.info("train loss= {}".format( average_loss))
-                    if len(sample) == dim:
+                    if Z_FLAG:
                         diff_sv =  np.sort(sample)[::-1] - np.sort(abs(diag_A))[::-1]
                         Diff = test_U @ rectangular_diag( diff_sv, p_dim, dim) @ test_V
                         z_value = np.sum(Diff)/ (sp.sqrt(p_dim)*sigma)

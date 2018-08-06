@@ -165,12 +165,13 @@ def test_optimize(\
         minibatch_size=opt.minibatch,\
         max_epoch=max_epoch,\
         reg_coef=reg_coef,\
+        SUBO=SUBO,\
         monitor_validation=True,\
         test_diag_A=param,\
         test_sigma =sigma,\
-        test_U= U, test_V=V,\
+        test_U= U, test_V=V, Z_FLAG=True,\
         list_zero_thres = list_zero_thres,\
-        SUBO=SUBO)
+        )
 
     r_diag_A        =result["diag_A"]
     r_sigma         =result["sigma"]
