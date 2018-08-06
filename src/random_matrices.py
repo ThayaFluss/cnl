@@ -38,16 +38,18 @@ def signal_plus_noise_symm(p_dim , dim, param_mat, sigma=1, COMPLEX=False):
 
 
 
-def signal_plus_noise(param_mat,sigma=1,COMPLEX=False):
+def signal_plus_noise(param_mat,sigma=1,COMPLEX=False, RAW=False):
     p_dim = param_mat.shape[0]
     dim = param_mat.shape[1]
     assert np.allclose(param_mat.shape, [p_dim,dim])
     X = Ginibre(p_dim, dim,COMPLEX)
     P = param_mat + sigma*X
-    P = np.matrix(P)
-    if COMPLEX:
-        Y = P.H.dot(P)
+    if RAW:
+        return P
     else:
-        Y = P.T.dot(P)
+        if COMPLEX:
+            Y = P.H.dot(P)
+        else:
+            Y = P.T.dot(P)
 
-    return Y
+        return Y

@@ -132,8 +132,10 @@ def test_optimize(\
 
     evs_list =[]
     for i  in range(num_sample):
-        evs= np.linalg.eigh(signal_plus_noise(param_mat,sigma, COMPLEX=False))[0]
-        evs_list += evs.tolist()
+        ### A + sZ
+        sample_spn = signal_plus_noise(param_mat, sigma, RAW=True)
+        U, evs, V = np.linalg.svd(sample_spn)
+        evs_list += (evs**2).tolist()
     if num_sample == 1:
         logging.info( "sqrt(sample)=\n{}".format(sp.sqrt(np.array(evs_list))))
     #mean_param = 2
@@ -154,6 +156,7 @@ def test_optimize(\
         monitor_validation=True,\
         test_diag_A=param,\
         test_sigma =sigma,\
+        test_U= U, test_V=V,\
         list_zero_thres = list_zero_thres,\
         SUBO=SUBO)
 
@@ -762,6 +765,10 @@ def rank_recovery_baseline(dirname, list_zero_dim, list_min_singular, list_zero_
         plt.savefig(filename)
         plt.clf()
         plt.close()
+
+
+
+
 
 
 timer = Timer()

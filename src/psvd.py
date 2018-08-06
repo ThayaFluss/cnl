@@ -119,6 +119,7 @@ def z_value_spn(sample_mat, a, s):
     U, singular, V = np.linalg.svd(sample_mat)
     p = sample_mat.shape[0]
     d = sample_mat.shape[1]
+    a = np.sort(abs(a))[::-1]
     Diff = U @ rectangular_diag(singular - a, p, d) @ V
     z = np.sum(Diff)/ (sp.sqrt(p)*s)
     return z

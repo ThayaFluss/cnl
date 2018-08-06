@@ -64,7 +64,6 @@ SAMPLING="CHOICE", MIX = "DIAGONAL"):
         mini = np.array(mini, dtype=np.complex128)
         return mini
     elif MIX == "DIAGONAL":
-        logging.info("dim_cauchy_vec is igonred.")
         new_mini = np.zeros(minibatch_size)
         for i in range(minibatch_size):
             c_noise =  sp.stats.cauchy.rvs(loc=0, scale=scale, size=minibatch_size)
@@ -99,7 +98,9 @@ def train_fde_spn(dim, p_dim, sample,\
  base_scale = 1e-1, dim_cauchy_vec=1, base_lr = 1e-4,minibatch_size=1,\
  max_epoch=400, normalize_sample = False,\
  edge=1.01, reg_coef = 0,\
- monitor_validation=True,  test_diag_A=-1, test_sigma=-1, \
+ monitor_validation=True,\
+ test_diag_A=-1, test_sigma=-1, \
+ test_U= -1, test_V= -1,\
  list_zero_thres=[1e-5,1e-4,1e-3,1e-2,1e-1], SUBO=True):
     update_sigma = True
 
@@ -129,6 +130,7 @@ def train_fde_spn(dim, p_dim, sample,\
 
     optimizer = "Adam"
     lr_policy = "fix"
+
     if optimizer == "momenutm":
         momentum = 0
         #momentum = momentum*np.ones(size+1)
@@ -160,8 +162,8 @@ def train_fde_spn(dim, p_dim, sample,\
         }
     elif lr_policy == "step":
         lr_kwards = {
-        "decay": 0.5,
-        "stepvalue": [640, max_iter]
+        "decay": 0.1,
+        "stepvalue": [2*iter_per_epoch, max_iter]
         }
     elif lr_policy == "fix":
         lr_kwards = dict()
@@ -441,8 +443,14 @@ def train_fde_spn(dim, p_dim, sample,\
                 if monitor_validation:
                     average_val_loss /= log_step
                 if (n % stdout_step + 1) == stdout_step:
-                    logging.info("{0}/{4}-iter:lr = {1:4.3e}, scale = {2:4.3e}, num_cauchy = {3}".format(n+1,lr,scale,dim_cauchy_vec,max_iter ))
-                    logging.info("loss= {}".format( average_loss))
+                    logging.info("{0}/{4}-iter:lr = {1:4.3e}, scale = {2:4.3e}, cauchy = {3}, mini = {5}".format(n+1,lr,scale,dim_cauchy_vec,max_iter, minibatch_size ))
+                    logging.info("train loss= {}".format( average_loss))
+                    if len(sample) == dim:
+                        diff_sv =  np.sort(sample)[::-1] - np.sort(abs(diag_A))[::-1]
+                        Diff = test_U @ rectangular_diag( diff_sv, p_dim, dim) @ test_V
+                        z_value = np.sum(Diff)/ (sp.sqrt(p_dim)*sigma)
+                        logging.info("z value = {}".format(z_value))
+
 
                 if monitor_validation:
 
@@ -560,6 +568,8 @@ def train_cw(dim, p_dim, sample,\
     clip_grad = -1
 
     optimizer = "Adam"
+    lr_policy = "fix"
+
     if optimizer == "momentum":
         momentum = 0
         #momentum = momentum*np.ones(size+1)
@@ -581,7 +591,6 @@ def train_cw(dim, p_dim, sample,\
 
 
 
-    lr_policy = "fix"
     if lr_policy == "inv":
         lr_kwards = {
         "gamma": 1e-4,
@@ -767,8 +776,8 @@ def train_cw(dim, p_dim, sample,\
             average_loss /= log_step
             average_val_loss /= log_step
             average_b /= log_step
-            logging.info("{0}/{4}-iter:lr = {1:4.3e}, scale = {2:4.3e}, num_cauchy = {3}".format(n+1,lr,scale,dim_cauchy_vec,max_iter ))
-            logging.info("loss= {}  / average".format( average_loss))
+            logging.info("{0}/{4}-iter:lr = {1:4.3e}, scale = {2:4.3e}, cauchy = {3}, mini = {5}".format(n+1,lr,scale,dim_cauchy_vec,max_iter, minibatch_size ))
+            logging.info("train loss= {}".format( average_loss))
             if monitor_validation:
                 logging.info("val_loss= {}  / average".format(average_val_loss))
             logging.debug("average-sorted(b) =\n{}  / average".format(average_b))
