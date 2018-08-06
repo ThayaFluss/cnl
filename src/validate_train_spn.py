@@ -47,6 +47,18 @@ def options(logger=None):
                         required = False,
                         default  =  1,
                         help     = "minibatch_size (default: %(default)s)")
+    parser.add_argument('-s', '--base_scale',
+                        type     = float,
+                        dest     = 'base_scale',
+                        required = False,
+                        default  =  1e-1,
+                        help     = "base scale for CNL (default: %(default)s)")
+    parser.add_argument('-lr', '--base_lr',
+                        type     = float,
+                        dest     = 'base_lr',
+                        required = False,
+                        default  =  1e-4,
+                        help     = "base learning rate (default: %(default)s)")
     parser.add_argument('-j', '--jobname',
                         type     = str,
                         dest     = 'jobname',
@@ -206,8 +218,8 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
     max_epoch = opt.max_epoch
     max_epoch= int(max_epoch*i_p_dim/i_dim)
     #base_scale *= i_p_dim/i_dim
-    base_lr = 1e-4
-    base_scale = 1e-1
+    base_lr = opt.base_lr
+    base_scale = opt.base_scale
 
     #jobname = "scale_balance"
     if jobname == "scale_balance":
