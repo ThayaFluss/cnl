@@ -38,9 +38,6 @@ SAMPLING="CHOICE", MIX = "DIAGONAL"):
             np.random.shuffle(sample)
         mini = sample[minibatch_size*mb_idx:minibatch_size*(mb_idx+1)]
     elif SAMPLING == "CHOICE":
-        ###TODO temp
-        if MIX == "DIAGONAL":
-            minibatch_size = dim_cauchy_vec
 
         mini = np.random.choice(sample, minibatch_size)
 
@@ -67,6 +64,7 @@ SAMPLING="CHOICE", MIX = "DIAGONAL"):
         mini = np.array(mini, dtype=np.complex128)
         return mini
     elif MIX == "DIAGONAL":
+        logging.info("dim_cauchy_vec is igonred.")
         new_mini = np.zeros(minibatch_size)
         for i in range(minibatch_size):
             c_noise =  sp.stats.cauchy.rvs(loc=0, scale=scale, size=minibatch_size)
@@ -82,11 +80,19 @@ def get_learning_rate(idx, base_lr, lr_policy,  **kwards):
         power = kwards["power"]
         lr = base_lr * (1 + gamma * idx )**(- power)
         return lr
+    elif lr_policy == "step":
+        stepvalue = kwards["stepvalue"]
+        num_step = len(stepvalue)
+        for i in range(num_step):
+            if idx < stepvalue[i]:
+                return base_lr*kwards["decay"]**i
+
+
     elif lr_policy == "fix":
         return base_lr
 
 
-
+    else:sys.exit()
 
 
 def train_fde_spn(dim, p_dim, sample,\
@@ -122,6 +128,7 @@ def train_fde_spn(dim, p_dim, sample,\
     truncate_step = 1
 
     optimizer = "Adam"
+    lr_policy = "fix"
     if optimizer == "momenutm":
         momentum = 0
         #momentum = momentum*np.ones(size+1)
@@ -146,7 +153,6 @@ def train_fde_spn(dim, p_dim, sample,\
         lr_mult_sigma = 0.
 
 
-    lr_policy = "inv"
     if lr_policy == "inv":
         lr_kwards = {
         "gamma": 1e-4,
@@ -341,12 +347,13 @@ def train_fde_spn(dim, p_dim, sample,\
 
 
         elif optimizer == "Adam":
+            lr = get_learning_rate(n, base_lr, lr_policy, **lr_kwards)
             mean_adam = beta1 * mean_adam + ( 1- beta1)*new_grads
             var_adam = beta2 * var_adam + ( 1- beta2)*new_grads**2
             m = mean_adam/(1-beta1**(n+1))
             v = var_adam/(1-beta2**(n+1))
-            m_grads = m*alpha/(sp.sqrt(v)+eps)
-            lr_for_trunc = alpha/(sp.sqrt(v)+eps)
+            m_grads = m*lr/(sp.sqrt(v)+eps)
+            #lr_for_trunc = lr/(sp.sqrt(v)+eps)
 
 
 
@@ -498,6 +505,7 @@ def train_fde_spn(dim, p_dim, sample,\
         sigma *= normalize_ratio
         diag_A *= normalize_ratio
 
+    diagA = np.sort( abs(diag_A)[::-1])
     result = dict(diag_A = diag_A,\
     sigma= sigma,
     train_loss= train_loss_array,

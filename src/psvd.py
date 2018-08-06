@@ -44,11 +44,9 @@ def psvd_cnl(sample_mat, reg_coef=0, minibatch_size=1, NORMALIZE=True):
     max_epoch=max_epoch, edge=edge, reg_coef=reg_coef,\
     dim_cauchy_vec=minibatch_size)
 
-    diag_A = result["diag_A"]
-    sigma = result["sigma"]
+    out_D = result["diag_A"]
+    out_sigma = result["sigma"]
 
-    out_D = np.sort(diag_A)[::-1]
-    out_sigma = sigma
 
 
     if NORMALIZE:
