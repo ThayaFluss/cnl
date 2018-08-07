@@ -447,7 +447,7 @@ def train_fde_spn(dim, p_dim, sample,\
                     logging.info("{0}/{4}-iter:lr = {1:4.3e}, scale = {2:4.3e}, cauchy = {3}, mini = {5}".format(n+1,lr,scale,dim_cauchy_vec,max_iter, minibatch_size ))
                     logging.info("train loss= {}".format( average_loss))
                     if Z_FLAG:
-                        diff_sv =  np.sort(sample)[::-1] - np.sort(abs(diag_A))[::-1]
+                        diff_sv =  np.sort(sq_sample)[::-1] - np.sort(abs(diag_A))[::-1]
                         Diff = test_U @ rectangular_diag( diff_sv, p_dim, dim) @ test_V
                         z_value = np.sum(Diff)/ (sp.sqrt(p_dim)*sigma)
                         logging.info("z value = {}".format(z_value))
