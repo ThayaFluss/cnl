@@ -6,10 +6,11 @@ from spn_c2 import *
 from train_fde import *
 
 
-def psvd_cnl(sample_mat, reg_coef=0, minibatch_size=1, NORMALIZE=True):
+def psvd_cnl(sample_mat, reg_coef=0, minibatch_size=1, NORMALIZE=True,\
+base_lr=1e-4, base_scale=1e-1):
     """
         Probabilistic Singular Value Decomposition
-        by Cauchy Noise Loss
+        by minimizing Cauchy Noise Loss
         @param  minibatch_size: the number of singular values used at once
                                 in estimaing the signal part
                                 of one sample matrix.
@@ -42,17 +43,17 @@ def psvd_cnl(sample_mat, reg_coef=0, minibatch_size=1, NORMALIZE=True):
 
     result =  train_fde_spn(dim, p_dim, sample,\
     max_epoch=max_epoch, edge=edge, reg_coef=reg_coef,\
+    base_lr=base_lr, base_scale=base_scale,\
     dim_cauchy_vec=minibatch_size)
 
     out_D = result["diag_A"]
+    out_D = np.sort( abs(out_D))[::-1] ### Decreasing order
     out_sigma = result["sigma"]
-
 
 
     if NORMALIZE:
         out_D *= norm
         out_sigma *= norm
-
 
     z = z_value_spn(sample_mat, out_D, out_sigma)
     logging.info("z_value = {}".format(z))
