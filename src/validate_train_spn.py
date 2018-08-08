@@ -83,6 +83,12 @@ def options(logger=None):
                         required = False,
                         default  =  400,
                         help     = "max_epoch (default: %(default)s)")
+    parser.add_argument('-se', '--step_epoch',
+                        type     = int,
+                        dest     = 'step_epoch',
+                        required = False,
+                        default  =  -1,
+                        help     = "First step epoch (default: %(default)s)")
     parser.add_argument('-dpi', '--dpi',
                         type     = int,
                         dest     = 'dpi',
@@ -154,6 +160,15 @@ def test_optimize(\
     sq_sample = np.array(sp.sqrt(evs_list))
     mean_param =np.average(sq_sample)
 
+
+    if opt.step_epoch > 0:
+        lr_policy = "step"
+        step_epochs = [opt.step_epoch, max_epoch]
+
+    else:
+        lr_policy = "fix"
+        step_epochs= []
+
     #TODO: initial num zero_array
 
     sample = np.asarray(evs_list)
@@ -166,6 +181,8 @@ def test_optimize(\
         max_epoch=max_epoch,\
         reg_coef=reg_coef,\
         SUBO=SUBO,\
+        lr_policy=lr_policy,\
+        step_epochs=step_epochs,\
         monitor_validation=True,\
         test_diag_A=param,\
         test_sigma =sigma,\
@@ -254,8 +271,8 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
 
 
         ### for debug
-        list_zero_dim = [40]
-        list_min_singular=[ 0.1, 0.2, 0.3]
+        #list_zero_dim = [40]
+        #list_min_singular=[ 0.1, 0.2, 0.3]
         #list_dim_cauchy_vec = [1]
         #
 

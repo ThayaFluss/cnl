@@ -20,7 +20,7 @@ Our algorithm is based on the paper "Cauchy noise loss for stochastic optimizati
 
 
 ## Requirement
-python 3.6, numpy, scipy, matplotlib, tqdm.  We recommend to use the platform [Anaconda](https://www.continuum.io/downloads).
+python 3.6, cython, numpy, scipy, tqdm, matplotlib.  We recommend to use the platform [Anaconda](https://www.continuum.io/downloads).
 
 ## Installation
 

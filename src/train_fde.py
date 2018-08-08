@@ -98,7 +98,7 @@ def train_fde_spn(dim, p_dim, sample,\
  base_scale = 1e-1, base_lr = 1e-4,\
  max_epoch=400,dim_cauchy_vec=1, minibatch_size=1, \
  normalize_sample = False, edge= -1,\
- lr_policy="fix", stepvalue=[],\
+ lr_policy="fix", step_epochs=[],\
  monitor_validation=True,\
  SUBO=True,reg_coef = 0,\
  test_diag_A=-1, test_sigma=-1, \
@@ -157,11 +157,11 @@ def train_fde_spn(dim, p_dim, sample,\
         "power": 0.75,
         }
     elif lr_policy == "step":
-        if len(stepvalue) == 0:
+        if len(step_epochs) == 0:
             stepvalue = [2*iter_per_epoch, max_iter]
         lr_kwards = {
         "decay": 0.1,
-        "stepvalue": stepvalue
+        "stepvalue": iter_per_epoch*np.asarray(step_epochs)
         }
     elif lr_policy == "fix":
         lr_kwards = dict()
