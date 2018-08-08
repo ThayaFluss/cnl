@@ -283,7 +283,7 @@ class SemiCircular(object):
 
     def regularization_grad_loss(self, diag_A, sigma,reg_coef, TYPE="L1"):
         if TYPE == "L1":
-            loss =  np.sum(np.abs(diag_A)) #+ abs(sigma)
+            loss =  np.sum(np.abs(diag_A.real)) #+ abs(sigma)
             loss *= reg_coef
             grads = np.empty( self.dim + 1)
             grads[:self.dim] = np.sign(diag_A.real)

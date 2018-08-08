@@ -233,7 +233,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         list_zero_thres = [0.]
 
         ###for debug
-        list_base_scale = [base_scale]
+        #list_base_scale = [base_scale]
     elif jobname == "min_singular":
         ### for paper
         reg_coef = 1e-3
@@ -246,7 +246,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
             reg_coef = 1e-3
 
 
-        list_zero_dim = [10,20,30,40]
+        list_zero_dim = [0, 10,20,30,40, 50]
         list_min_singular =[0.05,0.1,0.15,0.2,0.3,0.4]
         list_base_scale = [base_scale]
         list_dim_cauchy_vec = [1] ### set 2 for version 1
@@ -254,8 +254,8 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
 
 
         ### for debug
-        #list_zero_dim = [40]
-        #list_min_singular=[ 0.1, 0.2, 0.3]
+        list_zero_dim = [40]
+        list_min_singular=[ 0.1, 0.2, 0.3]
         #list_dim_cauchy_vec = [1]
         #
 

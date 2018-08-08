@@ -95,31 +95,27 @@ def get_learning_rate(idx, base_lr, lr_policy,  **kwards):
 
 
 def train_fde_spn(dim, p_dim, sample,\
- base_scale = 1e-1, dim_cauchy_vec=1, base_lr = 1e-4,minibatch_size=1,\
- max_epoch=400, normalize_sample = False,\
- edge=1.01, reg_coef = 0,\
- SUBO=True,\
+ base_scale = 1e-1, base_lr = 1e-4,\
+ max_epoch=400,dim_cauchy_vec=1, minibatch_size=1, \
+ normalize_sample = False, edge= -1,\
+ lr_policy="fix", stepvalue=[],\
  monitor_validation=True,\
+ SUBO=True,reg_coef = 0,\
  test_diag_A=-1, test_sigma=-1, \
- test_U= -1, test_V= -1, Z_FLAG= False,\
+ Z_FLAG= False,test_U= -1, test_V= -1, \
  list_zero_thres=[1e-5,1e-4,1e-3,1e-2,1e-1]):
     update_sigma = True
 
     if Z_FLAG:
         assert (len(sample) == dim )
-    ### param cauchy noise
-    #base_scale = 0.01
-    #dim_cauchy_vec = 4
 
-    ###sample
-    #minibatch_size = 1
     sample_size =len(sample)
     assert sample_size == sample.shape[0]
-    ### SGD
-    #base_lr = 0.1
     iter_per_epoch = int(sample_size/minibatch_size)
     max_iter = max_epoch*iter_per_epoch
-    stepsize = -1 #iter_per_epoch
+
+    if np.allclose(test_diag_A, -1):
+        monitor_validation=False
 
 
     REG_TYPE = "L1"
@@ -130,7 +126,6 @@ def train_fde_spn(dim, p_dim, sample,\
     truncate_step = 1
 
     optimizer = "Adam"
-    lr_policy = "fix"
 
     if optimizer == "momenutm":
         momentum = 0
@@ -162,9 +157,11 @@ def train_fde_spn(dim, p_dim, sample,\
         "power": 0.75,
         }
     elif lr_policy == "step":
+        if len(stepvalue) == 0:
+            stepvalue = [2*iter_per_epoch, max_iter]
         lr_kwards = {
         "decay": 0.1,
-        "stepvalue": [2*iter_per_epoch, max_iter]
+        "stepvalue": stepvalue
         }
     elif lr_policy == "fix":
         lr_kwards = dict()
@@ -194,7 +191,8 @@ def train_fde_spn(dim, p_dim, sample,\
     sample_var = np.var(sq_sample)
 
     ### Cutting off too large parameter
-    edge = max_sq_sample*1.01
+    if edge < 0:
+        edge = max_sq_sample*1.01
     ### clip large grad
     clip_grad = -1
 
@@ -303,7 +301,6 @@ def train_fde_spn(dim, p_dim, sample,\
         mini = get_minibatch(sample, minibatch_size, n, scale, dim_cauchy_vec, SAMPLING="CHOICE")
         list_zero_thres = o_zero_thres
         num_zero = np.zeros(len(list_zero_thres))
-
         ### run
         sc.scale= scale
         if SUBO:
@@ -383,6 +380,7 @@ def train_fde_spn(dim, p_dim, sample,\
         diag_A = diag_A - m_PA
 
         ### Online L1 reguralization
+        ### Deprecated
         if use_truncated_grad:
             if n > 0 and n % truncate_step == 0:
                 for k in range(dim):

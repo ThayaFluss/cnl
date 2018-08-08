@@ -20,7 +20,7 @@ class TestSC(unittest.TestCase):
     def test_grad(self):
         dim = 50
         p_dim = 50
-        diag_A = np.zeros(dim,dtype=np.complex128)
+        diag_A = np.zeros(dim)
 
         def _grad_at_imaginary_axis(x ,scale,sigma):
             ### z_all = x + a + igamma
