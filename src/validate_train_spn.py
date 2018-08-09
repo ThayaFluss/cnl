@@ -10,6 +10,7 @@ import os
 import time
 import logging
 import sys
+import json
 from tqdm import tqdm,trange
 from datetime import datetime
 from train_fde import *
@@ -63,8 +64,8 @@ def options(logger=None):
                         type     = str,
                         dest     = 'jobname',
                         required = False,
-                        default  =  50,
-                        help     = "min_singular (default: %(default)s)")
+                        default  = "scale_balance",
+                        help     = "scale_balance or min_singular (default: %(default)s)")
     parser.add_argument('-v', '--vbmf',
                         type     = bool,
                         dest     = 'vbmf',
@@ -131,31 +132,31 @@ def test_optimize(\
     jobname="train_v2",\
     min_singular=0,
     dim=i_dim,p_dim = i_p_dim,\
-     zero_dim=16,\
+    zero_dim=0,\
     list_zero_thres=[],
-    COMPLEX=False,SUBO=False):
+    true_sigma=0.1,\
+    COMPLEX=False):
     dirname = "../images/{}".format(jobname)
     if not os.path.exists(dirname):
         os.makedirs(dirname)
 
     num_sample =1
-    sigma = 0.1
 
     logging.info( "zero_dim={}".format(zero_dim) )
     logging.info( "min_singular={}".format(min_singular) )
 
     param_mat = random_from_diag(p_dim, dim, zero_dim, min_singular, COMPLEX)
     _, param, _ = np.linalg.svd(param_mat)
-    logging.info( "truth=\n{}".format(np.sort(param)))
+    logging.debug( "truth=\n{}".format(np.sort(param)))
 
     evs_list =[]
     for i  in range(num_sample):
         ### A + sZ
-        sample_spn = signal_plus_noise(param_mat, sigma, RAW=True)
+        sample_spn = signal_plus_noise(param_mat, true_sigma, RAW=True)
         U, evs, V = np.linalg.svd(sample_spn)
         evs_list += (evs**2).tolist()
     if num_sample == 1:
-        logging.info( "sqrt(sample)=\n{}".format(sp.sqrt(np.array(evs_list))))
+        logging.debug( "sqrt(sample)=\n{}".format(sp.sqrt(np.array(evs_list))))
     #mean_param = 2
     sq_sample = np.array(sp.sqrt(evs_list))
     mean_param =np.average(sq_sample)
@@ -180,12 +181,11 @@ def test_optimize(\
         minibatch_size=opt.minibatch,\
         max_epoch=max_epoch,\
         reg_coef=reg_coef,\
-        SUBO=SUBO,\
         lr_policy=lr_policy,\
         step_epochs=step_epochs,\
         monitor_validation=True,\
         test_diag_A=param,\
-        test_sigma =sigma,\
+        test_sigma =true_sigma,\
         test_U= U, test_V=V, Z_FLAG=True,\
         list_zero_thres = list_zero_thres,\
         )
@@ -231,15 +231,14 @@ def _mean_and_std(results):
 
 
 #@param jobname = "min_singular" or "scale_balance"
-def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
+def test_sc(jobname, VS_VBMF=False):
     num_test = opt.num_test
     max_epoch = opt.max_epoch
     max_epoch= int(max_epoch*i_p_dim/i_dim)
     #base_scale *= i_p_dim/i_dim
     base_lr = opt.base_lr
     base_scale = opt.base_scale
-
-    #jobname = "scale_balance"
+    true_sigma = 0.1
     if jobname == "scale_balance":
         reg_coef = 0 ###no regularization
         list_dim_cauchy_vec =  [1]
@@ -250,7 +249,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         list_zero_thres = [0.]
 
         ###for debug
-        #list_base_scale = [base_scale]
+        list_base_scale = [base_scale]
     elif jobname == "min_singular":
         ### for paper
         reg_coef = 1e-3
@@ -262,8 +261,9 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
             #reg_coef = 2e-3
             reg_coef = 1e-3
 
+        ratio = [0, 0.2, 0.4, 0.6, 0.8, 1]
 
-        list_zero_dim = [0, 10,20,30,40, 50]
+        list_zero_dim = [int(i_dim*r) for r in ratio]
         list_min_singular =[0.05,0.1,0.15,0.2,0.3,0.4]
         list_base_scale = [base_scale]
         list_dim_cauchy_vec = [1] ### set 2 for version 1
@@ -287,29 +287,35 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
     num_zero_dim = len(list_zero_dim)
     num_min_singular = len(list_min_singular)
 
-
-
-
     now = datetime.now()
     temp_jobname = jobname + '_{0:%m%d%H%M}'.format(now)
+
+    setting = {
+    "jobname": temp_jobname,
+    "dim":i_dim,
+    "p_dim":i_p_dim,
+    "minibatch": opt.minibatch,
+    "num_test":num_test,
+    "max_epoch":max_epoch,
+    "base_lr":base_lr,
+    "base_scale":base_scale,
+    "step_epoch": opt.step_epoch,
+    "reg_coef":reg_coef,
+    "list_dim_cauchy_vec":list_dim_cauchy_vec,
+    "list_base_scale":list_base_scale   ,
+    "list_min_singular":list_min_singular ,
+    "list_zero_dim":list_zero_dim     ,
+    "list_zero_thres":list_zero_thres   ,
+    "true_sigma": true_sigma
+    }
+
+
     dirname = "../images/{}".format(temp_jobname)
     while(os.path.exists(dirname)):
         dirname = dirname + "0"
     os.makedirs(dirname)
-    setting_log = open("{}/setting.txt".format(dirname), "w")
-    setting_log.write("jobname:{}\n".format(temp_jobname))
-    setting_log.write("dim:{}\n".format(i_dim))
-    setting_log.write("p_dim:{}\n".format(i_p_dim))
-    setting_log.write("minibatch:{}\n".format(opt.minibatch))
-    setting_log.write("num_test:{}\n".format(num_test))
-    setting_log.write("max_epoch:{}\n".format(max_epoch         ))
-    setting_log.write("base_lr:{}\n".format(base_lr           ))
-    setting_log.write("reg_coef:{}\n".format(reg_coef          ))
-    setting_log.write("list_dim_cauchy_vec:{}\n".format(list_dim_cauchy_vec))
-    setting_log.write("list_base_scale:{}\n".format(list_base_scale   ))
-    setting_log.write("list_min_singular:{}\n".format(list_min_singular ))
-    setting_log.write("list_zero_dim:{}\n".format(list_zero_dim     ))
-    setting_log.write("list_zero_thres:{}\n".format(list_zero_thres   ))
+    setting_log = open("{}/setting.json".format(dirname), "w")
+    json.dump(setting, setting_log, ensure_ascii=False, indent=4, sort_keys=True, separators=(',', ': '))
     setting_log.close()
 
 
@@ -410,7 +416,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
                         base_scale=base_scale, dim_cauchy_vec=dim_cauchy_vec,\
                         reg_coef=reg_coef,\
                         list_zero_thres= list_zero_thres,
-                        SUBO=SUBO)
+                        true_sigma=true_sigma)
                         result_diag_A.append( diag_A)
                         result_sigma.append(sigma)
                         result_val_loss.append( val_loss_array)
@@ -425,8 +431,9 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
                     m_num_zero, v_num_zero = _mean_and_std(result_num_zero)
                     m_f_iter, v_f_iter = _mean_and_std(result_forward_iter)
 
-                    logging.info("RESULT:base_scale = {}, ncn = {}, val_loss = {},\n average_sigma = {}, average_diag_A = \n{}".format(\
-                    base_scale, dim_cauchy_vec, m_val_loss[-1], m_sigma, m_diag_A) )
+                    logging.info("RESULT:base_scale = {}, ncn = {}, val_loss = {},\n average_sigma = {}".format(\
+                    base_scale, dim_cauchy_vec, m_val_loss[-1], m_sigma) )
+                    logging.debug("average_a= {}".format(m_diag_A))
                     list_train_loss_curve.append(m_train_loss)
                     list_val_loss_curve.append(m_val_loss)
                     list_estimated_rank_curve.append( i_dim - m_num_zero )
@@ -465,7 +472,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
                 ### separate dim cauchy vec
                 #plt.plot(x_axis,list_val_loss_curve[n], label="({0:3.2e}, {1})".format(base_scale, dim_cauchy_vec))
                 ### TODO set dim_cauchy_vec =  1
-                plt.plot(x_axis,list_val_loss_curve[n], label="$\gamma={}$".format(round(base_scale,2)), linestyle=linestyles[ line_idx % 4])
+                plt.plot(x_axis,list_val_loss_curve[n], label="$\gamma={0:3.2e}$".format(base_scale), linestyle=linestyles[ line_idx % 4])
                 n+=1
                 line_idx += 1
         plt.title("SPN")
@@ -488,7 +495,7 @@ def test_sc(jobname="min_singular", SUBO=True, VS_VBMF=False):
         n = 0
         for base_scale in list_base_scale:
             for dim_cauchy_vec in list_dim_cauchy_vec:
-                plt.plot(x_axis,list_train_loss_curve[n], label="({0:3.2e}, {1})".format(base_scale, dim_cauchy_vec))
+                plt.plot(x_axis,list_train_loss_curve[n], label="(s,c)=({0:3.2e}, {1})".format(base_scale, dim_cauchy_vec))
                 n+=1
 
         plt.legend()
@@ -803,6 +810,6 @@ def rank_recovery_baseline(dirname, list_zero_dim, list_min_singular, list_zero_
 
 timer = Timer()
 timer.tic()
-test_sc(jobname =jobname, SUBO=True, VS_VBMF=i_vbmf)
+test_sc(jobname =jobname,VS_VBMF=i_vbmf)
 timer.toc()
 logging.info("total_time= {} min.".format(timer.total_time/60.))

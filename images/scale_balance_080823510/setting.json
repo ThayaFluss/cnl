@@ -1,0 +1,30 @@
+{
+    "base_lr": 0.0001,
+    "base_scale": 0.001,
+    "dim": 1000,
+    "jobname": "scale_balance_08082351",
+    "list_base_scale": [
+        0.0001,
+        0.001,
+        0.01
+    ],
+    "list_dim_cauchy_vec": [
+        1
+    ],
+    "list_min_singular": [
+        0.0
+    ],
+    "list_zero_dim": [
+        0
+    ],
+    "list_zero_thres": [
+        0.0
+    ],
+    "max_epoch": 40,
+    "minibatch": 5,
+    "num_test": 10,
+    "p_dim": 1000,
+    "reg_coef": 0,
+    "step_epoch": 2,
+    "true_sigma": 0.1
+}

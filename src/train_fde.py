@@ -94,6 +94,7 @@ def get_learning_rate(idx, base_lr, lr_policy,  **kwards):
     else:sys.exit()
 
 
+
 def train_fde_spn(dim, p_dim, sample,\
  base_scale = 1e-1, base_lr = 1e-4,\
  max_epoch=400,dim_cauchy_vec=1, minibatch_size=1, \
@@ -133,9 +134,6 @@ def train_fde_spn(dim, p_dim, sample,\
         #momentum[-1] = 0.1  #momentum for sigma
         start_update_sigma = 0
         lr_mult_sigma = 1./dim
-        ###TODO test
-        #lr_mult_sigma = 1./sp.sqrt(dim)
-        #lr_mult_sigma = 0.1
 
     elif optimizer == "Adam":
         alpha = base_lr
@@ -442,7 +440,8 @@ def train_fde_spn(dim, p_dim, sample,\
                 if monitor_validation:
                     average_val_loss /= log_step
                 if (n % stdout_step + 1) == stdout_step:
-                    logging.info("{0}/{4}-iter:lr = {1:4.3e}, scale = {2:4.3e}, cauchy = {3}, mini = {5}".format(n+1,lr,scale,dim_cauchy_vec,max_iter, minibatch_size ))
+                    logging.info("{}/{}-iter:".format(n+1,max_iter))
+                    logging.info("lr = {0:4.3e}, scale = {1:4.3e}, minibatch:{2}, cauchy:{3}".format(lr,scale,minibatch_size,dim_cauchy_vec ) )
                     logging.info("train loss= {}".format( average_loss))
                     if Z_FLAG:
                         diff_sv =  np.sort(sq_sample)[::-1] - np.sort(abs(diag_A))[::-1]
@@ -493,7 +492,7 @@ def train_fde_spn(dim, p_dim, sample,\
 
     logging.info("result:")
     logging.info("sigma:".format(sigma))
-    logging.info("diag_A:\\{}".format(diag_A))
+    logging.debug("diag_A:\\{}".format(diag_A))
     train_loss_array = np.array(train_loss_list)
     if monitor_validation:
         val_loss_array = np.array(val_loss_list)
