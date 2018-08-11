@@ -94,7 +94,6 @@ def get_learning_rate(idx, base_lr, lr_policy,  **kwards):
     else:sys.exit()
 
 
-
 def train_fde_spn(dim, p_dim, sample,\
  base_scale = 1e-1, base_lr = 1e-4,\
  max_epoch=400,dim_cauchy_vec=1, minibatch_size=1, \

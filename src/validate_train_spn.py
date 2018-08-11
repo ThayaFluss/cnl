@@ -249,7 +249,8 @@ def test_sc(jobname, VS_VBMF=False):
         list_zero_thres = [0.]
 
         ###for debug
-        list_base_scale = [base_scale]
+        #list_zero_dim = [i_dim]
+        #list_base_scale = [base_scale]
     elif jobname == "min_singular":
         ### for paper
         reg_coef = 1e-3
