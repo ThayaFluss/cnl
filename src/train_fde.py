@@ -126,13 +126,15 @@ def train_fde_spn(dim, p_dim, sample,\
     truncate_step = 1
 
     optimizer = "Adam"
+    #optimizer = "momentum"
+    #lr_policy = "inv"
 
-    if optimizer == "momenutm":
+    if optimizer == "momentum":
         momentum = 0
         #momentum = momentum*np.ones(size+1)
         #momentum[-1] = 0.1  #momentum for sigma
         start_update_sigma = 0
-        lr_mult_sigma = 1./dim
+        lr_mult_sigma = 1.
 
     elif optimizer == "Adam":
         alpha = base_lr
