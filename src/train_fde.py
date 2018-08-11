@@ -120,11 +120,6 @@ def train_fde_spn(dim, p_dim, sample,\
 
 
     REG_TYPE = "L1"
-    ### TODO Deprecated
-    ### for online L1 -regularization
-    ### LLZ, Sparse Online Learning via Truncated Gradient
-    use_truncated_grad = False
-    truncate_step = 1
 
     optimizer = "Adam"
 
@@ -326,10 +321,9 @@ def train_fde_spn(dim, p_dim, sample,\
             new_grads, new_loss = sc.grad_loss(diag_A, sigma, mini)
 
 
-        if not use_truncated_grad:
-            r_grads, r_loss =  sc.regularization_grad_loss(diag_A, sigma,reg_coef=reg_coef, TYPE=REG_TYPE)
-            new_grads += r_grads
-            new_loss += r_loss
+        r_grads, r_loss =  sc.regularization_grad_loss(diag_A, sigma,reg_coef=reg_coef, TYPE=REG_TYPE)
+        new_grads += r_grads
+        new_loss += r_loss
         ### for output ###
         train_loss_list.append(new_loss)
         average_forward_iter[0] += sc.forward_iter[0]
@@ -351,7 +345,6 @@ def train_fde_spn(dim, p_dim, sample,\
             m = mean_adam/(1-beta1**(n+1))
             v = var_adam/(1-beta2**(n+1))
             m_grads = m*lr/(sp.sqrt(v)+eps)
-            #lr_for_trunc = lr/(sp.sqrt(v)+eps)
 
 
 
@@ -377,18 +370,6 @@ def train_fde_spn(dim, p_dim, sample,\
         old_diag_A = np.copy(diag_A)
         diag_A = diag_A - m_PA
 
-        ### Online L1 reguralization
-        ### Deprecated
-        if use_truncated_grad:
-            if n > 0 and n % truncate_step == 0:
-                for k in range(dim):
-                    #lrk = lr_for_trunc[k]
-                    lrk = alpha
-                    ak = diag_A[k]
-                    if ak  > 0 and ak  < reg_coef:
-                        diag_A[k] = max(0, ak - lrk*reg_coef*truncate_step)
-                    elif ak < 0 and ak < -reg_coef:
-                        diag_A[k] = min(0, ak + lrk*reg_coef*truncate_step)
 
 
         for k in range(dim):
