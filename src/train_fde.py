@@ -104,7 +104,6 @@ def train_fde_spn(dim, p_dim, sample,\
  test_diag_A=-1, test_sigma=-1, \
  Z_FLAG= False,test_U= -1, test_V= -1, \
  list_zero_thres=[1e-5,1e-4,1e-3,1e-2,1e-1]):
-    update_sigma = True
 
     if Z_FLAG:
         assert (len(sample) == dim )
@@ -117,14 +116,7 @@ def train_fde_spn(dim, p_dim, sample,\
     if np.allclose(test_diag_A, -1):
         monitor_validation=False
 
-
     REG_TYPE = "L1"
-    ### TODO Deprecated
-    ### for online L1 -regularization
-    ### LLZ, Sparse Online Learning via Truncated Gradient
-    use_truncated_grad = False
-    truncate_step = 1
-
     optimizer = "Adam"
     #optimizer = "momentum"
     #lr_policy = "inv"
@@ -133,8 +125,6 @@ def train_fde_spn(dim, p_dim, sample,\
         momentum = 0
         #momentum = momentum*np.ones(size+1)
         #momentum[-1] = 0.1  #momentum for sigma
-        start_update_sigma = 0
-        lr_mult_sigma = 1.
 
     elif optimizer == "Adam":
         alpha = base_lr
@@ -144,10 +134,6 @@ def train_fde_spn(dim, p_dim, sample,\
         lr = base_lr
     else: sys.exit("optimizer is momentum or Adam")
 
-    if update_sigma:
-        start_update_sigma = 0
-    else:
-        lr_mult_sigma = 0.
 
 
     if lr_policy == "inv":
@@ -195,11 +181,8 @@ def train_fde_spn(dim, p_dim, sample,\
     ### clip large grad
     clip_grad = -1
 
-    if monitor_validation and not update_sigma:
-        sigma = test_sigma
-    else:
-        lam_plus = 1 + sp.sqrt(p_dim/dim)
-        sigma = min(0.2, max_sq_sample/lam_plus)
+    lam_plus = 1 + sp.sqrt(p_dim/dim)
+    sigma = min(0.2, max_sq_sample/lam_plus)
     sigma = abs(sigma)
 
     diag_A = sq_sample
@@ -248,11 +231,6 @@ def train_fde_spn(dim, p_dim, sample,\
             plt.plot(x_axis,y_axis_truth, linestyle="--", label="true $\gamma$-slice", color="red")
 
 
-
-
-
-
-
         sc.set_params(diag_A, sigma)
         y_axis_init = sc.density_subordinaiton(x_axis)
         plt.plot(x_axis,y_axis_init, label="Init")
@@ -295,6 +273,49 @@ def train_fde_spn(dim, p_dim, sample,\
     stop_count = 0
     ### SGD
     for n in trange(max_iter):
+        update(sample, minibatch_size, n , scale, dim_cauchy_vec, o_zero_thres, list_zero_thres, sc, SUBO, diag_A,sigma,\
+        base_lr, lr_policy, lr_kwards, reg_coef, REG_TYPE, train_loss_list,average_forward_iter,optimizer,beta1, mean_adam,beta2,var_adam,\
+        eps,clip_grad,dim,edge, monitor_validation, n_test_diag_A, n_test_sigma, val_loss_list,average_val_loss, num_zero_list,average_loss, log_step, plot_stepsize,\
+        total_average_forwad_iter,\
+        stdout_step, max_iter, Z_FLAG,sq_sample, test_U, test_V, p_dim)
+
+    logging.info("result:")
+    logging.info("sigma:".format(sigma))
+    logging.debug("diag_A:\\{}".format(diag_A))
+    train_loss_array = np.array(train_loss_list)
+    if monitor_validation:
+        val_loss_array = np.array(val_loss_list)
+
+    else:
+        val_loss_array = -1
+
+    num_zero_array = np.asarray(num_zero_list)
+    forward_iter = total_average_forwad_iter/  (max_iter/log_step)
+    del sc
+    ### TODO for sigma
+    #list_zero_thres = list_zero_thres[:-1]
+    if monitor_validation:
+        del sc_for_plot
+    if normalize_sample:
+        sigma *= normalize_ratio
+        diag_A *= normalize_ratio
+
+    diagA = np.sort( abs(diag_A)[::-1])
+    result = dict(diag_A = diag_A,\
+    sigma= sigma,
+    train_loss= train_loss_array,
+    val_loss=val_loss_array,
+    num_zero=num_zero_array,
+    forward_iter= forward_iter)
+    return result
+
+
+
+
+def update(sample, minibatch_size, n , scale, dim_cauchy_vec, o_zero_thres, list_zero_thres, sc, SUBO, diag_A,sigma,\
+base_lr, lr_policy, lr_kwards,reg_coef,REG_TYPE,train_loss_list, average_forward_iter,optimizer, beta1,mean_adam,beta2,var_adam,\
+eps,clip_grad,dim, edge, monitor_validation, n_test_diag_A, n_test_sigma, val_loss_list, average_val_loss, num_zero_list,average_loss, log_step,plot_stepsize,total_average_forwad_iter,\
+stdout_step, max_iter,Z_FLAG,sq_sample, test_U, test_V, p_dim):
         ### for epoch base
         # e_idx = int(n/ iter_per_epoch)
         mini = get_minibatch(sample, minibatch_size, n, scale, dim_cauchy_vec, SAMPLING="CHOICE")
@@ -326,11 +347,9 @@ def train_fde_spn(dim, p_dim, sample,\
         else :
             new_grads, new_loss = sc.grad_loss(diag_A, sigma, mini)
 
-
-        if not use_truncated_grad:
-            r_grads, r_loss =  sc.regularization_grad_loss(diag_A, sigma,reg_coef=reg_coef, TYPE=REG_TYPE)
-            new_grads += r_grads
-            new_loss += r_loss
+        r_grads, r_loss =  sc.regularization_grad_loss(diag_A, sigma,reg_coef=reg_coef, TYPE=REG_TYPE)
+        new_grads += r_grads
+        new_loss += r_loss
         ### for output ###
         train_loss_list.append(new_loss)
         average_forward_iter[0] += sc.forward_iter[0]
@@ -342,7 +361,6 @@ def train_fde_spn(dim, p_dim, sample,\
             lr = get_learning_rate(n, base_lr, lr_policy, **lr_kwards)
             m_grads = lr*new_grads + momentum*old_grads
 
-            m_grads[-1] *= lr_mult_sigma ### for rescale new_Psigma
 
 
         elif optimizer == "Adam":
@@ -378,18 +396,6 @@ def train_fde_spn(dim, p_dim, sample,\
         old_diag_A = np.copy(diag_A)
         diag_A = diag_A - m_PA
 
-        ### Online L1 reguralization
-        ### Deprecated
-        if use_truncated_grad:
-            if n > 0 and n % truncate_step == 0:
-                for k in range(dim):
-                    #lrk = lr_for_trunc[k]
-                    lrk = alpha
-                    ak = diag_A[k]
-                    if ak  > 0 and ak  < reg_coef:
-                        diag_A[k] = max(0, ak - lrk*reg_coef*truncate_step)
-                    elif ak < 0 and ak < -reg_coef:
-                        diag_A[k] = min(0, ak + lrk*reg_coef*truncate_step)
 
 
         for k in range(dim):
@@ -399,14 +405,12 @@ def train_fde_spn(dim, p_dim, sample,\
                 m_PA[k] = -1e-8
 
 
-        if update_sigma:
-            logging.debug( "m_Psigma=", m_Psigma)
-            if n > start_update_sigma:
-                sigma -= m_Psigma
-            if abs(sigma) > edge:
-                logging.info("sigma reached the boundary:{}".format(sigma))
-                sigma  = edge*0.98
-                m_Psigma = -1e-8
+        logging.debug( "m_Psigma=", m_Psigma)
+        sigma -= m_Psigma
+        if abs(sigma) > edge:
+            logging.info("sigma reached the boundary:{}".format(sigma))
+            sigma  = edge*0.98
+            m_Psigma = -1e-8
 
 
         old_m_PA= np.copy(m_PA)
@@ -491,63 +495,6 @@ def train_fde_spn(dim, p_dim, sample,\
             plt.close()
             logging.info("Plotting density...done")
 
-    logging.info("result:")
-    logging.info("sigma:".format(sigma))
-    logging.debug("diag_A:\\{}".format(diag_A))
-    train_loss_array = np.array(train_loss_list)
-    if monitor_validation:
-        val_loss_array = np.array(val_loss_list)
-
-    else:
-        val_loss_array = -1
-
-    num_zero_array = np.asarray(num_zero_list)
-    forward_iter = total_average_forwad_iter/  (max_iter/log_step)
-    del sc
-    ### TODO for sigma
-    #list_zero_thres = list_zero_thres[:-1]
-    if monitor_validation:
-        del sc_for_plot
-    if normalize_sample:
-        sigma *= normalize_ratio
-        diag_A *= normalize_ratio
-
-    diagA = np.sort( abs(diag_A)[::-1])
-    result = dict(diag_A = diag_A,\
-    sigma= sigma,
-    train_loss= train_loss_array,
-    val_loss=val_loss_array,
-    num_zero=num_zero_array,
-    forward_iter= forward_iter)
-    return result
-
-
-def KL_divergence(diag_A,sigma, sc_true, num_shot = 20, dim_cauchy_vec=100):
-    sc = SemiCircular(dim = np.shape(diag_A)[0], scale = sc_true.scale)
-    sc.diag_A = diag_A
-    sc.sigma = sigma
-    #sc_true = SemiCircular(diag_A = a_true, sigma=sigma_true)
-    num_shot = 10
-    dim_cauchy_vec = 10
-    #sample = sc.ESD(num_shot, dim_cauchy_vec)
-    sample_true = sc_true.ESD(num_shot=num_shot, dim_cauchy_vec=dim_cauchy_vec)
-    timer = Timer()
-    timer.tic()
-    entropy = sc_true.loss_subordination(sample_true)
-    timer.toc()
-
-    logging.info("entropy= {}, time= {}".format(entropy, timer.total_time))
-
-    timer = Timer()
-    timer.tic()
-    cross_entropy = sc.loss_subordination(sample_true)
-    timer.toc()
-    logging.info("cross_entropy= {}, time= {}".format(cross_entropy, timer.total_time))
-
-    KL = cross_entropy - entropy
-    return KL
-
-
 
 
 def train_cw(dim, p_dim, sample,\
@@ -573,11 +520,7 @@ def train_cw(dim, p_dim, sample,\
         momentum = 0
         #momentum = momentum*np.ones(size+1)
         #momentum[-1] = 0.1  #momentum for sigma
-        start_update_sigma = 0
-        lr_mult_sigma = 1./dim
         ###TODO test
-        #lr_mult_sigma = 1./sp.sqrt(dim)
-        #lr_mult_sigma = 0.1
 
     elif optimizer == "Adam":
         alpha = base_lr ###1e-4
