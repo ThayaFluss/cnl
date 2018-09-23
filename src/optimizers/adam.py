@@ -37,6 +37,8 @@ class Adam(object):
 
         m, v = self.m, self.v
         m += (1 - self.beta1) * (grad - m)
+        ####
+        # m = self.beta1*m + (1- self.beta1)*grad
         v += (1 - self.beta2) * (grad * grad - v)
 
         vec = m/(np.sqrt(v) + self.eps)

@@ -7,13 +7,13 @@ class Momentum(object):
         super(Momentum, self).__init__()
         self.momentum = momentum
         self.base_lr= base_lr
-        self.g = None
+        self.mean = None
         self.MultipleScheduler = None
         self.t = 0
 
     def setup(self, param, Scheduler):
         self.MultipleScheduler = Scheduler
-        self.g = np.zeros_like(param)
+        self.mean = np.zeros_like(param)
 
 
     def lr(self):
@@ -21,6 +21,7 @@ class Momentum(object):
 
 
     def update(self, param, grad):
-        self.g = self.lr*grad + self.momentum*self.g
-        param -= self.g
+        m = self.mean
+        m += (1 - self.momentum)*(grad - m)
+        param -= self.lr()*m
         self.t += 1
