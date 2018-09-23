@@ -11,6 +11,12 @@ import logging
 from tqdm import tqdm, trange
 
 from cw import *
+import copy
+
+from optimizers.schedulers import *
+from optimizers.adam import Adam
+from optimizers.momentum import Momentum
+
 
 TEST_C2 = False ###Use \C^2-valued subordination for test
 BASE_C2 =   True ###Use \C^2-valued suborndaiton as BASE
@@ -122,36 +128,29 @@ def train_fde_spn(dim, p_dim, sample,\
     #lr_policy = "inv"
 
     if optimizer == "momentum":
-        momentum = 0
-        #momentum = momentum*np.ones(size+1)
-        #momentum[-1] = 0.1  #momentum for sigma
+        Optimizer = Momentum(lr=base_lr,momentum=0)
 
     elif optimizer == "Adam":
-        alpha = base_lr
-        beta1 = 0.9
-        beta2 = 0.999
-        eps = 1e-8
-        lr = base_lr
-    else: sys.exit("optimizer is momentum or Adam")
+        Optimizer = Adam(alpha=base_lr)
+    else:
+        raise ValueError("optimizer is momentum or Adam")
 
 
 
     if lr_policy == "inv":
-        lr_kwards = {
-        "gamma": 1e-4,
-        "power": 0.75,
-        }
+        Scheduler = Inv()
+
     elif lr_policy == "step":
-        if len(step_epochs) == 0:
-            stepvalue = [2*iter_per_epoch, max_iter]
-        lr_kwards = {
-        "decay": 0.1,
-        "stepvalue": iter_per_epoch*np.asarray(step_epochs)
-        }
+        Scheduler = Step(decay=0.1, stepsize=step_epochs[0])
     elif lr_policy == "fix":
-        lr_kwards = dict()
+        Scheduler = Fix()
     else:
-        sys.exit("lr_policy is inv, step or fix")
+        raise ValueError("lr_policy is inv, step or fix")
+
+
+
+
+
 
     ### tf_summary, logging and  plot
     log_step = 50
@@ -208,11 +207,22 @@ def train_fde_spn(dim, p_dim, sample,\
         sc_for_plot = SemiCircular(dim=dim,p_dim=p_dim, scale=base_scale)
         sc_for_plot.set_params(n_test_diag_A, n_test_sigma)
 
+    else:
+        n_test_diag_A=None
+        n_test_sigma=None
 
 
 
     sc = SemiCircular(dim=dim,p_dim=p_dim, scale=base_scale)
     sc.set_params(diag_A, sigma)
+
+
+    Optimizer_sigma = copy.deepcopy(Optimizer)
+
+    Optimizer.setup(diag_A, Scheduler)
+    Optimizer_sigma.setup(sigma, Scheduler)
+
+
     if TEST_C2:
         sc2 = spn_c2.SemiCircular(dim=dim,p_dim=p_dim, scale=base_scale)
         sc2.set_params(diag_A, sigma)
@@ -260,22 +270,20 @@ def train_fde_spn(dim, p_dim, sample,\
     o_zero_thres = list_zero_thres
 
 
-    if optimizer == "momentum":
-        lr = base_lr
-        old_grads = np.zeros(dim+1)
-    elif optimizer == "Adam":
-        mean_adam = np.zeros(dim + 1)
-        var_adam = np.zeros(dim + 1)
-
 
     average_forward_iter = np.zeros(1)
     total_average_forwad_iter = np.zeros(1)
     stop_count = 0
     ### SGD
+
+
+
+
+
     for n in trange(max_iter):
-        update(sample, minibatch_size, n , scale, dim_cauchy_vec, o_zero_thres, list_zero_thres, sc, SUBO, diag_A,sigma,\
-        base_lr, lr_policy, lr_kwards, reg_coef, REG_TYPE, train_loss_list,average_forward_iter,optimizer,beta1, mean_adam,beta2,var_adam,\
-        eps,clip_grad,dim,edge, monitor_validation, n_test_diag_A, n_test_sigma, val_loss_list,average_val_loss, num_zero_list,average_loss, log_step, plot_stepsize,\
+        update(sample, minibatch_size, n , scale, dim_cauchy_vec, o_zero_thres, list_zero_thres, sc, SUBO, diag_A,sigma, reg_coef, REG_TYPE, train_loss_list,average_forward_iter, \
+        Optimizer, Optimizer_sigma,Scheduler,\
+        dim,edge, monitor_validation, n_test_diag_A, n_test_sigma, val_loss_list,average_val_loss, num_zero_list,average_loss, log_step, plot_stepsize,\
         total_average_forwad_iter,\
         stdout_step, max_iter, Z_FLAG,sq_sample, test_U, test_V, p_dim)
 
@@ -311,11 +319,14 @@ def train_fde_spn(dim, p_dim, sample,\
 
 
 
+def update(sample, minibatch_size, n , scale, dim_cauchy_vec, o_zero_thres, list_zero_thres, sc, SUBO, diag_A,sigma, \
+    reg_coef, REG_TYPE, train_loss_list,average_forward_iter, \
+        Optimizer, Optimizer_sigma,Scheduler,\
+        dim,edge, monitor_validation, n_test_diag_A, n_test_sigma, val_loss_list,average_val_loss, num_zero_list,average_loss, log_step, plot_stepsize,\
+        total_average_forwad_iter,\
+        stdout_step, max_iter, Z_FLAG,sq_sample, test_U, test_V, p_dim):
 
-def update(sample, minibatch_size, n , scale, dim_cauchy_vec, o_zero_thres, list_zero_thres, sc, SUBO, diag_A,sigma,\
-base_lr, lr_policy, lr_kwards,reg_coef,REG_TYPE,train_loss_list, average_forward_iter,optimizer, beta1,mean_adam,beta2,var_adam,\
-eps,clip_grad,dim, edge, monitor_validation, n_test_diag_A, n_test_sigma, val_loss_list, average_val_loss, num_zero_list,average_loss, log_step,plot_stepsize,total_average_forwad_iter,\
-stdout_step, max_iter,Z_FLAG,sq_sample, test_U, test_V, p_dim):
+
         ### for epoch base
         # e_idx = int(n/ iter_per_epoch)
         mini = get_minibatch(sample, minibatch_size, n, scale, dim_cauchy_vec, SAMPLING="CHOICE")
@@ -355,67 +366,23 @@ stdout_step, max_iter,Z_FLAG,sq_sample, test_U, test_V, p_dim):
         average_forward_iter[0] += sc.forward_iter[0]
         sc.forward_iter[0] = 0
 
-
-        if optimizer == "momentum":
-            ### learning rate
-            lr = get_learning_rate(n, base_lr, lr_policy, **lr_kwards)
-            m_grads = lr*new_grads + momentum*old_grads
-
-
-
-        elif optimizer == "Adam":
-            lr = get_learning_rate(n, base_lr, lr_policy, **lr_kwards)
-            mean_adam = beta1 * mean_adam + ( 1- beta1)*new_grads
-            var_adam = beta2 * var_adam + ( 1- beta2)*new_grads**2
-            m = mean_adam/(1-beta1**(n+1))
-            v = var_adam/(1-beta2**(n+1))
-            m_grads = m*lr/(sp.sqrt(v)+eps)
-            #lr_for_trunc = lr/(sp.sqrt(v)+eps)
-
-
-
-        m_PA = m_grads[:-1]
-        m_Psigma = m_grads[-1]
-
-
-
-        logging.debug("m_Psigma=\n{}".format(m_Psigma))
-        logging.debug("m_PA=\n{}".format(m_PA))
-
-        ### clip
-        if clip_grad > 0:
-            for k in range(dim):
-                if abs(m_PA[k]) > clip_grad :
-                    logging.info("m_PA[{}]={} is clipped.".format(k,m_PA[k]))
-                    m_PA[k] = np.sign(m_PA[k])*clip_grad
-            if abs(m_Psigma) > clip_grad :
-                logging.info("m_Psigma={} is clipped.".format(m_Psigma))
-                m_Psigma = np.sign(m_Psigma)*clip_grad
-
-        ### update
-        old_diag_A = np.copy(diag_A)
-        diag_A = diag_A - m_PA
-
+        Optimizer.update(diag_A, new_grads[:-1])
+        Optimizer_sigma.update(sigma, new_grads[-1])
 
 
         for k in range(dim):
             if abs(diag_A[k]) > edge:
                 logging.info( "diag_A[{}]={} reached the boundary".format(k,diag_A[k]))
                 diag_A[k] =edge*0.98
-                m_PA[k] = -1e-8
+                new_grads[k] = -1e-8
 
 
-        logging.debug( "m_Psigma=", m_Psigma)
-        sigma -= m_Psigma
         if abs(sigma) > edge:
             logging.info("sigma reached the boundary:{}".format(sigma))
             sigma  = edge*0.98
-            m_Psigma = -1e-8
+        new_grads[-1] = -1e-8
 
 
-        old_m_PA= np.copy(m_PA)
-        old_m_Psigma = np.copy(m_Psigma)
-        olg_grads = np.hstack((old_m_PA, old_m_Psigma))
 
 
         ######################################
@@ -445,6 +412,7 @@ stdout_step, max_iter,Z_FLAG,sq_sample, test_U, test_V, p_dim):
                 if monitor_validation:
                     average_val_loss /= log_step
                 if (n % stdout_step + 1) == stdout_step:
+                    lr = Optimizer.lr()
                     logging.info("{}/{}-iter:".format(n+1,max_iter))
                     logging.info("lr = {0:4.3e}, scale = {1:4.3e}, minibatch:{2}, cauchy:{3}".format(lr,scale,minibatch_size,dim_cauchy_vec ) )
                     logging.info("train loss= {}".format( average_loss))
