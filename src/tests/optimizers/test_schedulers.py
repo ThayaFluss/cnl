@@ -1,4 +1,4 @@
-from optimizers.schedulers import *
+from utils.schedulers import *
 
 import unittest
 

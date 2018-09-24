@@ -13,7 +13,7 @@ import sys
 import json
 from tqdm import tqdm,trange
 from datetime import datetime
-from train_fde import *
+from train_spn import *
 from vbmf.vbmf import VBMF2
 from vbmf.validate_vbmf_spn import validate_vbmf_spn
 
@@ -126,7 +126,7 @@ else:
     jobname = "scale_balance"
 
 def test_optimize(\
-    base_scale ,dim_cauchy_vec, \
+    base_scale ,num_cauchy_rv, \
     base_lr=1e-1 ,   max_epoch=20,\
     reg_coef=0,\
     jobname="train_v2",\
@@ -176,7 +176,7 @@ def test_optimize(\
 
     result= train_fde_spn(dim, p_dim,  sample,\
         base_scale=base_scale ,\
-        dim_cauchy_vec=dim_cauchy_vec,\
+        num_cauchy_rv=num_cauchy_rv,\
         base_lr =base_lr ,\
         minibatch_size=opt.minibatch,\
         max_epoch=max_epoch,\
@@ -241,7 +241,7 @@ def test_sc(jobname, VS_VBMF=False):
     true_sigma = 0.1
     if jobname == "scale_balance":
         reg_coef = 0 ###no regularization
-        list_dim_cauchy_vec =  [1]
+        list_num_cauchy_rv =  [1]
         list_base_scale = [ base_scale/10, base_scale,base_scale*10]
         ###fix
         list_min_singular = [0.]
@@ -267,14 +267,14 @@ def test_sc(jobname, VS_VBMF=False):
         list_zero_dim = [int(i_dim*r) for r in ratio]
         list_min_singular =[0.05,0.1,0.15,0.2,0.3,0.4]
         list_base_scale = [base_scale]
-        list_dim_cauchy_vec = [1] ### set 2 for version 1
+        list_num_cauchy_rv = [1] ### set 2 for version 1
         list_zero_thres = [reg_coef, 1e-1]
 
 
         ### for debug
         #list_zero_dim = [40]
         #list_min_singular=[ 0.1, 0.2, 0.3]
-        #list_dim_cauchy_vec = [1]
+        #list_num_cauchy_rv = [1]
         #
 
     else:
@@ -302,7 +302,7 @@ def test_sc(jobname, VS_VBMF=False):
     "base_scale":base_scale,
     "step_epoch": opt.step_epoch,
     "reg_coef":reg_coef,
-    "list_dim_cauchy_vec":list_dim_cauchy_vec,
+    "list_num_cauchy_rv":list_num_cauchy_rv,
     "list_base_scale":list_base_scale   ,
     "list_min_singular":list_min_singular ,
     "list_zero_dim":list_zero_dim     ,
@@ -404,7 +404,7 @@ def test_sc(jobname, VS_VBMF=False):
     list_forward_iter = []
 
     for base_scale in list_base_scale:
-        for dim_cauchy_vec in list_dim_cauchy_vec:
+        for num_cauchy_rv in list_num_cauchy_rv:
             for zero_dim in list_zero_dim:
                 for min_singular in list_min_singular:
                     result_diag_A = []; result_sigma=[]; result_val_loss=[];result_train_loss=[];
@@ -414,7 +414,7 @@ def test_sc(jobname, VS_VBMF=False):
                         =test_optimize(\
                         base_lr=base_lr,
                         max_epoch=max_epoch,min_singular=min_singular, zero_dim = zero_dim,\
-                        base_scale=base_scale, dim_cauchy_vec=dim_cauchy_vec,\
+                        base_scale=base_scale, num_cauchy_rv=num_cauchy_rv,\
                         reg_coef=reg_coef,\
                         list_zero_thres= list_zero_thres,
                         true_sigma=true_sigma)
@@ -433,7 +433,7 @@ def test_sc(jobname, VS_VBMF=False):
                     m_f_iter, v_f_iter = _mean_and_std(result_forward_iter)
 
                     logging.info("RESULT:base_scale = {}, ncn = {}, val_loss = {},\n average_sigma = {}".format(\
-                    base_scale, dim_cauchy_vec, m_val_loss[-1], m_sigma) )
+                    base_scale, num_cauchy_rv, m_val_loss[-1], m_sigma) )
                     logging.debug("average_a= {}".format(m_diag_A))
                     list_train_loss_curve.append(m_train_loss)
                     list_val_loss_curve.append(m_val_loss)
@@ -469,10 +469,10 @@ def test_sc(jobname, VS_VBMF=False):
         linestyles = ["-", "--", "-.", ":"]
         for base_scale in list_base_scale:
             line_idx  = 0
-            for dim_cauchy_vec in list_dim_cauchy_vec:
+            for num_cauchy_rv in list_num_cauchy_rv:
                 ### separate dim cauchy vec
-                #plt.plot(x_axis,list_val_loss_curve[n], label="({0:3.2e}, {1})".format(base_scale, dim_cauchy_vec))
-                ### TODO set dim_cauchy_vec =  1
+                #plt.plot(x_axis,list_val_loss_curve[n], label="({0:3.2e}, {1})".format(base_scale, num_cauchy_rv))
+                ### TODO set num_cauchy_rv =  1
                 plt.plot(x_axis,list_val_loss_curve[n], label="$\gamma={0:3.2e}$".format(base_scale), linestyle=linestyles[ line_idx % 4])
                 n+=1
                 line_idx += 1
@@ -495,8 +495,8 @@ def test_sc(jobname, VS_VBMF=False):
         plt.figure()
         n = 0
         for base_scale in list_base_scale:
-            for dim_cauchy_vec in list_dim_cauchy_vec:
-                plt.plot(x_axis,list_train_loss_curve[n], label="(s,c)=({0:3.2e}, {1})".format(base_scale, dim_cauchy_vec))
+            for num_cauchy_rv in list_num_cauchy_rv:
+                plt.plot(x_axis,list_train_loss_curve[n], label="(s,c)=({0:3.2e}, {1})".format(base_scale, num_cauchy_rv))
                 n+=1
 
         plt.legend()
@@ -695,7 +695,8 @@ def test_sc(jobname, VS_VBMF=False):
                 diff_rank = fde_spn_estimated_rank[i,:,k] - true_rank
                 std_rank = std_fde_spn_estimated_rank[i,:, k]
                 label = "${}$".format(true_rank)
-                plt.errorbar(x_axis,diff_rank, std_rank, label=label,linestyle=linestyles[i])
+                linestyle=linestyles[i % len(linestyles)]
+                plt.errorbar(x_axis,diff_rank, std_rank, label=label,linestyle=linestyle)
 
 
             plt.xlabel("$\lambda_{min}$")
@@ -728,7 +729,8 @@ def test_sc(jobname, VS_VBMF=False):
                 diff_rank = fde_spn_estimated_rank[i,:,k] - true_rank
                 std_rank = std_fde_spn_estimated_rank[i,:, k]
                 label = "${}$".format(true_rank)
-                plt.errorbar(x_axis,diff_rank, std_rank, label=label,linestyle=linestyles[i])
+                linestyle=linestyles[i % len(linestyles)]
+                plt.errorbar(x_axis,diff_rank, std_rank, label=label,linestyle=linestyle)
 
             plt.xlabel("$\lambda_{min}$")
             plt.title(r"$\xi =$ {0}".format(reg_coef))

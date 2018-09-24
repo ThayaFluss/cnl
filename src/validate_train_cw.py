@@ -11,7 +11,7 @@ import logging
 from datetime import datetime
 
 from argparse import ArgumentParser
-from train_fde import *
+from train_cw import *
 
 
 import env_logger
@@ -96,7 +96,7 @@ def _mean_and_std(results):
 
 
 def test_optimize(\
-    base_scale ,dim_cauchy_vec, \
+    base_scale ,num_cauchy_rv, \
     base_lr=1e-4 ,  minibatch_size=1,  max_epoch=20,\
     jobname="test_optimize_cw",\
     min_singular=0,
@@ -149,7 +149,7 @@ def test_optimize(\
     result= train_cw(dim, p_dim,\
         sample=evs_list,\
         base_scale=base_scale ,\
-        dim_cauchy_vec=dim_cauchy_vec,\
+        num_cauchy_rv=num_cauchy_rv,\
         base_lr =base_lr ,\
         minibatch_size=minibatch_size,\
         max_epoch=max_epoch,\
@@ -198,7 +198,7 @@ def test_scale_balance():
     ### TODO for paper
     base_scale = 1e-1
     list_base_scale =[ 1e-1*base_scale, base_scale, base_scale*10]
-    list_dim_cauchy_vec =  [1]
+    list_num_cauchy_rv =  [1]
     ### for test
     #list_base_scale =[ 1e-1]
 
@@ -210,7 +210,7 @@ def test_scale_balance():
     list_train_loss_array = []
     list_forward_iter = []
     for base_scale in list_base_scale:
-        for dim_cauchy_vec in list_dim_cauchy_vec:
+        for num_cauchy_rv in list_num_cauchy_rv:
             result_b = []
             result_val_loss = []
             result_train_loss = []
@@ -220,7 +220,7 @@ def test_scale_balance():
                 base_lr = base_lr,minibatch_size=minibatch_size,\
                  max_epoch=max_epoch,\
                 min_singular=min_singular, zero_dim = zero_dim, \
-                base_scale=base_scale, dim_cauchy_vec=dim_cauchy_vec)
+                base_scale=base_scale, num_cauchy_rv=num_cauchy_rv)
                 result_b.append(b)
                 result_val_loss.append(val_loss_array)
                 result_train_loss.append(train_loss_array)
@@ -233,7 +233,7 @@ def test_scale_balance():
             m_forward_iter, s_forward_iter = _mean_and_std(result_forward_iter)
 
             logging.info("RESULT:base_scale = {}, ncn = {}, val_loss = {},\n  average_b = \n{}".format(\
-            base_scale, dim_cauchy_vec, m_val_loss[-1], m_b) )
+            base_scale, num_cauchy_rv, m_val_loss[-1], m_b) )
             list_val_loss_array.append(m_val_loss)
             list_train_loss_array.append(m_train_loss)
             list_forward_iter.append([m_forward_iter, s_forward_iter])
@@ -258,7 +258,7 @@ def test_scale_balance():
     setting_log.write("num_test:{}\n".format(opt.num_test))
     setting_log.write("max_epoch:{}\n".format(max_epoch         ))
     setting_log.write("base_lr:{}\n".format(base_lr           ))
-    setting_log.write("list_dim_cauchy_vec:{}\n".format(list_dim_cauchy_vec))
+    setting_log.write("list_num_cauchy_rv:{}\n".format(list_num_cauchy_rv))
     setting_log.write("list_base_scale:{}\n".format(list_base_scale   ))
     setting_log.write("min_singular:{}\n".format(min_singular ))
     setting_log.close()
@@ -282,10 +282,10 @@ def test_scale_balance():
     ### plot validation
     n = 0
     for base_scale in list_base_scale:
-        for dim_cauchy_vec in list_dim_cauchy_vec:
-            ### separate dim_cauchy_vec
-            #plt.plot(x_axis,list_val_loss_array[n], label="({0:3.2e}, {1})".format(base_scale, dim_cauchy_vec))
-            ### set dim_cauchy_vec == 1
+        for num_cauchy_rv in list_num_cauchy_rv:
+            ### separate num_cauchy_rv
+            #plt.plot(x_axis,list_val_loss_array[n], label="({0:3.2e}, {1})".format(base_scale, num_cauchy_rv))
+            ### set num_cauchy_rv == 1
             base_scale = round(base_scale, 2)
             plt.plot(x_axis,list_val_loss_array[n], label="$\gamma={}$".format(base_scale), linestyle=linestyles[n % 4])
             n+=1
@@ -304,8 +304,8 @@ def test_scale_balance():
 
     n = 0
     for base_scale in list_base_scale:
-        for dim_cauchy_vec in list_dim_cauchy_vec:
-            plt.plot(x_axis,list_train_loss_array[n], label="({0:3.2e}, {1})".format(base_scale, dim_cauchy_vec))
+        for num_cauchy_rv in list_num_cauchy_rv:
+            plt.plot(x_axis,list_train_loss_array[n], label="({0:3.2e}, {1})".format(base_scale, num_cauchy_rv))
             n+=1
     #plt.title("Validation loss")
     plt.xlabel("Epoch")

@@ -3,7 +3,7 @@ import numpy as np
 
 from spn_c2 import *
 #from argparse import ArgumentParser
-from train_fde import *
+from train_spn import *
 
 
 def psvd_cnl(sample_mat, reg_coef=0, minibatch_size=1, NORMALIZE=True,\
@@ -44,7 +44,7 @@ base_lr=1e-4, base_scale=1e-1):
     result =  train_fde_spn(dim, p_dim, sample,\
     max_epoch=max_epoch, edge=edge, reg_coef=reg_coef,\
     base_lr=base_lr, base_scale=base_scale,\
-    dim_cauchy_vec=minibatch_size)
+    num_cauchy_rv=minibatch_size)
 
     out_D = result["diag_A"]
     out_D = np.sort( abs(out_D))[::-1] ### Decreasing order
@@ -90,7 +90,7 @@ def rank_estimation(sample_mat,reg_coef=1e-3, minibatch_size=1, NORMALIZE=True):
 
     list_zero_thres = [reg_coef]
     result =  train_fde_spn(dim, p_dim, sample, max_epoch=max_epoch, edge=edge, reg_coef=reg_coef,\
-    dim_cauchy_vec=minibatch_size, list_zero_thres=list_zero_thres)
+    num_cauchy_rv=minibatch_size, list_zero_thres=list_zero_thres)
 
     diag_A = result["diag_A"]
     sigma = result["sigma"]

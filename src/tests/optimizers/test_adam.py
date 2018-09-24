@@ -1,6 +1,6 @@
 import unittest
 import optimizers
-from optimizers.schedulers import *
+from utils.schedulers import *
 from optimizers.adam import Adam
 import numpy as np
 

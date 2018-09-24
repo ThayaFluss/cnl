@@ -170,16 +170,16 @@ class SemiCircular(object):
                 out[i][i] = scale*1j
         return out
 
-    def ESD(self, num_shot, dim_cauchy_vec=0,COMPLEX=False):
+    def ESD(self, num_shot, num_cauchy_rv=0,COMPLEX=False):
         evs_list = []
         param_mat = rectangular_diag(self.diag_A, self.p_dim, self.dim)
         for n in range(num_shot):
             W = signal_plus_noise(param_mat, self.sigma, COMPLEX)
             evs =  np.linalg.eigh(W)[0]
 
-            c_noise =  sp.stats.cauchy.rvs(loc=0, scale=self.scale, size=dim_cauchy_vec)
-            if dim_cauchy_vec >0:
-                for k in range(dim_cauchy_vec):
+            c_noise =  sp.stats.cauchy.rvs(loc=0, scale=self.scale, size=num_cauchy_rv)
+            if num_cauchy_rv >0:
+                for k in range(num_cauchy_rv):
                     evs_list.append( (evs - c_noise[k]).tolist())
             else:
                 evs_list.append(evs.tolist())
@@ -189,16 +189,16 @@ class SemiCircular(object):
 
 
 
-    def ESD_symm(self, num_shot, dim_cauchy_vec=0,COMPLEX=False):
+    def ESD_symm(self, num_shot, num_cauchy_rv=0,COMPLEX=False):
         evs_list = []
         param_mat = rectangular_diag(self.diag_A, self.p_dim, self.p_dim)
         for n in range(num_shot):
             W = signal_plus_noise_symm(self.p_dim, self.dim, param_mat, self.sigma, COMPLEX)
             evs =  np.linalg.eigh(W)[0]
 
-            c_noise =  sp.stats.cauchy.rvs(loc=0, scale=self.scale, size=dim_cauchy_vec)
-            if dim_cauchy_vec >0:
-                for k in range(dim_cauchy_vec):
+            c_noise =  sp.stats.cauchy.rvs(loc=0, scale=self.scale, size=num_cauchy_rv)
+            if num_cauchy_rv >0:
+                for k in range(num_cauchy_rv):
                     evs_list.append( (evs - c_noise[k]).tolist())
             else:
                 evs_list.append(evs.tolist())

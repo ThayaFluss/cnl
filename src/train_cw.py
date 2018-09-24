@@ -13,10 +13,10 @@ from tqdm import tqdm, trange
 from cw import *
 import copy
 
-from optimizers.schedulers import *
+from utils.schedulers import *
 from optimizers.adam import Adam
 from optimizers.momentum import Momentum
-
+from utils.samplers import *
 
 TEST_C2 = False ###Use \C^2-valued subordination for test
 BASE_C2 =   True ###Use \C^2-valued suborndaiton as BASE
@@ -32,7 +32,7 @@ else:
 i_dpi = 120  #Resolution of figures
 i_ext = "png"
 
-def get_minibatch(sample, minibatch_size, n, scale, dim_cauchy_vec, \
+def get_minibatch(sample, minibatch_size, n, scale, num_cauchy_rv, \
 SAMPLING="CHOICE", MIX = "DIAGONAL"):
     """
     Choose minibatch from sample
@@ -50,20 +50,20 @@ SAMPLING="CHOICE", MIX = "DIAGONAL"):
     else: sys.exit("SAMPLING is SHUFFLE or CHOICE")
 
     if MIX == "SEPARATE":
-        new_mini = np.zeros(minibatch_size*dim_cauchy_vec)
-        c_noise =  sp.stats.cauchy.rvs(loc=0, scale=scale, size=dim_cauchy_vec)
+        new_mini = np.zeros(minibatch_size*num_cauchy_rv)
+        c_noise =  sp.stats.cauchy.rvs(loc=0, scale=scale, size=num_cauchy_rv)
         n = 0
         for j in range(minibatch_size):
-            for k in range(dim_cauchy_vec):
+            for k in range(num_cauchy_rv):
                 new_mini[n] = mini[j] + c_noise[k]
                 n+=1
         return new_mini
 
     elif MIX == "X_ORIGIN":
-        new_mini = np.zeros((minibatch_size,dim_cauchy_vec))
+        new_mini = np.zeros((minibatch_size,num_cauchy_rv))
         for i in range(minibatch_size):
-            c_noise =  sp.stats.cauchy.rvs(loc=0, scale=scale, size=dim_cauchy_vec)
-            for j  in range(dim_cauchy_vec):
+            c_noise =  sp.stats.cauchy.rvs(loc=0, scale=scale, size=num_cauchy_rv)
+            for j  in range(num_cauchy_rv):
                 new_mini[i][j] = mini[i] + c_noise[j]
         new_mini = new_mini.flatten()
         mini = np.sort(new_mini)
@@ -102,7 +102,7 @@ def get_learning_rate(idx, base_lr, lr_policy,  **kwards):
 
 def train_fde_spn(dim, p_dim, sample,\
  base_scale = 1e-1, base_lr = 1e-4,\
- max_epoch=400,dim_cauchy_vec=1, minibatch_size=1, \
+ max_epoch=400,num_cauchy_rv=1, minibatch_size=1, \
  normalize_sample = False, edge= -1,\
  lr_policy="fix", step_epochs=[],\
  monitor_validation=True,\
@@ -183,6 +183,7 @@ def train_fde_spn(dim, p_dim, sample,\
     lam_plus = 1 + sp.sqrt(p_dim/dim)
     sigma = min(0.2, max_sq_sample/lam_plus)
     sigma = abs(sigma)
+    sigma = np.array(sigma)
 
     diag_A = sq_sample
     diag_A = abs(diag_A)
@@ -192,7 +193,7 @@ def train_fde_spn(dim, p_dim, sample,\
 
 
     logging.info("base_scale = {}".format(base_scale) )
-    logging.info("dim_cauchy_vec = {}".format(dim_cauchy_vec) )
+    logging.info("num_cauchy_rv = {}".format(num_cauchy_rv) )
     logging.info("base_lr = {}".format(base_lr) )
     logging.info("minibatch_size = {}".format(minibatch_size) )
 
@@ -234,7 +235,7 @@ def train_fde_spn(dim, p_dim, sample,\
         if monitor_validation:
             y_axis_truth = sc_for_plot.density_subordinaiton(x_axis)
 
-            sample_for_plot =  sc_for_plot.ESD(num_shot=1,dim_cauchy_vec=200)
+            sample_for_plot =  sc_for_plot.ESD(num_shot=1,num_cauchy_rv=200)
 
             plt.hist(sample_for_plot, range=(min(x_axis), max(x_axis)), bins=100, normed=True, label="sampling from a true model \n perturbed by Cauchy($0,\gamma$)",color="pink")
 
@@ -279,9 +280,8 @@ def train_fde_spn(dim, p_dim, sample,\
 
 
 
-
     for n in trange(max_iter):
-        update(sample, minibatch_size, n , scale, dim_cauchy_vec, o_zero_thres, list_zero_thres, sc, SUBO, diag_A,sigma, reg_coef, REG_TYPE, train_loss_list,average_forward_iter, \
+        update(sample, minibatch_size, n , scale, num_cauchy_rv, o_zero_thres, list_zero_thres, sc, SUBO, diag_A,sigma, reg_coef, REG_TYPE, train_loss_list,average_forward_iter, \
         Optimizer, Optimizer_sigma,Scheduler,\
         dim,edge, monitor_validation, n_test_diag_A, n_test_sigma, val_loss_list,average_val_loss, num_zero_list,average_loss, log_step, plot_stepsize,\
         total_average_forwad_iter,\
@@ -319,7 +319,7 @@ def train_fde_spn(dim, p_dim, sample,\
 
 
 
-def update(sample, minibatch_size, n , scale, dim_cauchy_vec, o_zero_thres, list_zero_thres, sc, SUBO, diag_A,sigma, \
+def update(sample, minibatch_size, n , scale, num_cauchy_rv, o_zero_thres, list_zero_thres, sc, SUBO, diag_A,sigma, \
     reg_coef, REG_TYPE, train_loss_list,average_forward_iter, \
         Optimizer, Optimizer_sigma,Scheduler,\
         dim,edge, monitor_validation, n_test_diag_A, n_test_sigma, val_loss_list,average_val_loss, num_zero_list,average_loss, log_step, plot_stepsize,\
@@ -329,7 +329,7 @@ def update(sample, minibatch_size, n , scale, dim_cauchy_vec, o_zero_thres, list
 
         ### for epoch base
         # e_idx = int(n/ iter_per_epoch)
-        mini = get_minibatch(sample, minibatch_size, n, scale, dim_cauchy_vec, SAMPLING="CHOICE")
+        mini = get_minibatch(sample, minibatch_size, n, scale, num_cauchy_rv, SAMPLING="CHOICE")
         list_zero_thres = o_zero_thres
         num_zero = np.zeros(len(list_zero_thres))
         ### run
@@ -368,7 +368,6 @@ def update(sample, minibatch_size, n , scale, dim_cauchy_vec, o_zero_thres, list
 
         Optimizer.update(diag_A, new_grads[:-1])
         Optimizer_sigma.update(sigma, new_grads[-1])
-
 
         for k in range(dim):
             if abs(diag_A[k]) > edge:
@@ -414,7 +413,7 @@ def update(sample, minibatch_size, n , scale, dim_cauchy_vec, o_zero_thres, list
                 if (n % stdout_step + 1) == stdout_step:
                     lr = Optimizer.lr()
                     logging.info("{}/{}-iter:".format(n+1,max_iter))
-                    logging.info("lr = {0:4.3e}, scale = {1:4.3e}, minibatch:{2}, cauchy:{3}".format(lr,scale,minibatch_size,dim_cauchy_vec ) )
+                    logging.info("lr = {0:4.3e}, scale = {1:4.3e}, minibatch:{2}, cauchy:{3}".format(lr,scale,minibatch_size,num_cauchy_rv ) )
                     logging.info("train loss= {}".format( average_loss))
                     if Z_FLAG:
                         diff_sv =  np.sort(sq_sample)[::-1] - np.sort(abs(diag_A))[::-1]
@@ -466,7 +465,7 @@ def update(sample, minibatch_size, n , scale, dim_cauchy_vec, o_zero_thres, list
 
 
 def train_cw(dim, p_dim, sample,\
- base_scale = 0.01, dim_cauchy_vec=4, base_lr = 0.1,minibatch_size=1,\
+ base_scale = 0.01, num_cauchy_rv=4, base_lr = 0.1,minibatch_size=1,\
  max_epoch=20,  normalize_sample = False,\
  monitor_validation=True, test_b=-1):
     ###sample
@@ -545,7 +544,7 @@ def train_cw(dim, p_dim, sample,\
 
 
     logging.info("base_scale = {}".format(base_scale) )
-    logging.info("dim_cauchy_vec = {}".format(dim_cauchy_vec) )
+    logging.info("num_cauchy_rv = {}".format(num_cauchy_rv) )
     logging.info("base_lr = {}".format(base_lr) )
     logging.info("minibatch_size = {}".format(minibatch_size) )
 
@@ -579,7 +578,7 @@ def train_cw(dim, p_dim, sample,\
         plt.title("Perturbed single shot ESD  and $\gamma$-slice")
         plt.ylim(0, max_y)
 
-        sample_for_plot = cw_for_plot.ESD(num_shot=1, dim_cauchy_vec=200, COMPLEX=False)
+        sample_for_plot = cw_for_plot.ESD(num_shot=1, num_cauchy_rv=200, COMPLEX=False)
         plt.hist(sample_for_plot, range=(min(x_axis), max(x_axis)), bins=200, normed=True,\
          label="perturbed \n single shot ESD",color="pink")
 
@@ -625,7 +624,7 @@ def train_cw(dim, p_dim, sample,\
         ### learning rate
         #temp_idx =  int(n/iter_per_epoch) * iter_per_epoch
         temp_idx = n
-        mini = get_minibatch(sample, minibatch_size, n, scale, dim_cauchy_vec, SAMPLING="CHOICE")
+        mini = get_minibatch(sample, minibatch_size, n, scale, num_cauchy_rv, SAMPLING="CHOICE")
 
 
         ### run
@@ -686,7 +685,7 @@ def train_cw(dim, p_dim, sample,\
             average_loss /= log_step
             average_val_loss /= log_step
             average_b /= log_step
-            logging.info("{0}/{4}-iter:lr = {1:4.3e}, scale = {2:4.3e}, cauchy = {3}, mini = {5}".format(n+1,lr,scale,dim_cauchy_vec,max_iter, minibatch_size ))
+            logging.info("{0}/{4}-iter:lr = {1:4.3e}, scale = {2:4.3e}, cauchy = {3}, mini = {5}".format(n+1,lr,scale,num_cauchy_rv,max_iter, minibatch_size ))
             logging.info("train loss= {}".format( average_loss))
             if monitor_validation:
                 logging.info("val_loss= {}  / average".format(average_val_loss))

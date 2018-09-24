@@ -69,7 +69,7 @@ class CompoundWishart(object):
 
         return np.array(rho_list)
 
-    def ESD(self, num_shot, dim_cauchy_vec=0, COMPLEX = False):
+    def ESD(self, num_shot, num_cauchy_rv=0, COMPLEX = False):
         p = self.p_dim
         d = self.dim
         B = np.diag(self.b)
@@ -78,9 +78,9 @@ class CompoundWishart(object):
             Z = Ginibre(p, d, COMPLEX)
             W = Z.H @ B @ Z
             evs = np.linalg.eigh(W)[0]
-            c_noise =  sp.stats.cauchy.rvs(loc=0, scale=self.scale, size=dim_cauchy_vec)
-            if dim_cauchy_vec >0:
-                for k in range(dim_cauchy_vec):
+            c_noise =  sp.stats.cauchy.rvs(loc=0, scale=self.scale, size=num_cauchy_rv)
+            if num_cauchy_rv >0:
+                for k in range(num_cauchy_rv):
                     evs_list.append( (evs - c_noise[k]).tolist())
             else:
                 evs_list.append(evs.tolist())
@@ -88,13 +88,13 @@ class CompoundWishart(object):
         return out
 
     def plot_density(self, COMPLEX=False, min_x = -50, max_x = 50,\
-    resolution=0.2, dim_cauchy_vec = 1000,num_shot = 100,bins=100, jobname="plot_density"):
+    resolution=0.2, num_cauchy_rv = 1000,num_shot = 100,bins=100, jobname="plot_density"):
 
         evs_list = self.ESD(num_shot, COMPLEX=COMPLEX)
         length = len(evs_list)
-        c_noise =  sp.stats.cauchy.rvs(loc=0, scale=self.scale, size=dim_cauchy_vec)
+        c_noise =  sp.stats.cauchy.rvs(loc=0, scale=self.scale, size=num_cauchy_rv)
         for i in range(length):
-            for j  in range(dim_cauchy_vec):
+            for j  in range(num_cauchy_rv):
                 evs_list.append(evs_list[i] - c_noise[j])
         plt.figure()
         plt.hist(evs_list, bins=bins, normed=True, label="ESD with cauchy noise")

@@ -15,7 +15,7 @@ import logging
 from spn_c2 import SemiCircular as SC ###for rectanglar
 
 
-def plot_true_sample_and_model_FDE(min_x, max_x, dim, p_dim, scale, dim_cauchy_vec, max_sigma=0.1,
+def plot_true_sample_and_model_FDE(min_x, max_x, dim, p_dim, scale, num_cauchy_rv, max_sigma=0.1,
 num_shot=1,\
 jobname="true_sample_and_model_FDE"):
     true_sc = SC(dim=dim, p_dim = p_dim, scale=scale)
@@ -36,8 +36,8 @@ jobname="true_sample_and_model_FDE"):
     #model_sc.set_params( np.random.uniform(low=0.5, high=1, size =dim),\
     #)
 
-    sample = true_sc.ESD(num_shot=num_shot,dim_cauchy_vec=dim_cauchy_vec)
-    #sample = true_sc.ESD_symm(num_shot=num_shot,dim_cauchy_vec=dim_cauchy_vec)
+    sample = true_sc.ESD(num_shot=num_shot,num_cauchy_rv=num_cauchy_rv)
+    #sample = true_sc.ESD_symm(num_shot=num_shot,num_cauchy_rv=num_cauchy_rv)
 
     x_array = np.linspace(min_x, max_x, 400)
     true_density = true_sc.density_subordinaiton(x_array)
@@ -65,4 +65,4 @@ jobname="true_sample_and_model_FDE"):
 
     return sample, model_density
 
-plot_true_sample_and_model_FDE(-4,4, dim=40,p_dim=240,  scale=2e-1, dim_cauchy_vec=100, max_sigma=0.1, num_shot=1)
+plot_true_sample_and_model_FDE(-4,4, dim=40,p_dim=240,  scale=2e-1, num_cauchy_rv=100, max_sigma=0.1, num_shot=1)
