@@ -13,9 +13,9 @@ from tqdm import tqdm, trange
 from cw import *
 import copy
 
-from utils.schedulers import *
 from optimizers.adam import Adam
 from optimizers.momentum import Momentum
+from utils.schedulers import *
 from utils.samplers import *
 
 
@@ -252,7 +252,7 @@ def train_fde_spn(dim, p_dim, sample,\
 
 def update( n , scale,  o_zero_thres, list_zero_thres, sc, SUBO, diag_A,sigma, \
     reg_coef, REG_TYPE, train_loss_list,average_forward_iter, \
-        Optimizer, Optimizer_sigma,Scheduler,Sampler,\
+        Optimizer, Optimizer_sigma,Scheduler,Sampler, Monitor,\
         dim,edge, monitor_validation, n_test_diag_A, n_test_sigma, val_loss_list,average_val_loss, num_zero_list,average_loss, log_step, plot_stepsize,\
         total_average_forwad_iter,\
         stdout_step, max_iter, Z_FLAG,sq_sample, test_U, test_V, p_dim):
@@ -264,13 +264,13 @@ def update( n , scale,  o_zero_thres, list_zero_thres, sc, SUBO, diag_A,sigma, \
 
         list_zero_thres = o_zero_thres
         num_zero = np.zeros(len(list_zero_thres))
-        ### run
+        ################################
+        ### Compute loss and gradients
+        ################################
         sc.scale= scale
         if SUBO:
             sc.update_params(diag_A, sigma)
-            #import pdb; pdb.set_trace()
             new_grads, new_loss = sc.grad_loss_subordination(mini)
-
             if TEST_C2:
                 sc2.scale = scale
                 sc2.update_params(diag_A, sigma)
@@ -279,34 +279,29 @@ def update( n , scale,  o_zero_thres, list_zero_thres, sc, SUBO, diag_A,sigma, \
                 print("sub-Psigma:", sc2_new_grads[-1] - new_grads[-1])
                 print("sc2 psigma:", sc2_new_grads[-1])
                 print("psigma:", new_grads[-1])
-                #print("subloss:",sc2_new_loss - new_loss)
-                #import pdb; pdb.set_trace()
-
-
-
-            #t_new_grads, t_new_loss = sc.grad_loss(diag_A, sigma, mini)
-            #logging.debug("test_loss: {}".format(np.linalg.norm(new_loss- t_new_loss)))
-            #logging.debug("test_grad: {}".format(np.linalg.norm(new_grads- t_new_grads)))
         else :
             new_grads, new_loss = sc.grad_loss(diag_A, sigma, mini)
 
-        r_grads, r_loss =  sc.regularization_grad_loss(diag_A, sigma,reg_coef=reg_coef, TYPE=REG_TYPE)
-        new_grads += r_grads
-        new_loss += r_loss
-        ### for output ###
-        train_loss_list.append(new_loss)
-        average_forward_iter[0] += sc.forward_iter[0]
-        sc.forward_iter[0] = 0
+        if reg_coef > 0:
+            r_grads, r_loss =  sc.regularization_grad_loss(diag_A, sigma,reg_coef=reg_coef, TYPE=REG_TYPE)
+            new_grads += r_grads
+            new_loss += r_loss
 
+
+
+
+        ##################################
+        ### Update Params ###
+        ##################################
         Optimizer.update(diag_A, new_grads[:-1])
         Optimizer_sigma.update(sigma, new_grads[-1])
+
 
         for k in range(dim):
             if abs(diag_A[k]) > edge:
                 logging.info( "diag_A[{}]={} reached the boundary".format(k,diag_A[k]))
                 diag_A[k] =edge*0.98
                 new_grads[k] = -1e-8
-
 
         if abs(sigma) > edge:
             logging.info("sigma reached the boundary:{}".format(sigma))
@@ -316,9 +311,19 @@ def update( n , scale,  o_zero_thres, list_zero_thres, sc, SUBO, diag_A,sigma, \
 
 
 
+
+
+
         ######################################
         ### Monitoring
         #####################################
+
+        ### gathering results ###
+        train_loss_list.append(new_loss)
+        average_forward_iter[0] += sc.forward_iter[0]
+        sc.forward_iter[0] = 0
+
+
         if monitor_validation:
             #val_loss=np.sum(np.abs(np.sort(np.abs(diag_A)) - np.sort(np.abs(n_test_diag_A)))) +  np.abs(np.abs(sigma) - n_test_sigma)
             val_loss=np.linalg.norm(np.sort(np.abs(diag_A)) - np.sort(np.abs(n_test_diag_A))) +  np.abs(np.abs(sigma) - n_test_sigma)

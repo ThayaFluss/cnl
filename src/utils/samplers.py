@@ -3,7 +3,9 @@ import numpy as np
 
 
 class CauchyNoiseSampler(object):
-    """docstring for CauchyNoiseSampler."""
+    """ Cauchy Noise Sampler."""
+    """ Choose minibatch from sample """
+
     def __init__(self, scale, minibatch_size=1,  num_cauchy_rv=1,\
      sampling_type="CHOICE", mix="DIAGONAL"):
         super(CauchyNoiseSampler, self).__init__()
@@ -22,7 +24,7 @@ class CauchyNoiseSampler(object):
 
     def get(self):
         """
-        Choose minibatch from sample
+        returns minibatch.
         iter_per_epoch = len(sample)/minibatch_size
         """
         scale=self.scale
