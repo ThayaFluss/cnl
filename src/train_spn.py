@@ -85,10 +85,7 @@ def train_fde_spn(dim, p_dim, sample,\
     ### tf_summary, logging and  plot
     log_step = 50
     stdout_step = 5000
-    KL_log_step = 10*dim
-    plot_stepsize = stdout_step
     plot_stepsize = -1
-    stop_count_thres = 100
 
 
 
@@ -204,7 +201,6 @@ def train_fde_spn(dim, p_dim, sample,\
 
     average_forward_iter = np.zeros(1)
     total_average_forwad_iter = np.zeros(1)
-    stop_count = 0
     ### SGD
 
     Sampler = CauchyNoiseSampler(scale=scale, num_cauchy_rv=num_cauchy_rv, minibatch_size=minibatch_size)

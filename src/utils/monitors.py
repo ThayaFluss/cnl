@@ -1,6 +1,12 @@
+import matplotlib.pyplot as plt
+
+
+
+
 class SPNMonitor(object):
     """ Monitor for training spn"""
-    def __init__(self, arg):
+    def __init__(self, log_step, stdout_step, plot_stepsize=-1, \
+    monitor_validation=True,monitor_Z=True, zero_thresholds=[]):
         super(MonitorSPN, self).__init__()
         self.log_step = log_step
         self.stdout_step = stdout_step
@@ -23,7 +29,7 @@ class SPNMonitor(object):
 
 
 
-        self.num_zeros = num_zeros
+        self.num_zeros = None
         self.zero_thresholds = zero_thresholds
 
         self.Optimizer = None
