@@ -487,7 +487,9 @@ class SemiCircular(object):
         return loss
 
     #@jit
-    def grad_loss(self, param_array, sigma, sample):
+    def grad_loss(self,  sample):
+            param_array = sc.diag_A
+            sigma = sc.sigma
             size = np.shape(param_array)[0]
             param_mat = np.matrix(np.diag(param_array))
 
@@ -545,7 +547,9 @@ class SemiCircular(object):
 
 
 
-    def regularization_grad_loss(self, diag_A, sigma,reg_coef, TYPE="L1"):
+    def regularization_grad_loss(self, reg_coef, TYPE="L1"):
+        diag_A = sc.diag_A
+        sigma = sc.sigma
         if TYPE == "L1":
             loss =  np.sum(np.abs(diag_A)) #+ abs(sigma)
             loss *= reg_coef

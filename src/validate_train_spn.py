@@ -186,7 +186,7 @@ def test_optimize(\
         monitor_validation=True,\
         test_diag_A=param,\
         test_sigma =true_sigma,\
-        test_U= U, test_V=V, Z_FLAG=True,\
+        test_U= U, test_V=V, monitor_Z=True,\
         list_zero_thres = list_zero_thres,\
         )
 

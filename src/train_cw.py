@@ -108,10 +108,10 @@ def train_fde_spn(dim, p_dim, sample,\
  monitor_validation=True,\
  SUBO=True,reg_coef = 0,\
  test_diag_A=-1, test_sigma=-1, \
- Z_FLAG= False,test_U= -1, test_V= -1, \
+ monitor_Z= False,test_U= -1, test_V= -1, \
  list_zero_thres=[1e-5,1e-4,1e-3,1e-2,1e-1]):
 
-    if Z_FLAG:
+    if monitor_Z:
         assert (len(sample) == dim )
 
     sample_size =len(sample)
@@ -266,7 +266,7 @@ def train_fde_spn(dim, p_dim, sample,\
     average_loss = 0
     average_val_loss = 0
     average_sigma = 0
-    average_diagA = 0
+    average_diag_A = 0
 
     o_zero_thres = list_zero_thres
 
@@ -285,7 +285,7 @@ def train_fde_spn(dim, p_dim, sample,\
         Optimizer, Optimizer_sigma,Scheduler,\
         dim,edge, monitor_validation, n_test_diag_A, n_test_sigma, val_loss_list,average_val_loss, num_zero_list,average_loss, log_step, plot_stepsize,\
         total_average_forwad_iter,\
-        stdout_step, max_iter, Z_FLAG,sq_sample, test_U, test_V, p_dim)
+        stdout_step, max_iter, monitor_Z,sq_sample, test_U, test_V, p_dim)
 
     logging.info("result:")
     logging.info("sigma:".format(sigma))
@@ -308,7 +308,7 @@ def train_fde_spn(dim, p_dim, sample,\
         sigma *= normalize_ratio
         diag_A *= normalize_ratio
 
-    diagA = np.sort( abs(diag_A)[::-1])
+    diag_A = np.sort( abs(diag_A)[::-1])
     result = dict(diag_A = diag_A,\
     sigma= sigma,
     train_loss= train_loss_array,
@@ -324,7 +324,7 @@ def update(sample, minibatch_size, n , scale, num_cauchy_rv, o_zero_thres, list_
         Optimizer, Optimizer_sigma,Scheduler,\
         dim,edge, monitor_validation, n_test_diag_A, n_test_sigma, val_loss_list,average_val_loss, num_zero_list,average_loss, log_step, plot_stepsize,\
         total_average_forwad_iter,\
-        stdout_step, max_iter, Z_FLAG,sq_sample, test_U, test_V, p_dim):
+        stdout_step, max_iter, monitor_Z,sq_sample, test_U, test_V, p_dim):
 
 
         ### for epoch base
@@ -415,7 +415,7 @@ def update(sample, minibatch_size, n , scale, num_cauchy_rv, o_zero_thres, list_
                     logging.info("{}/{}-iter:".format(n+1,max_iter))
                     logging.info("lr = {0:4.3e}, scale = {1:4.3e}, minibatch:{2}, cauchy:{3}".format(lr,scale,minibatch_size,num_cauchy_rv ) )
                     logging.info("train loss= {}".format( average_loss))
-                    if Z_FLAG:
+                    if monitor_Z:
                         diff_sv =  np.sort(sq_sample)[::-1] - np.sort(abs(diag_A))[::-1]
                         Diff = test_U @ rectangular_diag( diff_sv, p_dim, dim) @ test_V
                         z_value = np.sum(Diff)/ (sp.sqrt(p_dim)*sigma)
@@ -429,10 +429,10 @@ def update(sample, minibatch_size, n , scale, num_cauchy_rv, o_zero_thres, list_
                 if (n % stdout_step + 1) == stdout_step:
 
                     logging.info("sigma= {}".format(sigma))
-                    #logging.info("diag_A (sorted)=\n{}  / 10-iter".format(np.sort(diagA)))
+                    #logging.info("diag_A (sorted)=\n{}  / 10-iter".format(np.sort(diag_A)))
                     #logging.info( "diag_A (raw) =\n{}".format(diag_A))
                     logging.info("num_zero={} / thres={}".format(num_zero,list_zero_thres))
-                    #logging.info("diag_A/ average: min, mean, max= \n {}, {}, {} ".format(np.min(average_diagA), np.average(average_diagA), np.max(average_diagA)))
+                    #logging.info("diag_A/ average: min, mean, max= \n {}, {}, {} ".format(np.min(average_diag_A), np.average(average_diag_A), np.max(average_diag_A)))
                     logging.info("forward_iter={}".format(average_forward_iter))
 
 

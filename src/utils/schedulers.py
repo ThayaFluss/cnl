@@ -20,7 +20,7 @@ class Step(object):
         self.decay = decay
 
     def get(self, t):
-        mult =  math.pow(t // self.stepsize, self.decay)
+        mult =  math.pow(self.decay, t // self.stepsize)
         return mult
 
 
@@ -34,4 +34,4 @@ class Inv(object):
 
     def get(self,t):
         mult = math.pow( 1 + self.gamma*t, -self.power)
-        return
+        return mult
