@@ -144,9 +144,20 @@ def test_optimize(\
 
     logging.info( "zero_dim={}".format(zero_dim) )
     logging.info( "min_singular={}".format(min_singular) )
-
+    ### Generate parameter matrix
     param_mat = random_from_diag(p_dim, dim, zero_dim, min_singular, COMPLEX)
     _, param, _ = np.linalg.svd(param_mat)
+
+    ### For  scalar* rectangular identity
+    ###      d
+    ###   1 0 0 ...
+    ### p 0 1 0 ...
+    ###   0 0 1 ...
+    ###    ....
+    ###           0  1
+    ###           0  0
+    param = min_singular*np.ones(dim)
+
     logging.debug( "truth=\n{}".format(np.sort(param)))
 
     evs_list =[]

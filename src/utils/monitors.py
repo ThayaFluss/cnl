@@ -49,9 +49,12 @@ class SPNMonitor(object):
 
 
     def setup(self, diag_A, sigma, Optimizer, Sampler, U=None,V=None):
-        self.monitor_validation = True
-        self.test_params["diag_A"] =  diag_A
-        self.test_params["sigma"] = sigma
+        if diag_A is None:
+            self.monitor_validation = False
+        else:
+            self.test_params["diag_A"] =  diag_A
+            self.test_params["sigma"] = sigma
+            self.monitor_validation = True
 
         self.Optimizer = Optimizer
         self.Sampler = Sampler

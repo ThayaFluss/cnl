@@ -16,7 +16,7 @@ def haar_unitary(M, COMPLEX=False):
     U,D,V = np.linalg.svd(G)
     return U
 
-def random_from_diag(M,N,zero_dim=0, min_singular=0,COMPLEX=False):
+def random_from_diag(M,N,zero_dim=0, min_singular=0,  COMPLEX=False):
     assert zero_dim <= min(M,N)
     array  = np.random.uniform( min_singular, 1, N)
     for i in range(zero_dim):
@@ -25,6 +25,10 @@ def random_from_diag(M,N,zero_dim=0, min_singular=0,COMPLEX=False):
     U = haar_unitary(M, COMPLEX)
     V = haar_unitary(N, COMPLEX)
     return U @ D @ V
+
+
+
+
 
 def signal_plus_noise_symm(p_dim , dim, param_mat, sigma=1, COMPLEX=False):
     out = np.zeros([2*p_dim, 2*p_dim])

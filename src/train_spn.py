@@ -20,6 +20,8 @@ from optimizers.momentum import Momentum
 from utils.schedulers import *
 from utils.samplers import *
 from utils.monitors import *
+from regularizers import ista
+
 
 TEST_C2 =   False
 
@@ -40,12 +42,14 @@ def train_fde_spn(dim, p_dim, sample,\
  base_scale = 1e-1, base_lr = 1e-4,\
  max_epoch=400,num_cauchy_rv=1, minibatch_size=1, \
  normalize_sample = False, edge= -1,\
+ optimizer = "Adam",
  lr_policy="fix", step_epochs=[],\
  monitor_validation=True,\
  SUBO=True,reg_coef = 0,\
- test_diag_A=-1, test_sigma=-1, \
+ test_diag_A=None, test_sigma=None, \
  monitor_Z= False,test_U= -1, test_V= -1, \
- list_zero_thres=[1e-5,1e-4,1e-3,1e-2,1e-1]):
+ list_zero_thres=[1e-5,1e-4,1e-3,1e-2,1e-1],
+ scalar_initialize = False):
 
     if monitor_Z:
         assert (len(sample) == dim )
@@ -55,16 +59,21 @@ def train_fde_spn(dim, p_dim, sample,\
     iter_per_epoch = int(sample_size/minibatch_size)
     max_iter = max_epoch*iter_per_epoch
 
-    if np.allclose(test_diag_A, -1):
+    if test_diag_A is None:
         monitor_validation=False
 
-    REG_TYPE = "L1"
-    optimizer = "Adam"
+    REG_TYPE = "L1"  ### "L1"
+    ### Use iterative shrinkage-Thresholding Algorithm
+    #Ista = ista.ISTA(reg_coef)
+    Ista = None
+    if not Ista is None:
+        logging.info("use ISTA")
+                     ### for L1-regularization
+    #optimizer = "Adam"
     #optimizer = "momentum"
-    #lr_policy = "inv"
 
     if optimizer == "momentum":
-        Optimizer = Momentum(lr=base_lr,momentum=0)
+        Optimizer = Momentum(base_lr=base_lr,momentum=0)
 
     elif optimizer == "Adam":
         Optimizer = Adam(alpha=base_lr)
@@ -77,7 +86,7 @@ def train_fde_spn(dim, p_dim, sample,\
         Scheduler = Inv()
 
     elif lr_policy == "step":
-        Scheduler = Step(decay=0.1, stepsize=step_epochs[0])
+        Scheduler = Step(decay=0.1, stepsize=iter_per_epoch*step_epochs[0])
     elif lr_policy == "fix":
         Scheduler = Fix()
     else:
@@ -86,11 +95,10 @@ def train_fde_spn(dim, p_dim, sample,\
 
 
 
-
-
     ### tf_summary, logging and  plot
     log_step = 50
     stdout_step = 5000
+    #stdout_step= -1
     plot_stepsize = -1
 
 
@@ -113,22 +121,35 @@ def train_fde_spn(dim, p_dim, sample,\
     ### clip large grad
     clip_grad = -1
 
+    ###
+    ### Initialize Parameters
+    ###
     lam_plus = 1 + sp.sqrt(p_dim/dim)
     sigma = max_sq_sample/lam_plus
     sigma = abs(sigma)
+    sigma*=0.1
+    #sigma = 0.1
+
+    ### comment out here to fix sigma
     sigma = np.array(sigma)
+    ###
+    #import pdb; pdb.set_trace()
 
-    diag_A = sq_sample
-    diag_A = abs(diag_A)
-    diag_A = np.sort(diag_A)
-    diag_A = np.array(diag_A, dtype=np.float64)
+    if scalar_initialize:
+        diag_A = 0.1*np.ones_like( sq_sample )
+    else:
+        diag_A = sq_sample
+        diag_A = abs(diag_A)
+        diag_A = np.sort(diag_A)
+        diag_A = np.array(diag_A, dtype=np.float64)
+
+        diag_A*=0.1
 
 
-
-    logging.info("base_scale = {}".format(base_scale) )
-    logging.info("num_cauchy_rv = {}".format(num_cauchy_rv) )
     logging.info("base_lr = {}".format(base_lr) )
-    logging.info("minibatch_size = {}".format(minibatch_size) )
+    logging.debug("minibatch_size = {}".format(minibatch_size) )
+    logging.info("base_scale = {}".format(base_scale) )
+    logging.debug("num_cauchy_rv = {}".format(num_cauchy_rv) )
 
     logging.debug("Initial diag_A=\n{}".format(diag_A))
     logging.info("Initial sigma={}".format(sigma))
@@ -193,12 +214,12 @@ def train_fde_spn(dim, p_dim, sample,\
 
     Monitor = SPNMonitor(log_step, stdout_step, plot_stepsize, monitor_validation, \
     monitor_Z, list_zero_thres)
-    Monitor.setup(test_diag_A, test_sigma, Optimizer, Sampler, test_U, test_V)
+    Monitor.setup(n_test_diag_A, n_test_sigma, Optimizer, Sampler, test_U, test_V)
 
 
     for n in trange(max_iter):
-        update(n ,   sc, SUBO,\
-        reg_coef,REG_TYPE,  Optimizer, Optimizer_sigma,Scheduler,Sampler,Monitor,\
+        _update(n ,   sc, SUBO,\
+        reg_coef,REG_TYPE, Ista,  Optimizer, Optimizer_sigma,Scheduler,Sampler,Monitor,\
         edge)
 
     logging.info("result:")
@@ -239,8 +260,8 @@ def train_fde_spn(dim, p_dim, sample,\
 
 
 
-def update( n , sc, SUBO, \
-        reg_coef, REG_TYPE, Optimizer, Optimizer_sigma,Scheduler,Sampler, Monitor,\
+def _update( n , sc, SUBO, \
+        reg_coef, REG_TYPE, Ista, Optimizer, Optimizer_sigma,Scheduler,Sampler, Monitor,\
         edge):
 
 
@@ -264,7 +285,7 @@ def update( n , sc, SUBO, \
         else :
             grads, loss = sc.grad_loss( mini)
 
-        if reg_coef > 0:
+        if reg_coef > 0 and (Ista is None):
             r_grads, r_loss =  sc.regularization_grad_loss(reg_coef=reg_coef, TYPE=REG_TYPE)
             grads += r_grads
             loss += r_loss
@@ -275,6 +296,11 @@ def update( n , sc, SUBO, \
         ##################################
         Optimizer.update(diag_A, grads[:-1])
         Optimizer_sigma.update(sigma, grads[-1])
+
+
+        if reg_coef > 0  and not (Ista is None):
+            diag_A = Ista.run(diag_A)
+
 
 
         for k in range(diag_A.size):
