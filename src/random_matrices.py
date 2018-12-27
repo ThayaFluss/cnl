@@ -9,7 +9,7 @@ def Ginibre(M, N, COMPLEX=False):
         out=(randn(M,N) + 1j*randn(M,N) )/ sp.sqrt(2*N)
     else:
         out=randn(M,N)/ sp.sqrt(N)
-    return np.matrix(out)
+    return out
 
 def haar_unitary(M, COMPLEX=False):
     G = Ginibre(M,M,COMPLEX)
