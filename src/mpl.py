@@ -15,6 +15,60 @@ def main():
     #plot_loss()
 
 
+def plot_log_value():
+    v0 = 0.5 #1/sp.sqrt(2)  ###  parameter for genrating sample
+    d = 100 ### dimensio:____n
+    num_cauchy_rv = 100
+    #num_test = 1
+    max_x = 1
+    num_x = max_x*10*d
+    num_x = int(num_x)
+    x = np.linspace(0.01,1, num_x)
+
+    fig= plt.figure(figsize=(3.14*2,3.14*2))  ## 3.14=8cm
+    plt.rcParams['font.family'] ='sans-serif'
+    plt.rcParams['font.size'] = 10
+    #plt.rc("text", usetex=True)
+    x_list = [0,0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+
+    ax_h = fig.add_subplot(2,1,1, \
+    title="Log-scale plot of $F_\gamma$",\
+    yscale="log",\
+    xlabel="v",\
+    xticks= x_list,\
+    ylabel="$F_\gamma$")
+
+    ax_loss = fig.add_subplot(2,1,2, \
+    title="Mean Cauchy Noise Loss",\
+    xlabel="v",\
+    xticks= x_list,\
+    ylabel="Loss")
+
+    #lines = ["-", "--", "-.", ":"]
+    lines = [":", "-.", "--", "-"]
+    idx = 0 ### index for line
+    eigs = sample_eigen_values(v0,d)
+    for scale in [ 1, 1e-1, 1e-2, 1e-3]:
+        print("scale=", scale)
+        result =  np.zeros_like(x)
+        perturbed = perturbation(eigs, d,scale, num_cauchy_rv)
+        loss = empirical_loss_multi(x, perturbed, scale)
+        vals = val_mpl_multi(x, perturbed, scale)
+        ax_h.plot(x, vals, linestyle=lines[idx], label="$\gamma=${}".format(scale))
+        ax_loss.plot(x, loss, linestyle=lines[idx], label="$\gamma=${}".format(scale))
+        idx += 1
+        idx %= len(lines)
+
+
+
+    for ax in [ax_h, ax_loss]:
+        ax.grid(which='major',color='gray',linestyle='-')
+        ax.legend()
+
+    fig.tight_layout()
+    fig.savefig('../../phd/mpl_likelihood_eq_loss.png', transparent=True, dpi=300)
+    #plt.show()
+
 
 def plot_loss():
     v0 = 0.5 #1/sp.sqrt(2)
@@ -62,67 +116,6 @@ def plot_loss():
     plt.grid(which='major',color='black',linestyle='-')
     plt.legend()
     plt.show()
-
-
-
-
-def plot_log_value():
-    v0 = 0.5 #1/sp.sqrt(2)  ###  parameter for genrating sample
-    d = 100 ### dimension
-    num_cauchy_rv = 100
-    #num_test = 1
-    max_x = 1
-    num_x = max_x*10*d
-    num_x = int(num_x)
-    x = np.linspace(0.01,1, num_x)
-
-    fig= plt.figure(figsize=(3.14*2,3.14*2))  ## 3.14: 8cm
-    plt.rcParams['font.family'] ='sans-serif'
-    plt.rcParams['font.size'] = 10
-
-    #lines = ["-", "--", "-.", ":"]
-    lines = [":", "-.", "--", "-"]
-    #plt.rc("text", usetex=True)
-    x_list = [0,0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
-
-    ax_h = fig.add_subplot(2,1,1, \
-    title="Log-scale plot of $h$",\
-    yscale="log",\
-    xlabel="v",\
-    xticks= x_list,\
-    ylabel="$h$")
-
-    ax_loss = fig.add_subplot(2,1,2, \
-    title="Mean Cauchy Noise Loss",\
-    xlabel="v",\
-    xticks= x_list,\
-    ylabel="Loss")
-
-
-    idx = 0
-    eigs = sample_eigen_values(v0,d)
-    for scale in [ 1, 1e-1, 1e-2, 1e-3]:
-        print("scale=", scale)
-        result =  np.zeros_like(x)
-        perturbed = perturbation(eigs, d,scale, num_cauchy_rv)
-        loss = empirical_loss_multi(x, perturbed, scale)
-        vals = val_mpl_multi(x, perturbed, scale)
-        ax_h.plot(x, vals, linestyle=lines[idx], label="$\gamma=${}".format(scale))
-        ax_loss.plot(x, loss, linestyle=lines[idx], label="$\gamma=${}".format(scale))
-        idx += 1
-        idx %= len(lines)
-
-
-
-    for ax in [ax_h, ax_loss]:
-        ax.grid(which='major',color='gray',linestyle='-')
-        ax.legend()
-
-    fig.tight_layout()
-
-
-    plt.savefig('../../phd/mpl_likelihood_eq_loss.png', transparent=True, dpi=300)
-    #plt.show()
 
 
 def sample_eigen_values(v0,d):
@@ -193,8 +186,9 @@ def param_derivative(v,sample, scale):
 
 def empirical_loss(v, sample, scale):
     z = sample + 1j*scale
-    f = sp.sqrt( 1/v - 4/z)
+    f = sp.sqrt( 1 - 4*v/z)
     prob = f.imag/sp.pi
+    prob /= v
     assert np.all( prob> 0)
     out = -np.mean(sp.log(prob))
     return out

@@ -333,8 +333,8 @@ def test_sc(jobname, VS_VBMF=False):
 
 
     ###base_line
-    #rank_recovery_baseline(dirname, list_zero_dim, list_min_singular, list_zero_thres, sigma=0.1)
-
+    rank_recovery_baseline(dirname, list_zero_dim, list_min_singular, list_zero_thres, sigma=0.1)
+    import pdb; pdb.set_trace()
     linestyles = ["-", "--", "-.", ":"]
 
     if VS_VBMF:
@@ -362,8 +362,7 @@ def test_sc(jobname, VS_VBMF=False):
             plt.style.use("seaborn-paper")
             plt.rc('text', usetex=opt.usetex)
             plt.rc('font', family="sans-serif", serif='Helvetica')
-            plt.rcParams["font.size"] = 8*2
-
+            plt.rcParams["font.size"] = 10
             zero_dim = list_zero_dim[i]
             true_rank = i_dim - zero_dim
             plt.plot(x_axis, vbmf_estimated_rank[i], label="true rank: {}".format(true_rank), marker="+")
@@ -379,7 +378,7 @@ def test_sc(jobname, VS_VBMF=False):
         plt.style.use("seaborn-paper")
         plt.rc('text', usetex=opt.usetex)
         plt.rc('font', family='sans-serif', serif='Helvetica')
-        plt.rcParams["font.size"] = 8*2
+        plt.rcParams["font.size"] = 10
 
 
         for i in range(num_zero_dim):
@@ -487,6 +486,7 @@ def test_sc(jobname, VS_VBMF=False):
                 plt.plot(x_axis,list_val_loss_curve[n], label="$\gamma={0:3.2e}$".format(base_scale), linestyle=linestyles[ line_idx % 4])
                 n+=1
                 line_idx += 1
+                line_idx %= len(linestyles)
         plt.title("SPN")
         plt.xlabel("Epoch")
         plt.ylabel("Validation Loss")
@@ -662,7 +662,7 @@ def test_sc(jobname, VS_VBMF=False):
             plt.style.use("seaborn-paper")
             plt.rc('text', usetex=opt.usetex)
             plt.rc('font', family="sans-serif", serif='Helvetica')
-            plt.rcParams["font.size"] = 8*2
+            plt.rcParams["font.size"] = 10
 
             zero_dim = list_zero_dim[i]
             true_rank = i_dim - zero_dim
@@ -698,7 +698,7 @@ def test_sc(jobname, VS_VBMF=False):
             plt.style.use("seaborn-paper")
             plt.rc('text', usetex=opt.usetex)
             plt.rc('font', family="sans-serif", serif='Helvetica')
-            plt.rcParams["font.size"] = 8*2
+            plt.rcParams["font.size"] = 10
             thres = list_zero_thres[k]
             for i in range(num_zero_dim):
                 zero_dim = list_zero_dim[i]
@@ -732,7 +732,7 @@ def test_sc(jobname, VS_VBMF=False):
             plt.style.use("seaborn-paper")
             plt.rc('text', usetex=opt.usetex)
             plt.rc('font', family="sans-serif", serif='Helvetica')
-            plt.rcParams["font.size"] = 8*2
+            plt.rcParams["font.size"] = 10
             thres = list_zero_thres[k]
             for i in range(num_zero_dim):
                 zero_dim = list_zero_dim[i]
@@ -773,7 +773,7 @@ def rank_recovery_baseline(dirname, list_zero_dim, list_min_singular, list_zero_
         plt.rc('text', usetex=opt.usetex)
         plt.style.use("seaborn-paper")
         #plt.rc('font', family="sans-serif", serif='Helvetica')
-        #plt.rcParams["font.size"] = 8*2
+        #plt.rcParams["font.size"] = 10
         plt.title("Baseline")
         x_axis = list_min_singular
         ls_idx=0 ###linestyle index
