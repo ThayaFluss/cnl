@@ -127,7 +127,8 @@ def train_fde_spn(dim, p_dim, sample,\
     lam_plus = 1 + sp.sqrt(p_dim/dim)
     sigma = max_sq_sample/lam_plus
     sigma = abs(sigma)
-    sigma*=0.1
+    sigma = 0.12
+    #sigma*=0.1
     #sigma = 0.1
 
     ### comment out here to fix sigma
@@ -143,7 +144,7 @@ def train_fde_spn(dim, p_dim, sample,\
         diag_A = np.sort(diag_A)
         diag_A = np.array(diag_A, dtype=np.float64)
 
-        diag_A*=0.1
+        #diag_A*=0.1
 
 
     logging.info("base_lr = {}".format(base_lr) )

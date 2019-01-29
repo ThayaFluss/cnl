@@ -156,7 +156,7 @@ def test_optimize(\
     ###    ....
     ###           0  1
     ###           0  0
-    param = min_singular*np.ones(dim)
+    #param = min_singular*np.ones(dim)
 
     logging.debug( "truth=\n{}".format(np.sort(param)))
 
@@ -184,7 +184,7 @@ def test_optimize(\
     #TODO: initial num zero_array
 
     sample = np.asarray(evs_list)
-    import pdb; pdb.set_trace()
+    #import pdb; pdb.set_trace()
 
     result= train_fde_spn(dim, p_dim,  sample,\
         base_scale=base_scale ,\
@@ -335,7 +335,7 @@ def test_sc(jobname, VS_VBMF=False):
 
     ###base_line
     rank_recovery_baseline(dirname, list_zero_dim, list_min_singular, list_zero_thres, sigma=0.1)
-    import pdb; pdb.set_trace()
+    #import pdb; pdb.set_trace()
     linestyles = ["-", "--", "-.", ":"]
 
     if VS_VBMF:
