@@ -184,6 +184,7 @@ def test_optimize(\
     #TODO: initial num zero_array
 
     sample = np.asarray(evs_list)
+    import pdb; pdb.set_trace()
 
     result= train_fde_spn(dim, p_dim,  sample,\
         base_scale=base_scale ,\
@@ -804,6 +805,7 @@ def rank_recovery_baseline(dirname, list_zero_dim, list_min_singular, list_zero_
             label = "${}$".format(true_rank)
             plt.errorbar(x_axis,diff_rank, std_num_zero_list, label=label, linestyle=linestyles[ls_idx])
             ls_idx+=1
+            ls_idx %= len(linestyles)
 
 
         plt.xlabel("$\lambda_{min}$")

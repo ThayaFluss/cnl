@@ -76,7 +76,7 @@ class CompoundWishart(object):
         evs_list = []
         for n in range(num_shot):
             Z = Ginibre(p, d, COMPLEX)
-            W = Z.H @ B @ Z
+            W = np.conjugate(Z).T @ B @ Z
             evs = np.linalg.eigh(W)[0]
             c_noise =  sp.stats.cauchy.rvs(loc=0, scale=self.scale, size=num_cauchy_rv)
             if num_cauchy_rv >0:
